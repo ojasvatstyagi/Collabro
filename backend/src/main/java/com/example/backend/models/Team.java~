@@ -1,6 +1,5 @@
 package com.example.backend.models;
 
-import com.example.backend.enums.TeamStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,9 +20,7 @@ public class Team {
 
     private String teamName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private TeamStatus status;
+    private String status;
 
     @ManyToOne
     @JoinColumn(name = "profile_id", nullable = false)
