@@ -4,7 +4,7 @@ import AuthLayout from '../components/ui/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { validateRegister } from '../utils/validation';
-import { register, RegisterCredentials } from '../services/auth';
+import { authApi, RegisterCredentials } from '../services/api/auth';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const Register: React.FC = () => {
@@ -49,7 +49,7 @@ const Register: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await register(credentials);
+      const response = await authApi.register(credentials);
       
       if (response.success) {
         setFormSuccess('Registration successful! Redirecting to login...');
