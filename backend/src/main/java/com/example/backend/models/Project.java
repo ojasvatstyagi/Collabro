@@ -1,6 +1,7 @@
 package com.example.backend.models;
 
 import com.example.backend.enums.ProjectLevel;
+import com.example.backend.enums.ProjectStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,7 +38,10 @@ public class Project {
 
     private int teamSize;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ProjectStatus status;
+
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
