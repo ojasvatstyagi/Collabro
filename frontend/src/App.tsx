@@ -9,8 +9,12 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Achievements from "./pages/Achievements";
 import MyProjects from "./pages/MyProjects";
+import Teams from "./pages/Teams";
 import Requests from "./pages/Requests";
+import History from "./pages/History";
 import SettingsPage from "./pages/SettingsPage";
+import ProjectWorkspace from "./pages/ProjectWorkspace";
+import PostIdea from "./pages/PostIdea";
 import { useTheme } from "./context/ThemeContext";
 
 function App() {
@@ -19,7 +23,7 @@ function App() {
   return (
     <div
       className={`min-h-screen w-full transition-colors duration-300 ${
-        theme === "dark" ? "bg-brand-dark/95" : "bg-brand-light/30"
+        theme === "dark" ? "bg-brand-dark-light" : "bg-brand-light-dark"
       }`}
     >
       <Routes>
@@ -32,7 +36,11 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/achievements" element={<Achievements />} />
         <Route path="/projects" element={<MyProjects />} />
+        <Route path="/teams" element={<Teams />} />
+        <Route path="/project/:projectId" element={<ProjectWorkspace />} />
+        <Route path="/post-idea" element={<PostIdea />} />
         <Route path="/requests" element={<Requests />} />
+        <Route path="/history" element={<History />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </div>

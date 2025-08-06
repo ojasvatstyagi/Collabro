@@ -4,7 +4,7 @@ import AuthLayout from '../components/ui/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { validateEmail } from '../utils/validation';
-import { forgotPassword } from '../services/auth';
+import { authApi } from '../services/api/auth';
 import { AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 const ForgotPassword: React.FC = () => {
@@ -27,7 +27,7 @@ const ForgotPassword: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await forgotPassword(email);
+      const response = await authApi.forgotPassword(email);
       
       if (response.success) {
         setSuccess('Recovery instructions have been sent to your email.');
