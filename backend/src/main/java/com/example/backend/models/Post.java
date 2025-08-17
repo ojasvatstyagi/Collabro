@@ -6,7 +6,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -29,8 +31,9 @@ public class Post {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Date createdAt;
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
 
     @ElementCollection
     @CollectionTable(name = "post_required_skills", joinColumns = @JoinColumn(name = "post_id"))
@@ -57,8 +60,4 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Request> requests;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = new Date();
-    }
 }
