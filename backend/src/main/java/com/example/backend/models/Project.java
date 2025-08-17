@@ -6,7 +6,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -45,8 +47,8 @@ public class Project {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Date createdAt;
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     @OneToOne
     @JoinColumn(name = "post_id", nullable = false)
@@ -66,8 +68,4 @@ public class Project {
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = new Date();
-    }
 }
