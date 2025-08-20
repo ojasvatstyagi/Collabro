@@ -1,12 +1,15 @@
 package com.example.backend.services;
 
 
+import com.example.backend.models.User;
+import com.example.backend.repositories.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -23,15 +26,11 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Username does not exist"));
 
         // Create a granted authority based on the user's single role
-        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().getName());
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
-                user.getPassword(),
-                user.isActive(), // Account is active
-                true,           // Account is not expired
-                true,           // Credentials are not expired
-                true,           // Account is not locked
+                user.setHashed_password(new BCryptPasswordEncoder().encode(plainTextPassword)),
                 Collections.singleton(authority)
         );
     }
