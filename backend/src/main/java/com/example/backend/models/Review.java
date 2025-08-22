@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -26,7 +28,8 @@ public class Review {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Date createdAt;
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     @ManyToOne
     @JoinColumn(name = "reviewer_id", nullable = false)
@@ -40,8 +43,4 @@ public class Review {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = new Date();
-    }
 }

@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +35,8 @@ public class Task {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Date createdAt;
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "deadline", nullable = false)
@@ -51,8 +54,4 @@ public class Task {
     @JoinColumn(name = "assigned_to")
     private Profile assignedTo;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = new Date();
-    }
 }
