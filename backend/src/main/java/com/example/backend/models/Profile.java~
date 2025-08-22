@@ -56,7 +56,7 @@ public class Profile {
     private List<Project> createdProjects;
 
     // Projects where this profile is a team member
-    @ManyToMany(mappedBy = "members")
+    @OneToMany(mappedBy = "profiles")
     private List<Project> projects;
 
     @OneToMany(mappedBy = "assignedTo", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -1,13 +1,11 @@
 package com.example.backend.utils;
 
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Base64;
 import java.util.Date;
 
 @Component
@@ -16,7 +14,7 @@ public class JwtUtils {
     private final String jwtSecret = "securesecuresecuresecuresecuresecure"; // 32-bit secret key
     private final long jwtExpirationMs = 86400000; // 1 day validity
 
-    private Key key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(Base64.getEncoder().encodeToString(jwtSecret.getBytes())));
+    private Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
 
     public String generateJwtToken(Authentication authentication) {
         return Jwts.builder()
