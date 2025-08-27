@@ -55,10 +55,6 @@ public class Profile {
     @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> createdProjects;
 
-    // Projects where this profile is a team member
-    @ManyToMany(mappedBy = "members")
-    private List<Project> projects;
-
     @OneToMany(mappedBy = "assignedTo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> assignedTasks;
 
