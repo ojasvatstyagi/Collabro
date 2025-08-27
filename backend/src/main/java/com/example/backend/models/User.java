@@ -22,7 +22,8 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "role_id")
     private Role role;
 
     @Column(nullable = false)
