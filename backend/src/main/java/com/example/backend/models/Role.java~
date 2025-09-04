@@ -2,7 +2,9 @@ package com.example.backend.models;
 
 import com.example.backend.enums.RoleName;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
