@@ -1,13 +1,11 @@
 package com.example.backend.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,7 +13,6 @@ import java.util.UUID;
 @Table(name = "profiles")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -63,5 +60,4 @@ public class Profile {
 
     @OneToMany(mappedBy = "reviewer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> givenReviews;
-
 }
