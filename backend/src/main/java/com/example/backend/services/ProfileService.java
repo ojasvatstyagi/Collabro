@@ -13,6 +13,7 @@ import java.util.ArrayList;
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
+
     public Profile createEmptyProfile(User user) {
         Profile profile = new Profile();
         profile.setUser(user);
@@ -26,6 +27,7 @@ public class ProfileService {
         profile.setGivenReviews(new ArrayList<>());
         return profile;
     }
+
     public void save(Profile profile) {
         profileRepository.save(profile);
     }

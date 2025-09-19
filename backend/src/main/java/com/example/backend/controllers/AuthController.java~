@@ -31,47 +31,49 @@ public class AuthController {
     private final ProfileService profileService;
     private final JwtUtils jwtUtils;
 
-    @PostMapping("/register")
-    @Operation(summary = "Register", description = "Registers a new user")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        if (userService.findUserByUsername(registerRequest.getUsername()).isPresent())
-            return ResponseEntity.badRequest().body(Map.of("message", "Username already exists"));
-
-        if (userService.findUserByEmail(registerRequest.getEmail()).isPresent())
-            return ResponseEntity.badRequest().body(Map.of("message", "Email already exists"));
-
-        // Encode password and save user
-        registerRequest.setHashed_password(passwordEncoder.encode(registerRequest.getHashed_password()));
-        User savedUser = userService.saveUser(registerRequest);
-
-        // Create and save empty profile for the user
-        profileService.save(profileService.createEmptyProfile(savedUser));
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Registration successful"));
-    }
-
     @PostMapping("/login")
     @Operation(summary = "Login", description = "Logs in a user")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         Optional<User> userOpt = userService.findUserByUsername(loginRequest.getUsername());
-
-        if (userOpt.isEmpty() || !passwordEncoder.matches(loginRequest.getPassword(), userOpt.get().getHashed_password())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid credentials"));
-        }
+        if (userOpt.isEmpty())
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Invalid credentials."));
 
         User user = userOpt.get();
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getHashed_password()))
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid credentials"));
+
+        // Generate JWT
         String jwtToken = jwtUtils.generateJwtToken(user);
 
+        // Create secure HTTP-only cookie
         ResponseCookie jwtCookie = ResponseCookie.from("jwt", jwtToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(true) // only over HTTPS
                 .path("/")
-                .maxAge(Duration.ofDays(7))
-                .sameSite("Strict")
+                .maxAge(Duration.ofDays(7)) // 7 days expiry
+                .sameSite("Strict") // or "Lax" depending on your frontend needs
                 .build();
 
-        response.setHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
+        // Set cookie in response header
+        response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
 
         return ResponseEntity.ok(Map.of("message", "Login successful"));
     }
+
+    @PostMapping("/register")
+    @Operation(summary = "Register", description = "Registers a new user")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest user) {
+        if (userService.findUserByUsername(user.getUsername()).isPresent())
+            return ResponseEntity.badRequest().body(Map.of("message", "Username already exists"));
+
+        if (userService.findUserByEmail(user.getEmail()).isPresent())
+            return ResponseEntity.badRequest().body(Map.of("message", "Email already exists"));
+
+        user.setHashed_password(passwordEncoder.encode(user.getHashed_password()));
+        User savedUser = userService.saveUser(user);
+        profileService.save(profileService.createEmptyProfile(savedUser));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Registration successful"));
+    }
 }
+
