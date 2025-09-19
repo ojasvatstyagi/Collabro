@@ -2,6 +2,7 @@ package com.example.backend.services;
 
 import com.example.backend.dtos.RegisterRequest;
 import com.example.backend.enums.RoleName;
+import com.example.backend.models.Role;
 import com.example.backend.models.User;
 import com.example.backend.repositories.RoleRepository;
 import com.example.backend.repositories.UserRepository;
@@ -30,7 +31,12 @@ public class UserService {
         user.setUsername(req.getUsername());
         user.setEmail(req.getEmail());
         user.setHashed_password(req.getHashed_password());
-        user.setRole(roleRepository.findByRoleName(RoleName.ROLE_USER));
+
+        // Find ROLE_USER or throw error if not present
+        Role role = roleRepository.findByRoleName(RoleName.ROLE_USER)
+                .orElseThrow(() -> new RuntimeException("Default role not found"));
+        user.setRole(role);
+
         return userRepository.save(user);
     }
 }

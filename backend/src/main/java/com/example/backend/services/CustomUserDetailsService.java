@@ -25,7 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Username does not exist"));
 
         // Create a granted authority based on the user's single role
-        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().getName());
+        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleName());
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
