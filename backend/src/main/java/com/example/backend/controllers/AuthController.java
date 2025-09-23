@@ -3,6 +3,8 @@ package com.example.backend.controllers;
 import com.example.backend.dtos.LoginRequest;
 import com.example.backend.dtos.RegisterRequest;
 import com.example.backend.models.User;
+import com.example.backend.services.EmailService;
+import com.example.backend.services.PasswordResetService;
 import com.example.backend.services.ProfileService;
 import com.example.backend.services.UserService;
 import com.example.backend.utils.JwtUtils;
@@ -30,6 +32,8 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final ProfileService profileService;
     private final JwtUtils jwtUtils;
+    private final EmailService emailService;
+    private final PasswordResetService resetService;
 
     @PostMapping("/register")
     @Operation(summary = "Register", description = "Registers a new user")
@@ -73,5 +77,28 @@ public class AuthController {
         response.setHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
 
         return ResponseEntity.ok(Map.of("message", "Login successful"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        resetService.generateOtp(email);
+        return ResponseEntity.ok(Map.of("message", "OTP sent to email"));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestParam String email, @RequestParam String otp) {
+        if (resetService.validateOtp(email, otp))
+            return ResponseEntity.ok(Map.of("message", "OTP verified"));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid or expired OTP"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestParam String email,
+                                           @RequestParam String otp,
+                                           @RequestParam String newPassword) {
+        boolean success = resetService.resetPassword(email, otp, newPassword);
+        if (success)
+            return ResponseEntity.ok(Map.of("message", "Password reset successful"));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Failed to reset password"));
     }
 }
