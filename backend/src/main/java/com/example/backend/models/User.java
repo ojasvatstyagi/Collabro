@@ -2,7 +2,6 @@ package com.example.backend.models;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -23,12 +22,15 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(nullable = false)
+    private boolean isVerified = false;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
 
     @Column(nullable = false)
-    private String hashed_password;
+    private String password;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Profile profile;

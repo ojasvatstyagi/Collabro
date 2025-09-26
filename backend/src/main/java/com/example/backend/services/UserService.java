@@ -30,7 +30,7 @@ public class UserService {
         User user = new User();
         user.setUsername(req.getUsername());
         user.setEmail(req.getEmail());
-        user.setHashed_password(req.getHashed_password());
+        user.setPassword(req.getPassword());
 
         // Find ROLE_USER or throw error if not present
         Role role = roleRepository.findByRoleName(RoleName.ROLE_USER)
