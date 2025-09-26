@@ -2,6 +2,7 @@ package com.example.backend.models;
 
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -30,7 +31,7 @@ public class User {
     private Role role;
 
     @Column(nullable = false)
-    private String password;
+    private String hashed_password;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Profile profile;

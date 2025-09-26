@@ -1,5 +1,6 @@
 package com.example.backend.models;
 
+import com.example.backend.enums.TokenType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,11 +9,11 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "password_reset_tokens")
+@Table(name = "password_tokens")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PasswordResetToken {
+public class PasswordToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,5 +28,9 @@ public class PasswordResetToken {
     private LocalDateTime expiryTime;
 
     private boolean used = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TokenType tokenType;
 }
 

@@ -14,12 +14,11 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecrect;
+    private static final String JWT_SECRET = "securesecuresecuresecuresecuresecure"; // 32-bit secret key
     @Value("${app.jwt.expiration}")
     private long jwtExpirationMs;
 
-    private final Key key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(Base64.getEncoder().encodeToString(jwtSecrect.getBytes())));
+    private final Key key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(Base64.getEncoder().encodeToString(JWT_SECRET.getBytes())));
 
     public String generateJwtToken(User user) {
         return Jwts.builder()
