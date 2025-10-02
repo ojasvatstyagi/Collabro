@@ -29,6 +29,10 @@ public class UserService {
     }
 
     public User saveUser(RegisterRequest req) {
+//        User user = new User();
+//        user.setUsername(req.getUsername());
+//        user.setEmail(req.getEmail());
+//        user.setPassword(req.getPassword());
         User user = modelMapper.map(req, User.class);
 
         // Find ROLE_USER or throw error if not present
