@@ -7,6 +7,7 @@ import com.example.backend.models.User;
 import com.example.backend.repositories.RoleRepository;
 import com.example.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -17,6 +18,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final ModelMapper modelMapper;
 
     public Optional<User> findUserByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -27,10 +29,7 @@ public class UserService {
     }
 
     public User saveUser(RegisterRequest req) {
-        User user = new User();
-        user.setUsername(req.getUsername());
-        user.setEmail(req.getEmail());
-        user.setPassword(req.getPassword());
+        User user = modelMapper.map(req, User.class);
 
         // Find ROLE_USER or throw error if not present
         Role role = roleRepository.findByRoleName(RoleName.ROLE_USER)
