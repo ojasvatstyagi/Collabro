@@ -47,14 +47,14 @@ public class AuthController {
         if (userService.findUserByEmail(registerRequest.getEmail()).isPresent())
             return ResponseEntity.badRequest().body(Map.of(MESSAGE_KEY, "Email already exists"));
 
-        // Encode password and save user
+        // Encode password and saveProfile user
         registerRequest.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         User savedUser = userService.saveUser(registerRequest);
         // Generate email verification OTP
         passwordService.generateEmailVerificationOtp(registerRequest.getEmail());
 
-        // Create and save empty profile for the user
-        profileService.save(profileService.createEmptyProfile(savedUser));
+        // Create and saveProfile empty profile for the user
+        profileService.saveProfile(profileService.createEmptyProfile(savedUser));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(MESSAGE_KEY, "Registration successful"));
     }
