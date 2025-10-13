@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react';
-import ThemeToggle from './ThemeToggle';
-import { Shield } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import React, { ReactNode } from "react";
+import ThemeToggle from "./ThemeToggle";
+import { Shield } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -9,18 +9,26 @@ interface AuthLayoutProps {
   subtitle?: string;
 }
 
-const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) => {
+const AuthLayout: React.FC<AuthLayoutProps> = ({
+  children,
+  title,
+  subtitle,
+}) => {
   const { theme } = useTheme();
-  
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-      
-      <div className={`w-full max-w-md space-y-8 rounded-xl p-8 shadow-lg transition-all duration-300 ${
-        theme === 'dark' ? 'bg-brand-dark/80 shadow-black/30' : 'bg-white shadow-brand-dark/10'
-      }`}>
+
+      <div
+        className={`w-full max-w-md space-y-8 rounded-xl p-8 shadow-lg transition-all duration-300 ${
+          theme === "dark"
+            ? "bg-brand-dark/80 shadow-black/30"
+            : "bg-white shadow-brand-dark/10"
+        }`}
+      >
         <div className="text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-brand-yellow/20 p-2 dark:bg-brand-yellow/10">
             <Shield className="h-8 w-8 text-brand-orange dark:text-brand-yellow" />
@@ -34,7 +42,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
             </p>
           )}
         </div>
-        
+
         {children}
       </div>
     </div>
