@@ -8,7 +8,9 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { cn } from "../utils/cn";
@@ -27,6 +29,7 @@ interface UserProfile {
 }
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -117,6 +120,13 @@ const Profile: React.FC = () => {
         <div className="grid gap-8 md:grid-cols-3">
           {/* Left Sidebar */}
           <div className="md:col-span-1">
+            <button
+              onClick={() => navigate("/explore")}
+              className="mb-4 flex w-full items-center justify-center rounded-lg bg-brand-light/50 py-2 text-brand-dark/60 hover:bg-brand-light/70 hover:text-brand-dark dark:bg-brand-dark/50 dark:text-brand-light/60 dark:hover:bg-brand-dark/70 dark:hover:text-brand-light"
+            >
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Back to Explore
+            </button>
             <div className="rounded-lg bg-white p-6 shadow-md dark:bg-brand-dark/80">
               <div className="relative mb-6 text-center">
                 <div

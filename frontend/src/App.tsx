@@ -7,6 +7,10 @@ import ResetPassword from "./pages/ResetPassword";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
+import Achievements from "./pages/Achievements";
+import MyProjects from "./pages/MyProjects";
+import Requests from "./pages/Requests";
+import SettingsPage from "./pages/SettingsPage";
 import { useTheme } from "./context/ThemeContext";
 
 function App() {
@@ -26,6 +30,10 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/explore" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/achievements" element={<Achievements />} />
+        <Route path="/projects" element={<MyProjects />} />
+        <Route path="/requests" element={<Requests />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </div>
   );
