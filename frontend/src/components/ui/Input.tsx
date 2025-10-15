@@ -1,8 +1,9 @@
-import React, { useState, forwardRef } from 'react';
-import { cn } from '../../utils/cn';
-import { AlertCircle } from 'lucide-react';
+import React, { useState, forwardRef } from "react";
+import { cn } from "../../utils/cn";
+import { AlertCircle } from "lucide-react";
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
 }
@@ -38,7 +39,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               "peer w-full rounded-lg border px-4 pt-6 pb-2 text-sm outline-none transition-all",
               "placeholder:text-transparent focus:ring-2",
-              labelActive ? "border-brand-orange" : "border-brand-dark/20 dark:border-brand-light/20",
+              labelActive
+                ? "border-brand-orange"
+                : "border-brand-dark/20 dark:border-brand-light/20",
               error
                 ? "border-brand-red focus:border-brand-red focus:ring-brand-red/20"
                 : "focus:border-brand-orange focus:ring-brand-orange/20",
@@ -63,11 +66,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             )}
           >
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="text-brand-red ml-1">*</span>}
           </label>
         </div>
         {error && (
-          <div className="mt-1 flex items-center text-xs text-red-500">
+          <div className="mt-1 flex items-center text-xs text-brand-red">
             <AlertCircle size={12} className="mr-1" />
             <span>{error}</span>
           </div>
@@ -77,6 +80,6 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-Input.displayName = 'Input';
+Input.displayName = "Input";
 
 export default Input;

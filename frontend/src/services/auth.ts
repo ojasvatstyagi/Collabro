@@ -1,5 +1,3 @@
-import api from './api';
-
 export interface LoginCredentials {
   username: string;
   password: string;
@@ -22,102 +20,203 @@ export interface AuthResponse {
   token?: string;
 }
 
-export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
+// Test accounts for development
+const TEST_ACCOUNTS = {
+  emails: ["test@example.com", "demo@example.com", "user@example.com"],
+  validOtp: "123456",
+};
+
+// Simulated API call for login
+export const login = async (
+  credentials: LoginCredentials
+): Promise<AuthResponse> => {
   try {
-    const response = await api.post('/auth/login', credentials);
+    // This would be an actual API call in a real application
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    // Simulate API response for demo purposes
+    if (!response.ok) {
+      return {
+        success: false,
+        message: "Invalid username or password",
+      };
+    }
+
     return {
       success: true,
-      message: 'Login successful',
+      user: {
+        id: "1",
+        username: credentials.username,
+      },
+      token: "mock-jwt-token",
     };
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Login failed';
+  } catch (error) {
+    console.error("Login error:", error);
     return {
       success: false,
-      message,
+      message: "An error occurred during login. Please try again.",
     };
   }
 };
 
-export const register = async (credentials: RegisterCredentials): Promise<AuthResponse> => {
+// Simulated API call for registration
+export const register = async (
+  credentials: RegisterCredentials
+): Promise<AuthResponse> => {
   try {
-    const response = await api.post('/auth/register', credentials);
+    // This would be an actual API call in a real application
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    // Simulate API response for demo purposes
+    if (!response.ok) {
+      if (credentials.username === "admin") {
+        return {
+          success: false,
+          message: "Username already taken",
+        };
+      }
+
+      if (credentials.email === "admin@example.com") {
+        return {
+          success: false,
+          message: "Email already registered",
+        };
+      }
+
+      return {
+        success: false,
+        message: "Registration failed. Please try again.",
+      };
+    }
+
     return {
       success: true,
-      message: 'Registration successful. Please verify your email.',
+      user: {
+        id: "1",
+        username: credentials.username,
+        email: credentials.email,
+      },
+      token: "mock-jwt-token",
     };
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Registration failed';
-    return { success: false, message };
+  } catch (error) {
+    console.error("Registration error:", error);
+    return {
+      success: false,
+      message: "An error occurred during registration. Please try again.",
+    };
   }
 };
 
+// Simulated API call for forgot password
 export const forgotPassword = async (email: string): Promise<AuthResponse> => {
   try {
-    const response = await api.post('/auth/forgot-password', { email });
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Check if email exists in test accounts
+    if (!TEST_ACCOUNTS.emails.includes(email)) {
+      return {
+        success: false,
+        message: "Email not found in our records.",
+      };
+    }
+
     return {
       success: true,
-      message: 'OTP sent to your email',
+      message: "Recovery instructions sent successfully.",
     };
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Failed to send OTP';
-    return { success: false, message };
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return {
+      success: false,
+      message: "An error occurred. Please try again.",
+    };
   }
 };
 
-export const verifyOtp = async (email: string, otp: string): Promise<AuthResponse> => {
+// Simulated API call for OTP verification
+export const verifyOtp = async (
+  email: string,
+  otp: string
+): Promise<AuthResponse> => {
   try {
-    const response = await api.post('/auth/verify-otp', null, {
-      params: { email, otp }, // @RequestParam
-    });
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Check if email exists and OTP matches
+    if (!TEST_ACCOUNTS.emails.includes(email)) {
+      return {
+        success: false,
+        message: "Email not found in our records.",
+      };
+    }
+
+    if (otp !== TEST_ACCOUNTS.validOtp) {
+      return {
+        success: false,
+        message: "Invalid verification code.",
+      };
+    }
+
     return {
       success: true,
-      message: 'OTP verified successfully',
+      message: "OTP verified successfully.",
     };
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Invalid or expired OTP';
-    return { success: false, message };
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    return {
+      success: false,
+      message: "An error occurred. Please try again.",
+    };
   }
 };
 
-export const resetPassword = async (email: string, otp: string, newPassword: string): Promise<AuthResponse> => {
+// Simulated API call for password reset
+export const resetPassword = async (
+  email: string,
+  otp: string,
+  newPassword: string
+): Promise<AuthResponse> => {
   try {
-    const response = await api.post('/auth/reset-password', null, {
-      params: { email, otp, newPassword }, // @RequestParam
-    });
-    return {
-      success: true,
-      message: 'Password reset successful',
-    };
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Failed to reset password';
-    return { success: false, message };
-  }
-};
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-export const verifyRegistrationOtp = async (email: string, otp: string): Promise<AuthResponse> => {
-  try {
-    const response = await api.post('/auth/verify-registration-otp', null, {
-      params: { email, otp }, // Spring's @RequestParam
-    });
-    return {
-      success: true,
-      message: 'Registration verified successfully. You can now log in.',
-    };
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'OTP verification failed';
-    return { success: false, message };
-  }
-};
+    // Check if email exists and OTP matches
+    if (!TEST_ACCOUNTS.emails.includes(email)) {
+      return {
+        success: false,
+        message: "Email not found in our records.",
+      };
+    }
 
-export const logout = async (): Promise<AuthResponse> => {
-  try {
-    await api.post('/auth/logout'); // Spring should clear the cookie
+    if (otp !== TEST_ACCOUNTS.validOtp) {
+      return {
+        success: false,
+        message: "Invalid verification code.",
+      };
+    }
+
     return {
       success: true,
-      message: 'Logged out successfully',
+      message: "Password reset successful.",
     };
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Logout failed';
-    return { success: false, message };
+  } catch (error) {
+    console.error("Password reset error:", error);
+    return {
+      success: false,
+      message: "An error occurred. Please try again.",
+    };
   }
 };
