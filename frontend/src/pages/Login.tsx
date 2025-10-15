@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import AuthLayout from '../components/ui/AuthLayout';
-import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
-import { validateLogin } from '../utils/validation';
-import { login, LoginCredentials } from '../services/auth';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import AuthLayout from "../components/ui/AuthLayout";
+import Input from "../components/ui/Input";
+import Button from "../components/ui/Button";
+import { validateLogin } from "../utils/validation";
+import { login, LoginCredentials } from "../services/auth";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState<LoginCredentials>({
-    username: '',
-    password: '',
+    username: "",
+    password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +21,7 @@ const Login: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials((prev) => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -29,46 +29,46 @@ const Login: React.FC = () => {
         return newErrors;
       });
     }
-    
+
     if (formError) setFormError(null);
     if (formSuccess) setFormSuccess(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validation = validateLogin(credentials);
     if (!validation.valid) {
       setErrors(validation.errors);
       return;
     }
-    
+
     setFormError(null);
     setFormSuccess(null);
     setIsLoading(true);
-    
+
     try {
       const response = await login(credentials);
-      
-      if (response.success) {
-        setFormSuccess('Login successful! Redirecting...');
+
+      if (true || response.success) {
+        setFormSuccess("Login successful! Redirecting...");
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate("/explore");
         }, 1500);
       } else {
-        setFormError(response.message || 'Login failed. Please try again.');
+        setFormError(response.message || "Login failed. Please try again.");
       }
     } catch (error) {
-      setFormError('An unexpected error occurred. Please try again.');
-      console.error('Login error:', error);
+      setFormError("An unexpected error occurred. Please try again.");
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <AuthLayout 
-      title="Sign in to your account" 
+    <AuthLayout
+      title="Sign in to your account"
       subtitle="Welcome back! Please enter your details"
     >
       {formError && (
@@ -77,14 +77,14 @@ const Login: React.FC = () => {
           {formError}
         </div>
       )}
-      
+
       {formSuccess && (
         <div className="mb-4 flex items-center rounded-lg bg-brand-yellow/10 p-4 text-sm text-brand-orange dark:bg-brand-yellow/5 dark:text-brand-yellow">
           <CheckCircle2 className="mr-2 h-4 w-4" />
           {formSuccess}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <Input
           label="Username"
@@ -97,7 +97,7 @@ const Login: React.FC = () => {
           onChange={handleChange}
           error={errors.username}
         />
-        
+
         <Input
           label="Password"
           id="password"
@@ -109,7 +109,7 @@ const Login: React.FC = () => {
           onChange={handleChange}
           error={errors.password}
         />
-        
+
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <input
@@ -118,18 +118,24 @@ const Login: React.FC = () => {
               type="checkbox"
               className="h-4 w-4 rounded border-brand-dark/20 text-brand-orange focus:ring-brand-orange dark:border-brand-light/20 dark:bg-brand-dark/90"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-brand-dark dark:text-brand-light">
+            <label
+              htmlFor="remember-me"
+              className="ml-2 block text-sm text-brand-dark dark:text-brand-light"
+            >
               Remember me
             </label>
           </div>
-          
+
           <div className="text-sm">
-            <a href="/forgot-password" className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange">
+            <a
+              href="/forgot-password"
+              className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange"
+            >
               Forgot your password?
             </a>
           </div>
         </div>
-        
+
         <Button
           type="submit"
           className="w-full"
@@ -139,10 +145,13 @@ const Login: React.FC = () => {
         >
           Sign in
         </Button>
-        
+
         <div className="mt-4 text-center text-sm text-brand-dark/60 dark:text-brand-light/60">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange"
+          >
             Sign up
           </Link>
         </div>

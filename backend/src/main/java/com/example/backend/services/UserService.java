@@ -8,6 +8,9 @@ import com.example.backend.repositories.RoleRepository;
 import com.example.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -37,5 +40,17 @@ public class UserService {
         user.setRole(role);
 
         return userRepository.save(user);
+    }
+
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) return null; // or throw an exception
+
+        Object principal = authentication.getPrincipal();
+        String username;
+
+        if (principal instanceof UserDetails user) username = user.getUsername();
+        else username = principal.toString();
+        return userRepository.findByUsername(username).orElse(null);
     }
 }

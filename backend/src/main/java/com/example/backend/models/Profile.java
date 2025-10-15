@@ -1,11 +1,16 @@
 package com.example.backend.models;
 
+import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,6 +18,8 @@ import java.util.UUID;
 @Table(name = "profiles")
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -22,10 +29,13 @@ public class Profile {
     @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")
     private User user;
 
+    @Column(nullable = false)
     private String firstname;
 
+    @Column(nullable = false)
     private String lastname;
 
+    @Column(length = 1000)
     private String bio;
 
     private String education;
@@ -37,27 +47,50 @@ public class Profile {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL)
-    private List<Skill> skills;
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 
-    // Posts created by this profile
+    @Column(name = "is_profile_complete", nullable = false)
+    private boolean isProfileComplete = false;
+
+    @Column(name = "completion_percentage", nullable = false)
+    private int completionPercentage = 0;
+
+    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Skill> skills = new ArrayList<>();
+
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Post> posts;
+    private List<Post> posts = new ArrayList<>();
 
-    // Teams this profile is part of
     @ManyToMany(mappedBy = "members")
-    private List<Team> teams;
+    private List<Team> teams = new ArrayList<>();
 
-    // Projects created by this profile
     @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Project> createdProjects;
+    private List<Project> createdProjects = new ArrayList<>();
 
     @OneToMany(mappedBy = "assignedTo", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Task> assignedTasks;
+    private List<Task> assignedTasks = new ArrayList<>();
 
     @OneToMany(mappedBy = "reviewed", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> receivedReviews;
+    private List<Review> receivedReviews = new ArrayList<>();
 
     @OneToMany(mappedBy = "reviewer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> givenReviews;
+    private List<Review> givenReviews = new ArrayList<>();
+
+    // Helper method to calculate completion
+    public void calculateCompletion() {
+        int totalFields = 5; // firstname, lastname, bio, education, skills
+        int completedFields = 0;
+
+        if (StringUtils.isNotBlank(firstname)) completedFields++;
+        if (StringUtils.isNotBlank(lastname)) completedFields++;
+        if (StringUtils.isNotBlank(bio)) completedFields++;
+        if (StringUtils.isNotBlank(education)) completedFields++;
+        if (skills != null && !skills.isEmpty()) completedFields++;
+
+        this.completionPercentage = (int) ((completedFields / (double) totalFields) * 100);
+        this.isProfileComplete = completionPercentage >= 80;
+    }
 }
