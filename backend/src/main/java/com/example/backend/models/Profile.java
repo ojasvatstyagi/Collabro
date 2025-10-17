@@ -12,6 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -81,16 +82,27 @@ public class Profile {
 
     // Helper method to calculate completion
     public void calculateCompletion() {
-        int totalFields = 5; // firstname, lastname, bio, education, skills
-        int completedFields = 0;
+        int total = 0;
 
-        if (StringUtils.isNotBlank(firstname)) completedFields++;
-        if (StringUtils.isNotBlank(lastname)) completedFields++;
-        if (StringUtils.isNotBlank(bio)) completedFields++;
-        if (StringUtils.isNotBlank(education)) completedFields++;
-        if (skills != null && !skills.isEmpty()) completedFields++;
+        if (StringUtils.isNotBlank(firstname)) total += COMPLETION_WEIGHTS.get("firstname");
+        if (StringUtils.isNotBlank(lastname)) total += COMPLETION_WEIGHTS.get("lastname");
+        if (StringUtils.isNotBlank(bio)) total += COMPLETION_WEIGHTS.get("bio");
+        if (StringUtils.isNotBlank(education)) total += COMPLETION_WEIGHTS.get("education");
+        if (skills != null && !skills.isEmpty()) total += COMPLETION_WEIGHTS.get("skills");
+        if (StringUtils.isNotBlank(profilePictureUrl)) total += COMPLETION_WEIGHTS.get("profilePicture");
 
-        this.completionPercentage = (int) ((completedFields / (double) totalFields) * 100);
+        this.completionPercentage = total;
         this.isProfileComplete = completionPercentage >= 80;
     }
+
+
+    @Transient
+    private static final Map<String, Integer> COMPLETION_WEIGHTS = Map.of(
+            "firstname", 20,
+            "lastname", 20,
+            "bio", 15,
+            "education", 15,
+            "skills", 15,
+            "profilePicture", 15
+    );
 }

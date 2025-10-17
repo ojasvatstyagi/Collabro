@@ -1,5 +1,6 @@
 package com.example.backend.models;
 
+import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -77,4 +79,29 @@ public class Profile {
 
     @OneToMany(mappedBy = "reviewer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> givenReviews = new ArrayList<>();
+
+    // Helper method to calculate completion
+    public void calculateCompletion() {
+        int totalFields = 5; // firstname, lastname, bio, education, skills
+        int completedFields = 0;
+
+        if (StringUtils.isNotBlank(firstname)) completedFields++;
+        if (StringUtils.isNotBlank(lastname)) completedFields++;
+        if (StringUtils.isNotBlank(bio)) completedFields++;
+        if (StringUtils.isNotBlank(education)) completedFields++;
+        if (skills != null && !skills.isEmpty()) completedFields++;
+
+        this.completionPercentage = (int) ((completedFields / (double) totalFields) * 100);
+        this.isProfileComplete = completionPercentage >= 80;
+    }
+
+    @Transient
+    private static final Map<String, Integer> COMPLETION_WEIGHTS = Map.of(
+            "firstname", 20,
+            "lastname", 20,
+            "bio", 15,
+            "education", 15,
+            "skills", 15,
+            "profilePicture", 15
+    );
 }

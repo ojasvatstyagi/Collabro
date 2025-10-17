@@ -1,29 +1,31 @@
 package com.example.backend.services;
 
-import com.example.backend.dtos.SkillDto;
-import com.example.backend.dtos.SkillUpdateDto;
+import com.example.backend.dto.SkillDto;
+import com.example.backend.dto.SkillUpdateDto;
 import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.Skill;
 import com.example.backend.repositories.SkillRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class SkillService {
     private final SkillRepository skillRepository;
     private final ProfileService profileService;
+    private final ModelMapper modelMapper;
 
     public List<SkillDto> getCurrentUserSkills() {
         Profile profile = profileService.getCurrentUserProfile();
         return profile.getSkills().stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public SkillDto addSkill(SkillUpdateDto skillDto) {
@@ -64,6 +66,6 @@ public class SkillService {
     }
 
     private SkillDto convertToDto(Skill skill) {
-        return new SkillDto(skill.getId(), skill.getName(), skill.getProficiency());
+        return modelMapper.map(skill, SkillDto.class);
     }
 }

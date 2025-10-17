@@ -1,7 +1,7 @@
 package com.example.backend.controllers;
 
-import com.example.backend.dtos.LoginRequest;
-import com.example.backend.dtos.RegisterRequest;
+import com.example.backend.dto.LoginRequest;
+import com.example.backend.dto.RegisterRequest;
 import com.example.backend.models.User;
 import com.example.backend.services.EmailService;
 import com.example.backend.services.PasswordService;
