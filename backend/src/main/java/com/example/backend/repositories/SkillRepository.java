@@ -11,4 +11,6 @@ import java.util.UUID;
 @Repository
 public interface SkillRepository extends JpaRepository<Skill, UUID> {
     Optional<Skill> findByIdAndProfile(UUID skillId, Profile profile);
+
+    Object findByProfile(Profile testProfile);
 }

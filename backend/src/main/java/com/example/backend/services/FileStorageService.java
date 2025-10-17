@@ -1,6 +1,6 @@
 package com.example.backend.services;
 
-import com.example.backend.repositories.FileStorageService;
+import com.example.backend.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -19,10 +19,10 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class LocalFileStorageService implements FileStorageService {
+public class FileStorageService implements com.example.backend.repositories.FileStorageService {
     private final Path fileStorageLocation;
 
-    public LocalFileStorageService(@Value("${file.upload-dir}") String uploadDir) {
+    public FileStorageService(@Value("${file.upload-dir}") String uploadDir) {
         this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
 
         try {
@@ -43,7 +43,7 @@ public class LocalFileStorageService implements FileStorageService {
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
             return directory + "/" + uniqueFileName;
         } catch (IOException ex) {
-            throw new RuntimeException("Could not store file " + fileName, ex);
+            throw new ResourceNotFoundException("Could not store file " + fileName);
         }
     }
 
@@ -56,10 +56,10 @@ public class LocalFileStorageService implements FileStorageService {
             if (resource.exists()) {
                 return resource;
             } else {
-                throw new RuntimeException("File not found " + filePath);
+                throw new ResourceNotFoundException("File not found " + filePath);
             }
         } catch (MalformedURLException ex) {
-            throw new RuntimeException("File not found " + filePath, ex);
+            throw new ResourceNotFoundException("File not found " + filePath);
         }
     }
 
@@ -69,7 +69,7 @@ public class LocalFileStorageService implements FileStorageService {
             Path file = this.fileStorageLocation.resolve(filePath).normalize();
             Files.deleteIfExists(file);
         } catch (IOException ex) {
-            throw new RuntimeException("Could not delete file " + filePath, ex);
+            throw new ResourceNotFoundException("Could not delete file " + filePath);
         }
     }
 }

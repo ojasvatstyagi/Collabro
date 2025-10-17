@@ -1,6 +1,6 @@
 package com.example.backend.services;
 
-import com.example.backend.dtos.RegisterRequest;
+import com.example.backend.dto.RegisterRequest;
 import com.example.backend.enums.RoleName;
 import com.example.backend.models.Role;
 import com.example.backend.models.User;
