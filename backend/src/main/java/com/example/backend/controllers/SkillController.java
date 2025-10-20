@@ -1,7 +1,7 @@
 package com.example.backend.controllers;
 
-import com.example.backend.dtos.SkillDto;
-import com.example.backend.dtos.SkillUpdateDto;
+import com.example.backend.dto.SkillDto;
+import com.example.backend.dto.SkillUpdateDto;
 import com.example.backend.services.SkillService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
