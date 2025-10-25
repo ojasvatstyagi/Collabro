@@ -7,6 +7,7 @@ import com.example.backend.exceptions.UserNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.services.ProfileService;
 import io.micrometer.common.util.StringUtils;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
@@ -15,7 +16,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,16 +28,19 @@ public class ProfileController {
     private final ProfileService profileService;
 
     @GetMapping("/me")
+    @Operation(summary = "Get current user profile", description = "Returns the current user's profile")
     public ResponseEntity<ProfileDto> getCurrentUserProfile() {
         return ResponseEntity.ok(profileService.getCurrentUserProfileDto());
     }
 
     @PutMapping("/me")
+    @Operation(summary = "Update current user profile", description = "Updates the current user's profile")
     public ResponseEntity<ProfileDto> updateProfile(@Valid @RequestBody ProfileUpdateDto updateDto) {
         return ResponseEntity.ok(profileService.updateProfile(updateDto));
     }
 
     @GetMapping("/status")
+    @Operation(summary = "Get current user profile status", description = "Returns the current user's profile's completion status")
     public ResponseEntity<ProfileStatusDto> getProfileStatus() {
         Profile profile = profileService.getCurrentUserProfile();
         return ResponseEntity.ok(ProfileStatusDto.withMessage(
@@ -58,13 +61,8 @@ public class ProfileController {
         return missingFields;
     }
 
-    @PostMapping(value = "/picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProfileDto> uploadProfilePicture(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) return ResponseEntity.badRequest().body(null);
-        return ResponseEntity.ok(profileService.uploadProfilePicture(file));
-    }
-
     @GetMapping(value = "/export", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @Operation(summary = "Export current user profile to PDF", description = "Exports the current user's profile to a PDF file")
     public ResponseEntity<Resource> exportProfile() {
         try {
             if (!profileService.getCurrentUserProfile().isProfileComplete())

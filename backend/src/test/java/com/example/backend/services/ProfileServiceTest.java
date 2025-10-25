@@ -14,7 +14,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
@@ -155,51 +154,6 @@ class ProfileServiceTest {
         assertThrows(NullPointerException.class, () -> profileService.updateProfile(null));
     }
 
-    @Test
-    void uploadProfilePicture_WithValidImage_ShouldUpdateProfile() {
-        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "image data".getBytes());
-
-        when(userService.getCurrentUser()).thenReturn(testUser);
-        when(profileRepository.findByUser(testUser)).thenReturn(Optional.of(testProfile));
-        when(fileStorageService.storeFile(file, "profile_pictures")).thenReturn("path/to/image.jpg");
-        when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(modelMapper.map(testProfile,ProfileDto.class)).thenReturn(testProfileDto);
-
-        ProfileDto result = profileService.uploadProfilePicture(file);
-
-        assertEquals("/uploads/path/to/image.jpg", testProfile.getProfilePictureUrl());
-        verify(fileStorageService).storeFile(file, "profile_pictures");
-        verify(profileRepository).save(testProfile);
-    }
-
-    @Test
-    void uploadProfilePicture_WithEmptyFile_ShouldThrowException() {
-        MockMultipartFile file = new MockMultipartFile("file", "empty.jpg", "image/jpeg", new byte[0]);
-        assertThrows(IllegalArgumentException.class, () -> profileService.uploadProfilePicture(file));
-    }
-
-    @Test
-    void uploadProfilePicture_WithNonImageFile_ShouldThrowException() {
-        MockMultipartFile file = new MockMultipartFile("file", "text.txt", "text/plain", "not image".getBytes());
-        assertThrows(IllegalArgumentException.class, () -> profileService.uploadProfilePicture(file));
-    }
-
-    @Test
-    void uploadProfilePicture_WhenReplacingExisting_ShouldDeleteOldFile() {
-        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "image content".getBytes());
-
-        testProfile.setProfilePictureUrl("/uploads/old/pic.jpg");
-
-        when(userService.getCurrentUser()).thenReturn(testUser);
-        when(profileRepository.findByUser(testUser)).thenReturn(Optional.of(testProfile));
-        when(fileStorageService.storeFile(any(), any())).thenReturn("new/path.jpg");
-        when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(modelMapper.map(testProfile, ProfileDto.class)).thenReturn(testProfileDto);
-
-        profileService.uploadProfilePicture(file);
-
-        verify(fileStorageService).deleteFile("/uploads/old/pic.jpg");
-    }
 
     @Test
     void exportToPdf_WithValidProfile_ShouldReturnNonEmptyByteArray() {
