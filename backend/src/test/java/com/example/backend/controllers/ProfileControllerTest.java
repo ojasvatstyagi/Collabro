@@ -26,15 +26,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -182,30 +179,6 @@ class ProfileControllerTest {
                 .andExpect(jsonPath("$.missingFields").isArray())
                 .andExpect(jsonPath("$.missingFields.length()").value(5))
                 .andExpect(jsonPath("$.message").value("Please complete your profile"));
-    }
-
-    @Test
-    void uploadProfilePicture_ShouldReturnUpdatedProfileDto() throws Exception {
-        // Arrange
-        when(profileService.uploadProfilePicture(any(MultipartFile.class))).thenReturn(profileDto);
-
-        // Act & Assert
-        mockMvc.perform(multipart("/api/profile/picture")
-                        .file(testImage))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.firstname").value(profileDto.getFirstname()));
-    }
-
-    @Test
-    void uploadProfilePicture_WithEmptyFile_ShouldReturnBadRequest() throws Exception {
-        // Arrange
-        MockMultipartFile emptyFile = new MockMultipartFile(
-                "file", "empty.jpg", "image/jpeg", new byte[0]);
-
-        // Act & Assert
-        mockMvc.perform(multipart("/api/profile/picture")
-                        .file(emptyFile))
-                .andExpect(status().isBadRequest());
     }
 
     @Test

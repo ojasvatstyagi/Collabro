@@ -7,20 +7,16 @@ import com.example.backend.exceptions.UserNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.User;
 import com.example.backend.repositories.ProfileRepository;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Objects;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,10 +27,6 @@ public class ProfileService {
     private final ProfileRepository profileRepository;
     private final UserService userService;
     private final ModelMapper modelMapper;
-    private final FileStorageService fileStorageService;
-
-    @Value("${app.upload.base-path:/uploads/}")
-    private String uploadBasePath;
 
     public Profile createEmptyProfile(User user) {
         Objects.requireNonNull(user, "User cannot be null");
@@ -75,27 +67,6 @@ public class ProfileService {
         return convertToDto(profile);
     }
 
-    public ProfileDto uploadProfilePicture(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("Uploaded file is empty.");
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("Only images are allowed.");
-        }
-
-        Profile profile = getCurrentUserProfile();
-
-        if (StringUtils.isNotBlank(profile.getProfilePictureUrl())) {
-            fileStorageService.deleteFile(profile.getProfilePictureUrl());
-        }
-
-        String filePath = fileStorageService.storeFile(file, "profile_pictures");
-        profile.setProfilePictureUrl(uploadBasePath + filePath);
-        profile = profileRepository.save(profile);
-
-        return convertToDto(profile);
-    }
 
     public ProfileDto convertToDto(Profile profile) {
         return modelMapper.map(profile, ProfileDto.class);
