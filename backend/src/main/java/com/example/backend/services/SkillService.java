@@ -2,6 +2,7 @@ package com.example.backend.services;
 
 import com.example.backend.dto.SkillDto;
 import com.example.backend.dto.SkillUpdateDto;
+import com.example.backend.exceptions.DuplicateResourceException;
 import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.Skill;
@@ -23,13 +24,20 @@ public class SkillService {
 
     public List<SkillDto> getCurrentUserSkills() {
         Profile profile = profileService.getCurrentUserProfile();
-        return profile.getSkills().stream()
+        return skillRepository.findByProfile(profile).stream()
                 .map(this::convertToDto)
                 .toList();
     }
 
     public SkillDto addSkill(SkillUpdateDto skillDto) {
         Profile profile = profileService.getCurrentUserProfile();
+
+        boolean skillExists = skillRepository.findByProfile(profile).stream()
+                .anyMatch(s -> s.getName().equalsIgnoreCase(skillDto.getName()));
+
+        if (skillExists) {
+            throw new DuplicateResourceException("Skill already exists in your profile");
+        }
 
         Skill skill = Skill.builder()
                 .name(skillDto.getName())
@@ -45,12 +53,24 @@ public class SkillService {
     }
 
     public SkillDto updateSkill(UUID skillId, SkillUpdateDto skillDto) {
-        Skill skill = skillRepository.findByIdAndProfile(skillId, profileService.getCurrentUserProfile())
+        Profile profile = profileService.getCurrentUserProfile();
+        Skill skill = skillRepository.findByIdAndProfile(skillId, profile)
                 .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
+
+        boolean nameConflict = skillRepository.findByProfile(profile).stream()
+                .filter(s -> !s.getId().equals(skillId))
+                .anyMatch(s -> s.getName().equalsIgnoreCase(skillDto.getName()));
+
+        if (nameConflict) {
+            throw new DuplicateResourceException("Another skill with this name already exists");
+        }
 
         skill.setName(skillDto.getName());
         skill.setProficiency(skillDto.getProficiency());
         skill = skillRepository.save(skill);
+
+        profile.calculateCompletion();
+        profileService.saveProfile(profile);
 
         return convertToDto(skill);
     }
@@ -63,6 +83,10 @@ public class SkillService {
         skillRepository.delete(skill);
         profile.calculateCompletion();
         profileService.saveProfile(profile);
+    }
+
+    public List<String> searchSkills(String query) {
+        return skillRepository.findSkillNamesContaining(query.toLowerCase());
     }
 
     private SkillDto convertToDto(Skill skill) {
