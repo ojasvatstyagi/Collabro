@@ -8,14 +8,15 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.Date;
+
+import static com.example.backend.enums.RequestStatus.PENDING;
 
 @Entity
 @Table(name = "requests")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Request {
+public class CollaborationRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,7 +30,7 @@ public class Request {
     private Profile requester;
 
     @Enumerated(EnumType.STRING)
-    private RequestStatus status = RequestStatus.PENDING_DECISION; // PENDING, ACCEPTED, REJECTED, ON_HOLD
+    private RequestStatus status = PENDING; // PENDING, ACCEPTED, REJECTED, ON_HOLD
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
