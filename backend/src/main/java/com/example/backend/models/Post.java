@@ -1,7 +1,6 @@
 package com.example.backend.models;
 
 import com.example.backend.enums.PostStatus;
-import com.example.backend.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +8,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,6 +56,6 @@ public class Post {
     private Team team;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Request> requests;
+    private List<CollaborationRequest> collaborationRequests;
 
 }

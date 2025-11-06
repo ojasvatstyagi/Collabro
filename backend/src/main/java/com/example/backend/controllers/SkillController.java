@@ -41,4 +41,9 @@ public class SkillController {
         skillService.deleteSkill(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<String>> searchSkills(@RequestParam String query) {
+        return ResponseEntity.ok(skillService.searchSkills(query));
+    }
 }
