@@ -6,28 +6,57 @@ import ThemeToggle from "../components/ui/ThemeToggle";
 
 const projectCards = [
   {
-    title: "Title of the Posted Project Idea",
+    title: "Collaborative Task Management App",
     description:
-      "Description of the project - lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum ...",
+      "A web-based task management application that allows teams to collaborate in real-time, assign tasks, set deadlines, and track progress with an intuitive interface and notifications.",
     teamSize: "3-5",
     duration: "3 months",
     techStack: ["React", "Node.js", "MongoDB"],
     tags: ["Web Development", "Full Stack", "Open Source"],
-    author: "Author Name",
+    author: "Rohit Sharma",
+  },
+  {
+    title: "AI-Powered Personal Finance Tracker",
+    description:
+      "An intelligent finance tracking app that uses AI to analyze spending habits, provide budgeting advice, and forecast future expenses to help users manage their money better.",
+    teamSize: "2-4",
+    duration: "4 months",
+    techStack: ["Python", "Django", "PostgreSQL"],
+    tags: ["AI", "Finance", "Data Science"],
+    author: "Priya Singh",
+  },
+  {
+    title: "Smart Home Automation Dashboard",
+    description:
+      "A centralized dashboard to control and monitor smart home devices, featuring customizable scenes, voice command integration, and energy usage analytics.",
+    teamSize: "4-6",
+    duration: "5 months",
+    techStack: ["Angular", "Node.js", "Firebase"],
+    tags: ["IoT", "Home Automation", "Full Stack"],
+    author: "Ankit Verma",
+  },
+  {
+    title: "E-Learning Platform with Gamification",
+    description:
+      "An interactive e-learning platform that incorporates gamification elements like badges, leaderboards, and quizzes to enhance student engagement and motivation.",
+    teamSize: "3-5",
+    duration: "6 months",
+    techStack: ["Vue.js", "Laravel", "MySQL"],
+    tags: ["Education", "Web Development", "Gamification"],
+    author: "Sneha Patel",
+  },
+  {
+    title: "Real-Time Language Translation Chat App",
+    description:
+      "A chat application that provides real-time language translation to facilitate seamless communication between users speaking different languages.",
+    teamSize: "3-4",
+    duration: "4 months",
+    techStack: ["React Native", "Node.js", "Google Cloud Translation API"],
+    tags: ["Mobile App", "Communication", "AI"],
+    author: "Arjun Rao",
   },
   // Repeat for other cards...
-].concat(
-  Array(4).fill({
-    title: "Title of the Posted Project Idea",
-    description:
-      "Description of the project - lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum ...",
-    teamSize: "3-5",
-    duration: "3 months",
-    techStack: ["React", "Node.js", "MongoDB"],
-    tags: ["Web Development", "Full Stack", "Open Source"],
-    author: "Author Name",
-  })
-);
+];
 
 const Home: React.FC = () => {
   return (

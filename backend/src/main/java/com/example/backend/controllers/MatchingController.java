@@ -4,6 +4,7 @@ import com.example.backend.dto.ProfileDto;
 import com.example.backend.dto.ProfileSearchCriteria;
 import com.example.backend.services.MatchingService;
 import com.example.backend.services.ProfileService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,22 +24,22 @@ public class MatchingController {
     private final MatchingService matchingService;
     private final ProfileService profileService;
 
-    // 1. Get similar profiles (skill-based)
     @GetMapping("/similar")
+    @Operation(summary = "Get similar profiles", description = "Returns a list of similar profiles based on the current user's skills")
     public ResponseEntity<List<ProfileDto>> getSimilarProfiles() {
         UUID currentProfileId = profileService.getCurrentUserProfile().getId();
         return ResponseEntity.ok(matchingService.findSimilarProfiles(currentProfileId));
     }
 
-    // 2. Get complementary profiles (for project teams)
     @GetMapping("/complementary")
+    @Operation(summary = "Get complementary profiles", description = "Returns a list of complementary profiles based on the current user's skills")
     public ResponseEntity<List<ProfileDto>> getComplementaryProfiles() {
         UUID currentProfileId = profileService.getCurrentUserProfile().getId();
         return ResponseEntity.ok(matchingService.findComplementaryProfiles(currentProfileId));
     }
 
-    // 3. Browse/search peers with filters
     @GetMapping("/search")
+    @Operation(summary = "Search for profiles", description = "Searches for profiles based on the provided criteria like location, education")
     public ResponseEntity<Page<ProfileDto>> searchProfiles(
             @ModelAttribute ProfileSearchCriteria criteria,
             Pageable pageable
