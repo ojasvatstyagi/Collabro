@@ -32,9 +32,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary: "bg-brand-orange text-white hover:bg-brand-red",
       secondary: "bg-brand-lightBlue text-white hover:bg-brand-blue",
       outline:
-        "border border-brand-dark bg-transparent text-brand-dark hover:bg-brand-light dark:border-brand-light dark:text-brand-light dark:hover:bg-brand-dark/50",
+        "border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-brand-dark-lighter",
       ghost:
-        "bg-transparent text-brand-dark hover:bg-brand-light dark:text-brand-light dark:hover:bg-brand-dark/50",
+        "bg-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-brand-dark-lighter",
       link: "bg-transparent text-brand-blue hover:underline dark:text-brand-lightBlue",
     };
 
