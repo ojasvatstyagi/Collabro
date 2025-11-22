@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Star,
   User,
@@ -6,7 +6,9 @@ import {
   Search,
   Bell,
   PlusCircle,
+  Menu,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/ui/SideBar";
 import Button from "../components/ui/Button";
 import ThemeToggle from "../components/ui/ThemeToggle";
@@ -80,23 +82,23 @@ const mockRequests: JoinRequest[] = [
 
 const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
   return (
-    <div className="rounded-lg bg-white p-6 shadow-lg transition-all hover:shadow-xl dark:bg-brand-dark/80 dark:shadow-md dark:shadow-brand-light/5 hover:dark:shadow-brand-light/10">
-      <div className="flex items-start gap-4">
+    <div className="rounded-lg bg-white p-4 md:p-6 shadow-sm border border-gray-200 transition-all hover:shadow-md dark:bg-brand-dark-lighter dark:border-gray-600 dark:shadow-lg">
+      <div className="flex flex-col sm:flex-row items-start gap-4">
         <img
           src={request.profileImage}
           alt={request.username}
-          className="h-12 w-12 rounded-full object-cover"
+          className="h-12 w-12 rounded-full object-cover flex-shrink-0"
         />
 
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
+        <div className="flex-1 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
             <div>
-              <h3 className="font-medium text-brand-dark dark:text-brand-light">
+              <h3 className="font-medium text-brand-dark dark:text-gray-100">
                 {request.username}
               </h3>
               <div className="mt-1 flex items-center gap-1">
                 <Star className="h-4 w-4 fill-brand-yellow text-brand-yellow" />
-                <span className="text-sm text-brand-dark/60 dark:text-brand-light/60">
+                <span className="text-sm text-brand-dark/60 dark:text-gray-300">
                   Rating {request.rating}
                 </span>
               </div>
@@ -104,7 +106,7 @@ const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
             <Button
               variant="outline"
               size="sm"
-              className="group"
+              className="group w-full sm:w-auto"
               rightIcon={
                 <ExternalLink className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               }
@@ -114,10 +116,10 @@ const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
           </div>
 
           <div className="mt-4">
-            <p className="text-sm text-brand-dark/60 dark:text-brand-light/60">
+            <p className="text-sm text-brand-dark/60 dark:text-gray-300">
               The user has requested to join the
             </p>
-            <p className="mt-1 font-medium text-brand-dark dark:text-brand-light">
+            <p className="mt-1 font-medium text-brand-dark dark:text-gray-100">
               {request.projectTitle}
             </p>
           </div>
@@ -126,14 +128,14 @@ const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
             {request.techStack.map((tech, index) => (
               <span
                 key={index}
-                className="rounded bg-brand-light/50 px-2 py-1 text-xs font-medium text-brand-dark/60 dark:bg-brand-dark/50 dark:text-brand-light/60"
+                className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
               >
                 {tech}
               </span>
             ))}
           </div>
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <Button className="flex-1">Add to team</Button>
             <Button variant="outline" className="flex-1">
               Decline
@@ -146,39 +148,69 @@ const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
 };
 
 const Requests: React.FC = () => {
+  const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
-    <div className="flex h-screen bg-brand-light/30 dark:bg-brand-dark/95">
-      <Sidebar />
+    <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
+      <Sidebar isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} />
 
       <div className="flex-1 overflow-y-auto">
-        <header className="flex h-16 items-center justify-between border-b border-brand-dark/10 bg-white px-8 dark:border-brand-light/10 dark:bg-brand-dark/80">
+        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 dark:border-gray-600 dark:bg-brand-dark-light">
           <div className="flex flex-1 items-center gap-4">
-            <h1 className="text-xl font-semibold text-brand-dark dark:text-brand-light">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            {/* Desktop toggle button */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:block dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <h1 className="text-xl font-semibold text-brand-dark dark:text-gray-100">
               Requests
             </h1>
             <div className="relative flex-1 max-w-2xl">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-dark/40 dark:text-brand-light/40" />
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search requests..."
-                className="w-full rounded-lg border border-brand-dark/10 bg-transparent py-2 pl-10 pr-4 text-brand-dark placeholder-brand-dark/40 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-brand-light/10 dark:text-brand-light dark:placeholder-brand-light/40"
+                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-brand-dark placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <ThemeToggle />
-            <button className="rounded-lg p-2 text-brand-dark/60 hover:bg-brand-light/50 dark:text-brand-light/60 dark:hover:bg-brand-dark/50">
+            <button className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-brand-dark-lighter">
               <Bell className="h-5 w-5" />
             </button>
-            <Button leftIcon={<PlusCircle className="h-5 w-5" />}>
+            <Button 
+              leftIcon={<PlusCircle className="h-5 w-5" />} 
+              className="hidden sm:flex"
+              onClick={() => navigate("/post-idea")}
+            >
               New Project
+            </Button>
+            <Button 
+              size="sm" 
+              className="sm:hidden"
+              onClick={() => navigate("/post-idea")}
+            >
+              <PlusCircle className="h-4 w-4" />
             </Button>
           </div>
         </header>
 
-        <div className="container mx-auto max-w-5xl px-4 py-8">
-          <h1 className="mb-8 text-3xl font-bold text-brand-dark dark:text-brand-light">
+        <div className="container mx-auto max-w-5xl px-4 py-8 bg-brand-light-dark dark:bg-brand-dark">
+          <h1 className="mb-8 text-2xl md:text-3xl font-bold text-brand-dark dark:text-gray-100">
             Requests to join your projects
           </h1>
 
