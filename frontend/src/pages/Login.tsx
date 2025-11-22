@@ -4,7 +4,7 @@ import AuthLayout from "../components/ui/AuthLayout";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import { validateLogin } from "../utils/validation";
-import { login, LoginCredentials } from "../services/auth";
+import { authApi, LoginCredentials } from "../services/api/auth";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 const Login: React.FC = () => {
@@ -48,7 +48,7 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await login(credentials);
+      const response = await authApi.login(credentials);
 
       if (true || response.success) {
         setFormSuccess("Login successful! Redirecting...");

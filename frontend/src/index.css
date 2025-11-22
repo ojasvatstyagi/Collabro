@@ -1,3 +1,57 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+#tsparticles {
+  height: 100vh !important;
+  width: 100vw !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Theme Color Variables */
+:root {
+  /* Orange Theme (Default) */
+  --color-yellow: #ffd257;
+  --color-primary: #ffac34;
+  --color-red: #fc5f23;
+  --color-light-blue: #32daf6;
+  --color-blue: #159fdd;
+}
+
+/* Blue Theme */
+.theme-blue {
+  --color-yellow: #60a5fa;
+  --color-primary: #3b82f6;
+  --color-red: #1d4ed8;
+  --color-light-blue: #93c5fd;
+  --color-blue: #2563eb;
+}
+
+/* Purple Theme */
+.theme-purple {
+  --color-yellow: #c084fc;
+  --color-primary: #a855f7;
+  --color-red: #7c3aed;
+  --color-light-blue: #ddd6fe;
+  --color-blue: #8b5cf6;
+}
+
+/* Green Theme */
+.theme-green {
+  --color-yellow: #4ade80;
+  --color-primary: #22c55e;
+  --color-red: #16a34a;
+  --color-light-blue: #86efac;
+  --color-blue: #15803d;
+}
+
+/* Orange Theme (Explicit) */
+.theme-orange {
+  --color-yellow: #ffd257;
+  --color-primary: #ffac34;
+  --color-red: #fc5f23;
+  --color-light-blue: #32daf6;
+  --color-blue: #159fdd;
+}

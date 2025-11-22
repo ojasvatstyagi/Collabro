@@ -1,9 +1,11 @@
-import React from "react";
-import { Users, ChevronRight, Search, Bell, PlusCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Users, ChevronRight, Search, Bell, PlusCircle, Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/ui/SideBar";
 import Button from "../components/ui/Button";
 import ThemeToggle from "../components/ui/ThemeToggle";
 import { cn } from "../utils/cn";
+import { useTheme } from "../context/ThemeContext";
 
 interface Project {
   id: string;
@@ -80,10 +82,22 @@ const mockProjects: Project[] = [
 ];
 
 const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
+  const navigate = useNavigate();
+  const { themeColor } = useTheme();
   const isOngoing = project.status === "ongoing";
 
+  const handleProjectClick = () => {
+    if (isOngoing) {
+      navigate(`/project/${project.id}`);
+    } else {
+      // For completed projects, you might want to navigate to a read-only view
+      // or show project details/portfolio view
+      navigate(`/project/${project.id}`);
+    }
+  };
+
   return (
-    <div className="group relative overflow-hidden rounded-lg bg-white shadow-lg transition-all hover:shadow-xl dark:bg-brand-dark/80 dark:shadow-md dark:shadow-brand-light/5 hover:dark:shadow-brand-light/10">
+    <div className="group relative overflow-hidden rounded-lg bg-white shadow-sm border border-gray-200 transition-all hover:shadow-md dark:bg-brand-dark-lighter dark:border-gray-600 dark:shadow-lg">
       <div className="relative h-48 overflow-hidden">
         <img
           src={project.thumbnail}
@@ -97,13 +111,13 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
       </div>
 
       <div className="p-4">
-        <p className="mb-4 text-sm text-brand-dark/60 dark:text-brand-light/60">
+        <p className="mb-4 text-sm text-brand-dark/60 dark:text-gray-300">
           {project.description}
         </p>
 
         <div className="mb-4 flex items-center gap-2">
-          <Users className="h-4 w-4 text-brand-dark/40 dark:text-brand-light/40" />
-          <span className="text-sm text-brand-dark/60 dark:text-brand-light/60">
+          <Users className="h-4 w-4 text-gray-400" />
+          <span className="text-sm text-brand-dark/60 dark:text-gray-300">
             Team Size: {project.teamSize}
           </span>
         </div>
@@ -112,7 +126,7 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
           {project.techStack.map((tech, index) => (
             <span
               key={index}
-              className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-yellow/10 dark:text-brand-yellow"
+              className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-orange/20 dark:text-brand-orange"
             >
               {tech}
             </span>
@@ -120,9 +134,10 @@ const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
         </div>
 
         <Button
-          variant={isOngoing ? "primary" : "secondary"}
+          variant="primary"
           className="w-full"
           rightIcon={<ChevronRight className="h-4 w-4" />}
+          onClick={handleProjectClick}
         >
           {isOngoing ? "Project Board" : "View"}
         </Button>
@@ -138,7 +153,7 @@ const ProjectSection: React.FC<{
 }> = ({ title, projects, showAll = false }) => (
   <div className="mb-12">
     <div className="mb-6 flex items-center justify-between">
-      <h2 className="text-xl font-semibold text-brand-dark dark:text-brand-light">
+      <h2 className="text-xl font-semibold text-brand-dark dark:text-gray-100">
         {title}
       </h2>
       {showAll && (
@@ -156,42 +171,71 @@ const ProjectSection: React.FC<{
 );
 
 const MyProjects: React.FC = () => {
+  const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const ongoingProjects = mockProjects.filter((p) => p.status === "ongoing");
   const pastProjects = mockProjects.filter((p) => p.status === "completed");
 
   return (
-    <div className="flex h-screen bg-brand-light/30 dark:bg-brand-dark/95">
-      <Sidebar />
+    <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
+      <Sidebar isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} />
 
       <div className="flex-1 overflow-y-auto">
-        <header className="flex h-16 items-center justify-between border-b border-brand-dark/10 bg-white px-8 dark:border-brand-light/10 dark:bg-brand-dark/80">
+        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 dark:border-gray-600 dark:bg-brand-dark-light">
           <div className="flex flex-1 items-center gap-4">
-            <h1 className="text-xl font-semibold text-brand-dark dark:text-brand-light">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            {/* Desktop toggle button */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:block dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <h1 className="text-xl font-semibold text-brand-dark dark:text-gray-100">
               Projects
             </h1>
             <div className="relative flex-1 max-w-2xl">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-dark/40 dark:text-brand-light/40" />
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full rounded-lg border border-brand-dark/10 bg-transparent py-2 pl-10 pr-4 text-brand-dark placeholder-brand-dark/40 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-brand-light/10 dark:text-brand-light dark:placeholder-brand-light/40"
+                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-brand-dark placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <ThemeToggle />
-            <button className="rounded-lg p-2 text-brand-dark/60 hover:bg-brand-light/50 dark:text-brand-light/60 dark:hover:bg-brand-dark/50">
+            <button className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-brand-dark-lighter">
               <Bell className="h-5 w-5" />
             </button>
-            <Button leftIcon={<PlusCircle className="h-5 w-5" />}>
+            <Button 
+              leftIcon={<PlusCircle className="h-5 w-5" />} 
+              className="hidden sm:flex"
+              onClick={() => navigate("/post-idea")}
+            >
               Post an Idea
+            </Button>
+            <Button 
+              size="sm" 
+              className="sm:hidden"
+              onClick={() => navigate("/post-idea")}
+            >
+              <PlusCircle className="h-4 w-4" />
             </Button>
           </div>
         </header>
 
-        <div className="container mx-auto max-w-7xl px-4 py-8">
-          <h1 className="mb-8 text-3xl font-bold text-brand-dark dark:text-brand-light">
+        <div className="container mx-auto max-w-7xl px-4 py-8 bg-brand-light-dark dark:bg-brand-dark">
+          <h1 className="mb-8 text-2xl md:text-3xl font-bold text-brand-dark dark:text-gray-100">
             Your Projects
           </h1>
 
