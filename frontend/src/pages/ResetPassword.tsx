@@ -4,7 +4,7 @@ import AuthLayout from '../components/ui/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { validatePassword } from '../utils/validation';
-import { verifyOtp, resetPassword } from '../services/auth';
+import { authApi } from '../services/api/auth';
 import { AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 const ResetPassword: React.FC = () => {
@@ -31,7 +31,7 @@ const ResetPassword: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await verifyOtp(email, otp);
+      const response = await authApi.verifyOtp(email, otp);
       
       if (response.success) {
         setIsVerified(true);
@@ -61,7 +61,7 @@ const ResetPassword: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const response = await resetPassword(email, otp, newPassword);
+      const response = await authApi.resetPassword(email, otp, newPassword);
       
       if (response.success) {
         setSuccess('Password reset successful! Redirecting to login...');

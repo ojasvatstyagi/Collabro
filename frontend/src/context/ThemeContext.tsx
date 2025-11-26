@@ -7,10 +7,13 @@ import React, {
 } from "react";
 
 type Theme = "light" | "dark";
+type ThemeColor = "orange" | "blue" | "purple" | "green";
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  themeColor: ThemeColor;
+  setThemeColor: (color: ThemeColor) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -45,6 +48,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     return "light";
   });
 
+  const [themeColor, setThemeColorState] = useState<ThemeColor>(() => {
+    const savedColor = localStorage.getItem("themeColor") as ThemeColor | null;
+    return savedColor || "orange";
+  });
+
   useEffect(() => {
     // Update localStorage when theme changes
     localStorage.setItem("theme", theme);
@@ -56,6 +64,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       document.documentElement.classList.remove("dark");
     }
   }, [theme]);
+
+  useEffect(() => {
+    // Update localStorage when theme color changes
+    localStorage.setItem("themeColor", themeColor);
+
+    // Remove all theme color classes
+    document.documentElement.classList.remove(
+      "theme-orange",
+      "theme-blue",
+      "theme-purple",
+      "theme-green"
+    );
+
+    // Add current theme color class
+    document.documentElement.classList.add(`theme-${themeColor}`);
+  }, [themeColor]);
 
   // Listen for system preference changes
   useEffect(() => {
@@ -79,8 +103,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeState(newTheme);
   };
 
+  const setThemeColor = (newColor: ThemeColor) => {
+    setThemeColorState(newColor);
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, themeColor, setThemeColor }}
+    >
       {children}
     </ThemeContext.Provider>
   );
