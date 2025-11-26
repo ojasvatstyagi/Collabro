@@ -41,12 +41,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               "placeholder:text-transparent focus:ring-2",
               labelActive
                 ? "border-brand-orange"
-                : "border-brand-dark/20 dark:border-brand-light/20",
+                : "border-gray-300 dark:border-gray-600",
               error
                 ? "border-brand-red focus:border-brand-red focus:ring-brand-red/20"
                 : "focus:border-brand-orange focus:ring-brand-orange/20",
-              "bg-white dark:bg-brand-dark/90",
-              "text-brand-dark dark:text-brand-light",
+              "bg-brand-light dark:bg-brand-dark-light",
+              "text-gray-900 dark:text-gray-100",
               className
             )}
             placeholder={label}
@@ -61,7 +61,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               "absolute left-4 top-4 z-10 origin-[0] transform text-sm transition-all duration-200",
               labelActive
                 ? "-translate-y-2 scale-75 text-brand-orange"
-                : "text-brand-dark/60 dark:text-brand-light/60",
+                : "text-gray-500 dark:text-gray-400",
               error && labelActive && "text-brand-red"
             )}
           >
