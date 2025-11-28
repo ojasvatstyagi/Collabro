@@ -1,15 +1,14 @@
 package com.example.backend.enums;
 
-public enum SocialPlatform {
-    LINKEDIN("LinkedIn"),
-    GITHUB("GitHub"),
-    TWITTER("Twitter"),
-    FACEBOOK("Facebook"),
-    INSTAGRAM("Instagram");
+public enum PostType {
+    IDEA("Idea"),
+    PROJECT_RECRUITMENT("Project Recruitment"),
+    MENTORSHIP("Mentorship"),
+    COLLABORATION("Collaboration");
 
     private final String displayName;
 
-    SocialPlatform(String displayName) {
+    PostType(String displayName) {
         this.displayName = displayName;
     }
 

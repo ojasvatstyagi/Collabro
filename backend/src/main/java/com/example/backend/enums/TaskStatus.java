@@ -1,7 +1,17 @@
 package com.example.backend.enums;
 
 public enum TaskStatus {
-    PENDING,
-    IN_PROGRESS,
-    COMPLETED
+    PENDING("Pending"),
+    IN_PROGRESS("In Progress"),
+    COMPLETED("Completed");
+
+    private final String displayName;
+
+    TaskStatus(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
 }

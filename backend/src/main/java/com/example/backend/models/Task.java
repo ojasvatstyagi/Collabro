@@ -5,10 +5,11 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,16 +41,20 @@ public class Task {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "deadline", nullable = false)
-    private Date deadline;
+    private LocalDateTime deadline;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private TaskStatus status = TaskStatus.PENDING;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "assigned_to")
     private Profile assignedTo;

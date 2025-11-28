@@ -1,10 +1,13 @@
 package com.example.backend.models;
 
+import com.example.backend.enums.PostType;
 import com.example.backend.enums.PostStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -21,7 +24,9 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    private String postType;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PostType postType;
 
     private String title;
 
@@ -31,7 +36,6 @@ public class Post {
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
-
 
     @ElementCollection
     @CollectionTable(name = "post_required_skills", joinColumns = @JoinColumn(name = "post_id"))
@@ -44,13 +48,19 @@ public class Post {
     @Column(name = "status", nullable = false)
     private PostStatus status = PostStatus.POSTED;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile author;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToOne(mappedBy = "post", cascade = CascadeType.ALL)
     private Project project;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "team_id")
     private Team team;
