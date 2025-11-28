@@ -6,10 +6,11 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,20 +45,25 @@ public class Project {
     @Column(name = "status", nullable = false)
     private ProjectStatus status;
 
-
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToOne
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile createdBy;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToOne
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;

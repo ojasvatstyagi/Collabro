@@ -2,9 +2,7 @@ package com.example.backend.models;
 
 import com.example.backend.enums.Proficiency;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -15,7 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "skills", indexes = {
         @Index(name = "idx_skill_profile", columnList = "profile_id"),
-        @Index(name = "idx_skill_name", columnList = "name")
+        @Index(name = "idx_skill_definition", columnList = "skill_definition_id")
 })
 @Data
 @NoArgsConstructor
@@ -26,10 +24,9 @@ public class Skill {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @NotBlank
-    @Size(max = 50)
-    @Column(nullable = false)
-    private String name;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "skill_definition_id", nullable = false)
+    private SkillDefinition definition;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -38,7 +35,7 @@ public class Skill {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)
-    @ToString.Exclude  // Prevent circular toString() calls
+    @ToString.Exclude // Prevent circular toString() calls
     @EqualsAndHashCode.Exclude
     private Profile profile;
 
@@ -48,4 +45,8 @@ public class Skill {
 
     @LastModifiedDate
     private Instant modifiedAt;
+
+    public String getName() {
+        return definition != null ? definition.getName() : null;
+    }
 }

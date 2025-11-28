@@ -3,6 +3,8 @@ package com.example.backend.models;
 import com.example.backend.enums.SocialPlatform;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString.Exclude;
 
 import java.util.UUID;
 
@@ -21,5 +23,7 @@ public class SocialLink {
 
     @ManyToOne
     @JoinColumn(name = "profile_id")
+    @Exclude
+    @EqualsAndHashCode.Exclude
     private Profile profile;
 }

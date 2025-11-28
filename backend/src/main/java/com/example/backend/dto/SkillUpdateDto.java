@@ -14,10 +14,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class SkillUpdateDto {
-    @NotBlank
-    @Size(max = 50)
+    @NotBlank(message = "Skill name is required")
+    @Size(max = 50, message = "Skill name cannot exceed 50 characters")
     private String name;
 
-    @NotNull
+    @NotNull(message = "Proficiency is required")
     private Proficiency proficiency;
 }
