@@ -1,6 +1,5 @@
 package com.example.backend.services;
 
-
 import com.example.backend.models.User;
 import com.example.backend.repositories.UserRepository;
 import lombok.AllArgsConstructor;
@@ -30,7 +29,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                Collections.singleton(authority)
-        );
+                Collections.singleton(authority));
     }
 }
