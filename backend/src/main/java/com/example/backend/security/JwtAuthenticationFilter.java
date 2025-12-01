@@ -23,11 +23,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
         final String authorizationHeader = request.getHeader("Authorization");
 
         String username = null;
@@ -35,6 +34,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
+        } else if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("jwt".equals(cookie.getName())) {
+                    jwt = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (jwt != null) {
             try {
                 username = jwtUtil.getUserNameFromJwtToken(jwt);
             } catch (ExpiredJwtException | MalformedJwtException e) {
@@ -43,13 +52,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            var userDetails = this.userDetailsService.loadUserByUsername(username);
+            try {
+                var userDetails = this.userDetailsService.loadUserByUsername(username);
 
-            if (jwtUtil.validateJwtToken(jwt)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (jwtUtil.validateJwtToken(jwt)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
+                // User from token not found (likely DB reset), ignore and allow request to
+                // proceed unauthenticated
+                logger.warn("User from token not found: " + username);
             }
         }
         filterChain.doFilter(request, response);

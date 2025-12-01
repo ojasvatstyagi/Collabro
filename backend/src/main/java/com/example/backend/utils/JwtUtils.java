@@ -1,29 +1,28 @@
 package com.example.backend.utils;
 
 import com.example.backend.models.User;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-import java.security.Key;
-import java.util.Base64;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtils {
 
-    private final Key key;
+    private final SecretKey key;
     private final long jwtExpirationMs;
 
-    public JwtUtils(@Value("${app.jwt.secret}") String jwtSecrect,
+    public JwtUtils(@Value("${app.jwt.secret}") String jwtSecret,
                     @Value("${app.jwt.expiration}") long jwtExpirationMs) {
         this.jwtExpirationMs = jwtExpirationMs;
-        byte[] keyBytes = Base64.getEncoder().encode(jwtSecrect.getBytes());
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(new String(keyBytes)));
+        // The secret is treated as a raw string and used to create a signing key.
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
-
 
     public String generateJwtToken(User user) {
         return Jwts.builder()
@@ -48,6 +47,7 @@ public class JwtUtils {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (Exception e) {
+            // Handle exceptions like ExpiredJwtException, MalformedJwtException, etc.
             return false;
         }
     }
