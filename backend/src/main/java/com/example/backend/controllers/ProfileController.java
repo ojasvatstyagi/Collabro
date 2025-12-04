@@ -47,17 +47,21 @@ public class ProfileController {
                 profile.isProfileComplete(),
                 profile.getCompletionPercentage(),
                 getMissingFields(profile),
-                profile.isProfileComplete() ? "Profile complete!" : "Please complete your profile"
-        ));
+                profile.isProfileComplete() ? "Profile complete!" : "Please complete your profile"));
     }
 
     private List<String> getMissingFields(Profile profile) {
         List<String> missingFields = new ArrayList<>();
-        if (StringUtils.isBlank(profile.getFirstname())) missingFields.add("firstname");
-        if (StringUtils.isBlank(profile.getLastname())) missingFields.add("lastname");
-        if (StringUtils.isBlank(profile.getBio())) missingFields.add("bio");
-        if (StringUtils.isBlank(profile.getEducation())) missingFields.add("education");
-        if (profile.getSkills() == null || profile.getSkills().isEmpty()) missingFields.add("skills");
+        if (StringUtils.isBlank(profile.getFirstname()))
+            missingFields.add("firstname");
+        if (StringUtils.isBlank(profile.getLastname()))
+            missingFields.add("lastname");
+        if (StringUtils.isBlank(profile.getBio()))
+            missingFields.add("bio");
+        if (StringUtils.isBlank(profile.getEducation()))
+            missingFields.add("education");
+        if (profile.getSkills() == null || profile.getSkills().isEmpty())
+            missingFields.add("skills");
         return missingFields;
     }
 

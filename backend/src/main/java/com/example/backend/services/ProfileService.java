@@ -30,8 +30,13 @@ public class ProfileService {
 
     public Profile createEmptyProfile(User user) {
         Objects.requireNonNull(user, "User cannot be null");
+
         return Profile.builder()
                 .user(user)
+                .firstname("New")
+                .lastname("User")
+                .isProfileComplete(false)
+                .completionPercentage(0)
                 .build();
     }
 
@@ -66,7 +71,6 @@ public class ProfileService {
 
         return convertToDto(profile);
     }
-
 
     public ProfileDto convertToDto(Profile profile) {
         return modelMapper.map(profile, ProfileDto.class);
