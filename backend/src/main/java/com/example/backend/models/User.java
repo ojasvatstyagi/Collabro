@@ -1,6 +1,5 @@
 package com.example.backend.models;
 
-import com.example.backend.enums.RoleName;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
@@ -34,7 +33,9 @@ public class User {
     @Builder.Default
     private boolean isVerified = false;
 
-    private RoleName role;
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @Column(nullable = false)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // hide in JSON
