@@ -35,7 +35,7 @@ class SkillControllerTest {
     private SkillController skillController;
 
     private SkillDto testSkillDto;
-    private SkillUpdateDto testSkillUpdateDto;
+
     private UUID testId;
 
     @BeforeEach
@@ -45,7 +45,7 @@ class SkillControllerTest {
 
         testId = UUID.randomUUID();
         testSkillDto = new SkillDto(testId, "Java", Proficiency.ADVANCED);
-        testSkillUpdateDto = new SkillUpdateDto("Python", Proficiency.ADVANCED);
+
     }
 
     @Test
@@ -69,14 +69,13 @@ class SkillControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/profile/skills")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Java\",\"proficiency\":\"ADVANCED\"}")) // Match your DTO
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Java\",\"proficiency\":\"ADVANCED\"}")) // Match your DTO
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(testId.toString()))
                 .andExpect(jsonPath("$.name").value("Java"))
                 .andExpect(jsonPath("$.proficiency").value("ADVANCED"));
     }
-
 
     @Test
     void updateSkill_ShouldReturnUpdatedSkill() throws Exception {
@@ -85,8 +84,8 @@ class SkillControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/profile/skills/" + testId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Java\",\"proficiency\":\"ADVANCED\"}"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Java\",\"proficiency\":\"ADVANCED\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testId.toString()))
                 .andExpect(jsonPath("$.name").value("Java"))

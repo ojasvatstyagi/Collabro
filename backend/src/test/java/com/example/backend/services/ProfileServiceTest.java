@@ -1,6 +1,5 @@
 package com.example.backend.services;
 
-
 import com.example.backend.dto.ProfileDto;
 import com.example.backend.dto.ProfileUpdateDto;
 import com.example.backend.exceptions.UserNotFoundException;
@@ -14,7 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -28,12 +26,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ProfileServiceTest {
 
-    @Mock private ProfileRepository profileRepository;
-    @Mock private UserService userService;
-    @Mock private ModelMapper modelMapper;
-    @Mock private FileStorageService fileStorageService;
+    @Mock
+    private ProfileRepository profileRepository;
+    @Mock
+    private UserService userService;
+    @Mock
+    private ModelMapper modelMapper;
 
-    @InjectMocks private ProfileService profileService;
+    @InjectMocks
+    private ProfileService profileService;
 
     private User testUser;
     private Profile testProfile;
@@ -42,7 +43,6 @@ class ProfileServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(profileService, "uploadBasePath", "/uploads/");
 
         testUser = new User();
         testUser.setId(UUID.randomUUID());
@@ -137,7 +137,7 @@ class ProfileServiceTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
         when(profileRepository.findByUser(testUser)).thenReturn(Optional.of(testProfile));
         when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(modelMapper.map(testProfile,ProfileDto.class)).thenReturn(testProfileDto);
+        when(modelMapper.map(testProfile, ProfileDto.class)).thenReturn(testProfileDto);
 
         ProfileDto result = profileService.updateProfile(testUpdateDto);
 
@@ -153,7 +153,6 @@ class ProfileServiceTest {
     void updateProfile_WithNullDto_ShouldThrowException() {
         assertThrows(NullPointerException.class, () -> profileService.updateProfile(null));
     }
-
 
     @Test
     void exportToPdf_WithValidProfile_ShouldReturnNonEmptyByteArray() {

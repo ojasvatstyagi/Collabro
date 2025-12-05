@@ -1,6 +1,5 @@
 package com.example.backend.services;
 
-
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,8 +27,8 @@ class EmailServiceTest {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
-        // Act  (for testing make sendHtmlEmail public)
-//        emailService.sendHtmlEmail("test@example.com", "Test Subject", "<p>Test Content</p>");
+        // Act (for testing make sendHtmlEmail public)
+        emailService.sendHtmlEmail("test@example.com", "Test Subject", "<p>Test Content</p>");
 
         // Assert
         verify(mailSender).send(mimeMessage);
@@ -43,7 +42,7 @@ class EmailServiceTest {
         doThrow(new MailSendException("Test Exception")).when(mailSender).send(any(MimeMessage.class));
 
         // Act (for testing make sendHtmlEmail public)
-//        emailService.sendHtmlEmail("test@example.com", "Test Subject", "<p>Test Content</p>");
+        emailService.sendHtmlEmail("test@example.com", "Test Subject", "<p>Test Content</p>");
 
         // Assert
         verify(mailSender).send(mimeMessage);

@@ -5,6 +5,8 @@ import com.example.backend.dto.SkillUpdateDto;
 import com.example.backend.enums.Proficiency;
 import com.example.backend.models.Profile;
 import com.example.backend.models.Skill;
+import com.example.backend.models.SkillDefinition;
+import com.example.backend.repositories.SkillDefinitionRepository;
 import com.example.backend.repositories.SkillRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,9 @@ class SkillServiceTest {
     private SkillRepository skillRepository;
 
     @Mock
+    private SkillDefinitionRepository skillDefinitionRepository;
+
+    @Mock
     private ProfileService profileService;
 
     @Mock
@@ -50,9 +55,14 @@ class SkillServiceTest {
         testProfile.setId(UUID.randomUUID());
         testProfile.setSkills(new ArrayList<>()); // Initialize skills list
 
+        SkillDefinition definition = SkillDefinition.builder()
+                .name("Java")
+                .normalizedName("java")
+                .build();
+
         testSkill = Skill.builder()
                 .id(UUID.randomUUID())
-                .name("Java")
+                .definition(definition)
                 .proficiency(Proficiency.ADVANCED)
                 .profile(testProfile)
                 .build();
@@ -67,6 +77,7 @@ class SkillServiceTest {
     void getCurrentUserSkills_ShouldReturnSkillList() {
         // Arrange
         when(profileService.getCurrentUserProfile()).thenReturn(testProfile);
+        when(skillRepository.findByProfile(testProfile)).thenReturn(List.of(testSkill));
         when(modelMapper.map(testSkill, SkillDto.class)).thenReturn(testSkillDto);
 
         // Act
@@ -82,15 +93,17 @@ class SkillServiceTest {
     void addSkill_ShouldCreateNewSkill() {
         // Arrange
         SkillUpdateDto dto = new SkillUpdateDto("Python", Proficiency.ADVANCED);
+        SkillDefinition pythonDef = SkillDefinition.builder().name("Python").normalizedName("python").build();
+
         Skill newSkill = Skill.builder()
-                .name(dto.getName())
+                .definition(pythonDef)
                 .proficiency(dto.getProficiency())
                 .profile(testProfile)
                 .build();
 
         Skill savedSkill = Skill.builder()
                 .id(UUID.randomUUID())
-                .name(newSkill.getName())
+                .definition(pythonDef)
                 .proficiency(newSkill.getProficiency())
                 .profile(newSkill.getProfile())
                 .build();
@@ -98,6 +111,7 @@ class SkillServiceTest {
         SkillDto expectedDto = new SkillDto(savedSkill.getId(), savedSkill.getName(), savedSkill.getProficiency());
 
         when(profileService.getCurrentUserProfile()).thenReturn(testProfile);
+        when(skillDefinitionRepository.findByNormalizedName("python")).thenReturn(Optional.of(pythonDef));
         when(skillRepository.save(any(Skill.class))).thenReturn(savedSkill);
         when(modelMapper.map(savedSkill, SkillDto.class)).thenReturn(expectedDto);
 
@@ -108,9 +122,8 @@ class SkillServiceTest {
         assertNotNull(result);
         assertEquals("Python", result.getName());
         verify(profileService).saveProfile(testProfile);
-        verify(skillRepository).save(argThat(skill ->
-                skill.getName().equals("Python") && skill.getProfile().equals(testProfile)
-        ));
+        verify(skillRepository)
+                .save(argThat(skill -> skill.getName().equals("Python") && skill.getProfile().equals(testProfile)));
     }
 
     @Test

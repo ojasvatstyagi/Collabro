@@ -1,7 +1,6 @@
 package com.example.backend.services;
 
 import com.example.backend.enums.RoleName;
-import com.example.backend.models.Role;
 import com.example.backend.models.User;
 import com.example.backend.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -11,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import com.example.backend.models.Role;
 
 import java.util.Optional;
 
@@ -31,7 +32,9 @@ class CustomUserDetailsServiceTest {
         User user = new User();
         user.setUsername("testuser");
         user.setPassword("password");
-        user.setRole(new Role(1, RoleName.ROLE_USER));
+        Role role = new Role();
+        role.setRoleName(RoleName.ROLE_USER);
+        user.setRole(role);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
 
@@ -52,4 +55,3 @@ class CustomUserDetailsServiceTest {
         });
     }
 }
-
