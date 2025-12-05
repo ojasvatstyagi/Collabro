@@ -34,18 +34,27 @@ import com.example.backend.models.User;
 import com.example.backend.services.EmailService;
 import com.example.backend.utils.JwtUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    @Mock private UserService userService;
-    @Mock private PasswordEncoder passwordEncoder;
-    @Mock private ProfileService profileService;
-    @Mock private JwtUtils jwtUtils;
-    @Mock private EmailService emailService;
-    @Mock private PasswordService passwordService;
+    @Mock
+    private UserService userService;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private ProfileService profileService;
+    @Mock
+    private JwtUtils jwtUtils;
+    @Mock
+    private EmailService emailService;
+    @Mock
+    private PasswordService passwordService;
+    @Mock
+    private org.modelmapper.ModelMapper modelMapper;
 
     @InjectMocks
     private AuthController authController;
@@ -86,8 +95,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.message").value("Registration successful"));
 
@@ -102,8 +111,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Username already exists"));
     }
@@ -116,8 +125,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Email already exists"));
     }
@@ -128,13 +137,15 @@ class AuthControllerTest {
         when(userService.findUserByUsername(anyString())).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
         when(jwtUtils.generateJwtToken(any(User.class))).thenReturn("testToken");
+        when(modelMapper.map(any(User.class), eq(com.example.backend.dto.UserDto.class)))
+                .thenReturn(new com.example.backend.dto.UserDto());
 
         // Act
         MockHttpServletResponse response = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Login successful"))
+                .andExpect(jsonPath("$.user").exists())
                 .andReturn().getResponse();
 
         // Assert cookie
@@ -153,8 +164,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid credentials"));
     }
@@ -168,8 +179,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Email not verified"));
     }
@@ -181,8 +192,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"test@example.com\"}"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"test@example.com\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("OTP sent to email"));
     }
@@ -194,8 +205,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/verify-otp")
-                        .param("email", "test@example.com")
-                        .param("otp", "123456"))
+                .param("email", "test@example.com")
+                .param("otp", "123456"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("OTP verified"));
     }
@@ -207,8 +218,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/verify-otp")
-                        .param("email", "test@example.com")
-                        .param("otp", "wrong"))
+                .param("email", "test@example.com")
+                .param("otp", "wrong"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Invalid or expired OTP"));
     }
@@ -220,9 +231,9 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/reset-password")
-                        .param("email", "test@example.com")
-                        .param("otp", "123456")
-                        .param("newPassword", "newPassword"))
+                .param("email", "test@example.com")
+                .param("otp", "123456")
+                .param("newPassword", "newPassword"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Password reset successful"));
     }
@@ -234,8 +245,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/verify-registration-otp")
-                        .param("email", "test@example.com")
-                        .param("otp", "123456"))
+                .param("email", "test@example.com")
+                .param("otp", "123456"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Email verification successful"));
     }
@@ -247,8 +258,8 @@ class AuthControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/verify-registration-otp")
-                        .param("email", "test@example.com")
-                        .param("otp", "wrong"))
+                .param("email", "test@example.com")
+                .param("otp", "wrong"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Invalid or expired OTP"));
     }
