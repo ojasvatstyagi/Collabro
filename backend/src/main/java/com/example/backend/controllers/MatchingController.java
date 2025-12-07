@@ -6,6 +6,7 @@ import com.example.backend.services.MatchingService;
 import com.example.backend.services.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/matching")
 @RequiredArgsConstructor
+@Slf4j
 public class MatchingController {
     private final MatchingService matchingService;
     private final ProfileService profileService;
@@ -42,8 +44,7 @@ public class MatchingController {
     @Operation(summary = "Search for profiles", description = "Searches for profiles based on the provided criteria like location, education")
     public ResponseEntity<Page<ProfileDto>> searchProfiles(
             @ModelAttribute ProfileSearchCriteria criteria,
-            Pageable pageable
-    ) {
+            Pageable pageable) {
         return ResponseEntity.ok(matchingService.searchProfiles(criteria, pageable));
     }
 }

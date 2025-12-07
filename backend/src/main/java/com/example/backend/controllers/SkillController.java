@@ -6,6 +6,7 @@ import com.example.backend.services.SkillService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/profile/skills")
 @RequiredArgsConstructor
+@Slf4j
 public class SkillController {
     private final SkillService skillService;
 
@@ -28,6 +30,7 @@ public class SkillController {
     @PostMapping
     @Operation(summary = "Add a new skill", description = "Adds a new skill to the current user's profile")
     public ResponseEntity<SkillDto> addSkill(@Valid @RequestBody SkillUpdateDto skillDto) {
+        log.info("Adding skill: {}", skillDto.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(skillService.addSkill(skillDto));
     }
@@ -37,12 +40,14 @@ public class SkillController {
     public ResponseEntity<SkillDto> updateSkill(
             @PathVariable UUID id,
             @Valid @RequestBody SkillUpdateDto skillDto) {
+        log.info("Updating skill: {}", id);
         return ResponseEntity.ok(skillService.updateSkill(id, skillDto));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a skill", description = "Deletes a skill from the current user's profile")
     public ResponseEntity<Void> deleteSkill(@PathVariable UUID id) {
+        log.info("Deleting skill: {}", id);
         skillService.deleteSkill(id);
         return ResponseEntity.noContent().build();
     }
