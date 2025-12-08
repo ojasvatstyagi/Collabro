@@ -2,11 +2,11 @@ package com.example.backend.services;
 
 import com.example.backend.dto.ProfileDto;
 import com.example.backend.exceptions.BadRequestException;
-import com.example.backend.exceptions.PdfExportException;
 import com.example.backend.exceptions.ResourceNotFoundException;
+import com.example.backend.exceptions.StorageException;
 import com.example.backend.models.Profile;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.slf4j.Slf4j; // Ensure check
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -36,7 +36,7 @@ public class FileStorageService {
         try {
             Files.createDirectories(this.fileStorageLocation);
         } catch (Exception ex) {
-            throw new PdfExportException("Could not create upload directory");
+            throw new StorageException("Could not create upload directory", ex);
         }
     }
 
@@ -50,7 +50,7 @@ public class FileStorageService {
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
             return directory + "/" + uniqueFileName;
         } catch (IOException ex) {
-            throw new ResourceNotFoundException("Could not store file " + fileName);
+            throw new StorageException("Could not store file " + fileName, ex);
         }
     }
 

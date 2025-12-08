@@ -6,7 +6,7 @@ import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.Skill;
 import com.example.backend.repositories.ProfileRepository;
-import com.example.backend.repositories.SkillRepository;
+import com.example.backend.specifications.ProfileSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -20,16 +20,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MatchingService {
     private final ProfileRepository profileRepository;
-    private final SkillRepository skillRepository;
     private final ModelMapper modelMapper;
 
     public List<ProfileDto> findSimilarProfiles(UUID profileId) {
         List<String> userSkills = getSkills(profileId);
 
         return profileRepository.findProfilesWithMatchingSkills(
-                        userSkills,
-                        profileId
-                ).stream()
+                userSkills,
+                profileId).stream()
                 .map(this::convertToDto)
                 .toList();
     }
@@ -38,16 +36,15 @@ public class MatchingService {
         List<String> userSkills = getSkills(profileId);
 
         return profileRepository.findProfilesWithComplementarySkills(
-                        userSkills,
-                        profileId
-                ).stream()
+                userSkills,
+                profileId).stream()
                 .map(this::convertToDto)
                 .toList();
     }
 
     // 3. Filterable search
     public Page<ProfileDto> searchProfiles(ProfileSearchCriteria criteria, Pageable pageable) {
-        Page<Profile> profiles = profileRepository.findAll(criteria.toSpecification(), pageable);
+        Page<Profile> profiles = profileRepository.findAll(ProfileSpecifications.withCriteria(criteria), pageable);
         return profiles.map(this::convertToDto);
     }
 
@@ -59,7 +56,6 @@ public class MatchingService {
                 .map(Skill::getName)
                 .toList();
     }
-
 
     private ProfileDto convertToDto(Profile profile) {
         return modelMapper.map(profile, ProfileDto.class);
