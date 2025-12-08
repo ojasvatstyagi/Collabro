@@ -16,6 +16,14 @@ public class EmailTemplates {
                 + "<hr><small>&copy; 2025 Collabro</small></body></html>";
     }
 
+    public static String registrationOtpTemplate(String otp) {
+        return "<html><body style='font-family:sans-serif;'>"
+                + "<h2 style='color:#4CAF50;'>Verify Your Email</h2>"
+                + "<p>Your email verification OTP is: <b style='font-size:1.5em;'>" + otp + "</b></p>"
+                + "<p>This code is valid for 10 minutes.</p>"
+                + "<hr><small>&copy; 2025 Collabro</small></body></html>";
+    }
+
     public static String passwordResetSuccessTemplate() {
         return "<html><body style='font-family:sans-serif;'>"
                 + "<h2 style='color:#4CAF50;'>Password Reset Successful</h2>"

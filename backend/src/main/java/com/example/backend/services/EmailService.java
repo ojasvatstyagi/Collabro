@@ -4,7 +4,6 @@ import com.example.backend.utils.EmailTemplates;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -15,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class EmailService {
     private final JavaMailSender mailSender;
 
-    private void sendHtmlEmail(String to, String subject, String htmlContent) {
+    void sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -39,6 +38,12 @@ public class EmailService {
     public void sendOtpEmail(String to, String otp) {
         String subject = "Your Password Reset OTP";
         String html = EmailTemplates.otpTemplate(otp);
+        sendHtmlEmail(to, subject, html);
+    }
+
+    public void sendRegistrationOtpEmail(String to, String otp) {
+        String subject = "Verify Your Email Address";
+        String html = EmailTemplates.registrationOtpTemplate(otp);
         sendHtmlEmail(to, subject, html);
     }
 
