@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
@@ -20,7 +21,7 @@ public class PasswordService {
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    Random random = new Random();
+    Random random = new SecureRandom();
 
     public void generateOtp(String email) {
         String otp = String.valueOf(random.nextInt(899999) + 100000);
@@ -30,8 +31,7 @@ public class PasswordService {
                 otp,
                 LocalDateTime.now().plusMinutes(10),
                 false,
-                TokenType.PASSWORD_RESET
-        );
+                TokenType.PASSWORD_RESET);
         tokenRepo.save(token);
         // Send OTP via email
         emailService.sendOtpEmail(email, otp);
@@ -45,21 +45,25 @@ public class PasswordService {
                 otp,
                 LocalDateTime.now().plusMinutes(10),
                 false,
-                TokenType.EMAIL_VERIFICATION
-        );
+                TokenType.EMAIL_VERIFICATION);
         tokenRepo.save(token);
-        emailService.sendOtpEmail(email, otp);
+        tokenRepo.save(token);
+        emailService.sendRegistrationOtpEmail(email, otp);
     }
 
     public boolean verifyRegistrationOtp(String email, String otp) {
-        Optional<PasswordToken> tokenOpt = tokenRepo.findByEmailAndOtpAndUsedFalseAndTokenType(email, otp, TokenType.EMAIL_VERIFICATION);
-        if (tokenOpt.isEmpty()) return false;
+        Optional<PasswordToken> tokenOpt = tokenRepo.findByEmailAndOtpAndUsedFalseAndTokenType(email, otp,
+                TokenType.EMAIL_VERIFICATION);
+        if (tokenOpt.isEmpty())
+            return false;
 
         PasswordToken token = tokenOpt.get();
-        if (token.getExpiryTime().isBefore(LocalDateTime.now())) return false;
+        if (token.getExpiryTime().isBefore(LocalDateTime.now()))
+            return false;
 
         Optional<User> userOpt = userRepo.findByEmail(email);
-        if (userOpt.isEmpty()) return false;
+        if (userOpt.isEmpty())
+            return false;
 
         User user = userOpt.get();
         user.setVerified(true);
@@ -70,7 +74,6 @@ public class PasswordService {
         return true;
     }
 
-
     public boolean validateOtp(String email, String otp) {
         return tokenRepo.findByEmailAndOtpAndUsedFalse(email, otp)
                 .filter(token -> token.getExpiryTime().isAfter(LocalDateTime.now()))
@@ -79,13 +82,16 @@ public class PasswordService {
 
     public boolean resetPassword(String email, String otp, String newPassword) {
         Optional<PasswordToken> tokenOpt = tokenRepo.findByEmailAndOtpAndUsedFalse(email, otp);
-        if (tokenOpt.isEmpty()) return false;
+        if (tokenOpt.isEmpty())
+            return false;
 
         PasswordToken token = tokenOpt.get();
-        if (token.getExpiryTime().isBefore(LocalDateTime.now())) return false;
+        if (token.getExpiryTime().isBefore(LocalDateTime.now()))
+            return false;
 
         Optional<User> userOpt = userRepo.findByEmail(email);
-        if (userOpt.isEmpty()) return false;
+        if (userOpt.isEmpty())
+            return false;
 
         User user = userOpt.get();
         user.setPassword(passwordEncoder.encode(newPassword));

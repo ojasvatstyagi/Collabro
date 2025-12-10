@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-
+import com.example.backend.models.SkillDefinition;
+import com.example.backend.repositories.SkillDefinitionRepository;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SkillService {
     private final SkillRepository skillRepository;
+    private final SkillDefinitionRepository skillDefinitionRepository;
     private final ProfileService profileService;
     private final ModelMapper modelMapper;
 
@@ -39,8 +41,17 @@ public class SkillService {
             throw new DuplicateResourceException("Skill already exists in your profile");
         }
 
+        String normalizedName = skillDto.getName().trim().toLowerCase();
+        SkillDefinition definition = skillDefinitionRepository.findByNormalizedName(normalizedName)
+                .orElseGet(() -> {
+                    SkillDefinition newDef = SkillDefinition.builder()
+                            .name(skillDto.getName())
+                            .build();
+                    return skillDefinitionRepository.save(newDef);
+                });
+
         Skill skill = Skill.builder()
-                .name(skillDto.getName())
+                .definition(definition)
                 .proficiency(skillDto.getProficiency())
                 .profile(profile)
                 .build();
@@ -65,7 +76,16 @@ public class SkillService {
             throw new DuplicateResourceException("Another skill with this name already exists");
         }
 
-        skill.setName(skillDto.getName());
+        String normalizedName = skillDto.getName().trim().toLowerCase();
+        SkillDefinition definition = skillDefinitionRepository.findByNormalizedName(normalizedName)
+                .orElseGet(() -> {
+                    SkillDefinition newDef = SkillDefinition.builder()
+                            .name(skillDto.getName())
+                            .build();
+                    return skillDefinitionRepository.save(newDef);
+                });
+
+        skill.setDefinition(definition);
         skill.setProficiency(skillDto.getProficiency());
         skill = skillRepository.save(skill);
 
@@ -86,10 +106,14 @@ public class SkillService {
     }
 
     public List<String> searchSkills(String query) {
+        // Updated to search in definitions
+        // Note: You might want to update the repo method to join with definitions
         return skillRepository.findSkillNamesContaining(query.toLowerCase());
     }
 
     private SkillDto convertToDto(Skill skill) {
-        return modelMapper.map(skill, SkillDto.class);
+        SkillDto dto = modelMapper.map(skill, SkillDto.class);
+        dto.setName(skill.getName());
+        return dto;
     }
 }
