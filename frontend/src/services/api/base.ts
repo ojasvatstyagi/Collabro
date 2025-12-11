@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = '/api'; // Use proxy
 const API_TIMEOUT = 10000; // 10 seconds
 
 // Create axios instance with default configuration
@@ -14,20 +14,6 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor for adding auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 // Response interceptor for handling common errors
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
@@ -35,9 +21,8 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      // Handle unauthorized access - maybe redirect to login logic here if needed
+      // But for now just reject
     }
     return Promise.reject(error);
   }

@@ -1,6 +1,6 @@
 import React, { useState, forwardRef } from "react";
 import { cn } from "../../utils/cn";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -12,6 +12,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, required, ...props }, ref) => {
     const [isFocused, setIsFocused] = useState(false);
     const [hasValue, setHasValue] = useState(!!props.value);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
@@ -35,7 +36,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="relative mb-4">
         <div className="relative">
           <input
-            type={type}
+            type={type === "password" ? (showPassword ? "text" : "password") : type}
             className={cn(
               "peer w-full rounded-lg border px-4 pt-6 pb-2 text-sm outline-none transition-all",
               "placeholder:text-transparent focus:ring-2",
@@ -58,7 +59,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           />
           <label
             className={cn(
-              "absolute left-4 top-4 z-10 origin-[0] transform text-sm transition-all duration-200",
+              "absolute left-4 top-4 z-10 origin-[0] transform text-sm transition-all duration-200 pointer-events-none",
               labelActive
                 ? "-translate-y-2 scale-75 text-brand-orange"
                 : "text-gray-500 dark:text-gray-400",
@@ -68,6 +69,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
             {required && <span className="text-brand-red ml-1">*</span>}
           </label>
+
+          {type === "password" && (
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+            >
+              {showPassword ? (
+                <EyeOff size={20} />
+              ) : (
+                <Eye size={20} />
+              )}
+            </button>
+          )}
         </div>
         {error && (
           <div className="mt-1 flex items-center text-xs text-brand-red">

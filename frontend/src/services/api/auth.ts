@@ -1,6 +1,6 @@
-import { BaseApi, ApiResponse } from './base';
+import { BaseApi, ApiResponse } from "./base";
 
-// Auth-related interfaces
+// Auth-related interfaces (unchanged)
 export interface LoginCredentials {
   username: string;
   password: string;
@@ -16,19 +16,18 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  role: string;
   firstname?: string;
   lastname?: string;
   profilePictureUrl?: string;
-  isProfileComplete: boolean;
-  createdAt: string;
-  updatedAt: string;
+  isProfileComplete?: boolean;
 }
 
 export interface AuthResponse {
   user: User;
-  token: string;
-  refreshToken: string;
-  expiresIn: number;
+  token?: string;
+  refreshToken?: string;
+  expiresIn?: number;
 }
 
 export interface ForgotPasswordRequest {
@@ -51,259 +50,84 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
-// Mock data for development
-const mockUser: User = {
-  id: "1",
-  username: "johndoe",
-  email: "john.doe@example.com",
-  firstname: "John",
-  lastname: "Doe",
-  profilePictureUrl: "https://images.pexels.com/photos/2269872/pexels-photo-2269872.jpeg?auto=compress&cs=tinysrgb&w=150",
-  isProfileComplete: true,
-  createdAt: "2024-01-01T00:00:00Z",
-  updatedAt: "2024-01-20T00:00:00Z",
-};
-
 class AuthApi extends BaseApi {
-  // Login user
-  async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
-    await this.simulateDelay(1000);
-
-    // Mock validation
-    if (credentials.username === "admin" && credentials.password === "password") {
-      const authResponse: AuthResponse = {
-        user: mockUser,
-        token: "mock-jwt-token-" + Date.now(),
-        refreshToken: "mock-refresh-token-" + Date.now(),
-        expiresIn: 3600,
-      };
-
-      // Store token in localStorage for demo
-      localStorage.setItem('authToken', authResponse.token);
-
-      return {
-        success: true,
-        data: authResponse,
-        message: "Login successful",
-      };
-    }
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.post<AuthResponse>('/auth/login', credentials);
-    }
-
-    // Mock error response
-    throw {
-      message: "Invalid username or password",
-      status: 401,
-    };
+  // Login user -> POST /api/auth/login
+  async login(
+    credentials: LoginCredentials
+  ): Promise<ApiResponse<AuthResponse>> {
+    // Directly call backend
+    return this.post<AuthResponse>("/auth/login", credentials);
   }
 
-  // Register new user
-  async register(credentials: RegisterCredentials): Promise<ApiResponse<AuthResponse>> {
-    await this.simulateDelay(1200);
-
-    // Mock validation
-    if (credentials.username === "admin") {
-      throw {
-        message: "Username already taken",
-        status: 409,
-        errors: { username: "This username is already in use" },
-      };
-    }
-
-    if (credentials.email === "admin@example.com") {
-      throw {
-        message: "Email already registered",
-        status: 409,
-        errors: { email: "This email is already registered" },
-      };
-    }
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.post<AuthResponse>('/auth/register', credentials);
-    }
-
-    // Mock success response
-    const newUser: User = {
-      ...mockUser,
-      id: Date.now().toString(),
-      username: credentials.username,
-      email: credentials.email,
-      firstname: undefined,
-      lastname: undefined,
-      isProfileComplete: false,
-    };
-
-    const authResponse: AuthResponse = {
-      user: newUser,
-      token: "mock-jwt-token-" + Date.now(),
-      refreshToken: "mock-refresh-token-" + Date.now(),
-      expiresIn: 3600,
-    };
-
-    return {
-      success: true,
-      data: authResponse,
-      message: "Registration successful",
-    };
+  // Register new user -> POST /api/auth/register
+  async register(
+    credentials: RegisterCredentials
+  ): Promise<ApiResponse<AuthResponse>> {
+    return this.post<AuthResponse>("/auth/register", credentials);
   }
 
-  // Forgot password
-  async forgotPassword(request: ForgotPasswordRequest): Promise<ApiResponse<{ message: string }>> {
-    await this.simulateDelay(800);
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.post<{ message: string }>('/auth/forgot-password', request);
-    }
-
-    // Mock validation
-    const validEmails = ["test@example.com", "demo@example.com", "john.doe@example.com"];
-    if (!validEmails.includes(request.email)) {
-      throw {
-        message: "Email not found in our records",
-        status: 404,
-      };
-    }
-
-    return {
-      success: true,
-      data: { message: "Password reset instructions sent to your email" },
-      message: "Password reset email sent successfully",
-    };
+  // Forgot password -> POST /api/auth/forgot-password
+  async forgotPassword(
+    request: ForgotPasswordRequest
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.post<{ message: string }>("/auth/forgot-password", request);
   }
 
-  // Verify OTP
-  async verifyOtp(request: VerifyOtpRequest): Promise<ApiResponse<{ verified: boolean }>> {
-    await this.simulateDelay(600);
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.post<{ verified: boolean }>('/auth/verify-otp', request);
-    }
-
-    // Mock validation
-    if (request.otp !== "123456") {
-      throw {
-        message: "Invalid verification code",
-        status: 400,
-      };
-    }
-
-    return {
-      success: true,
-      data: { verified: true },
-      message: "OTP verified successfully",
-    };
+  // Verify OTP -> POST /api/auth/verify-otp?email=...&otp=...
+  // (Your backend expects RequestParam, so we send params in the URL)
+  async verifyOtp(
+    request: VerifyOtpRequest
+  ): Promise<ApiResponse<{ verified: boolean }>> {
+    const url = `/auth/verify-otp?email=${encodeURIComponent(
+      request.email
+    )}&otp=${encodeURIComponent(request.otp)}`;
+    return this.post<{ verified: boolean }>(url, {}); // empty body
   }
 
-  // Reset password
-  async resetPassword(request: ResetPasswordRequest): Promise<ApiResponse<{ message: string }>> {
-    await this.simulateDelay(1000);
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.post<{ message: string }>('/auth/reset-password', request);
-    }
-
-    // Mock validation
-    if (request.otp !== "123456") {
-      throw {
-        message: "Invalid verification code",
-        status: 400,
-      };
-    }
-
-    return {
-      success: true,
-      data: { message: "Password reset successfully" },
-      message: "Your password has been reset successfully",
-    };
+  // Reset password -> POST /api/auth/reset-password?email=...&otp=...&newPassword=...
+  async resetPassword(
+    request: ResetPasswordRequest
+  ): Promise<ApiResponse<{ message: string }>> {
+    const url = `/auth/reset-password?email=${encodeURIComponent(
+      request.email
+    )}&otp=${encodeURIComponent(request.otp)}&newPassword=${encodeURIComponent(
+      request.newPassword
+    )}`;
+    return this.post<{ message: string }>(url, {}); // empty body
   }
 
-  // Change password
-  async changePassword(request: ChangePasswordRequest): Promise<ApiResponse<{ message: string }>> {
-    await this.simulateDelay(800);
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.put<{ message: string }>('/auth/change-password', request);
-    }
-
-    // Mock validation
-    if (request.currentPassword !== "password") {
-      throw {
-        message: "Current password is incorrect",
-        status: 400,
-        errors: { currentPassword: "Current password is incorrect" },
-      };
-    }
-
-    return {
-      success: true,
-      data: { message: "Password changed successfully" },
-      message: "Your password has been updated",
-    };
+  // Verify registration OTP -> POST /api/auth/verify-registration-otp?email=...&otp=...
+  async verifyRegistrationOtp(
+    request: VerifyOtpRequest
+  ): Promise<ApiResponse<{ message: string }>> {
+    const url = `/auth/verify-registration-otp?email=${encodeURIComponent(
+      request.email
+    )}&otp=${encodeURIComponent(request.otp)}`;
+    return this.post<{ message: string }>(url, {});
   }
 
-  // Logout user
+  // Change password -> PUT /api/auth/change-password
+  async changePassword(
+    request: ChangePasswordRequest
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.put<{ message: string }>("/auth/change-password", request);
+  }
+
+  // Logout user -> POST /api/auth/logout
   async logout(): Promise<ApiResponse<{ message: string }>> {
-    await this.simulateDelay(300);
-
-    // Clear stored token
-    localStorage.removeItem('authToken');
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.post<{ message: string }>('/auth/logout');
-    }
-
-    return {
-      success: true,
-      data: { message: "Logged out successfully" },
-      message: "You have been logged out",
-    };
+    return this.post<{ message: string }>("/auth/logout", {});
   }
 
-  // Refresh token
-  async refreshToken(): Promise<ApiResponse<{ token: string; expiresIn: number }>> {
-    await this.simulateDelay(400);
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.post<{ token: string; expiresIn: number }>('/auth/refresh');
-    }
-
-    const newToken = "mock-jwt-token-" + Date.now();
-    localStorage.setItem('authToken', newToken);
-
-    return {
-      success: true,
-      data: {
-        token: newToken,
-        expiresIn: 3600,
-      },
-      message: "Token refreshed successfully",
-    };
+  // Refresh token -> POST /api/auth/refresh (if implemented server-side)
+  async refreshToken(): Promise<
+    ApiResponse<{ token: string; expiresIn: number }>
+  > {
+    return this.post<{ token: string; expiresIn: number }>("/auth/refresh", {});
   }
 
-  // Get current user
+  // Get current user -> GET /api/auth/me
   async getCurrentUser(): Promise<ApiResponse<User>> {
-    await this.simulateDelay(500);
-
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.get<User>('/auth/me');
-    }
-
-    return {
-      success: true,
-      data: mockUser,
-      message: "User data retrieved successfully",
-    };
+    return this.get<User>("/auth/me");
   }
 }
 
