@@ -4,11 +4,13 @@ import AuthLayout from "../components/ui/AuthLayout";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import { validateLogin } from "../utils/validation";
-import { authApi, LoginCredentials } from "../services/api/auth";
+import { LoginCredentials } from "../services/api/auth";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({
     username: "",
     password: "",
@@ -48,18 +50,13 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await authApi.login(credentials);
-
-      if (true || response.success) {
-        setFormSuccess("Login successful! Redirecting...");
-        setTimeout(() => {
-          navigate("/explore");
-        }, 1500);
-      } else {
-        setFormError(response.message || "Login failed. Please try again.");
-      }
-    } catch (error) {
-      setFormError("An unexpected error occurred. Please try again.");
+      await login(credentials);
+      setFormSuccess("Login successful! Redirecting...");
+      setTimeout(() => {
+        navigate("/explore");
+      }, 1500);
+    } catch (error: any) {
+      setFormError(error.message || "Login failed. Please try again.");
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);

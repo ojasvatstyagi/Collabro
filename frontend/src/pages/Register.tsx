@@ -4,11 +4,13 @@ import AuthLayout from '../components/ui/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { validateRegister } from '../utils/validation';
-import { authApi, RegisterCredentials } from '../services/api/auth';
+import { RegisterCredentials } from '../services/api/auth';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [credentials, setCredentials] = useState<RegisterCredentials>({
     username: '',
     email: '',
@@ -22,7 +24,7 @@ const Register: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials((prev) => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -30,37 +32,32 @@ const Register: React.FC = () => {
         return newErrors;
       });
     }
-    
+
     if (formError) setFormError(null);
     if (formSuccess) setFormSuccess(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validation = validateRegister(credentials);
     if (!validation.valid) {
       setErrors(validation.errors);
       return;
     }
-    
+
     setFormError(null);
     setFormSuccess(null);
     setIsLoading(true);
-    
+
     try {
-      const response = await authApi.register(credentials);
-      
-      if (response.success) {
-        setFormSuccess('Registration successful! Redirecting to login...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 1500);
-      } else {
-        setFormError(response.message || 'Registration failed. Please try again.');
-      }
-    } catch (error) {
-      setFormError('An unexpected error occurred. Please try again.');
+      await register(credentials);
+      setFormSuccess('Registration successful! Redirecting to verification...');
+      setTimeout(() => {
+        navigate('/verify-registration', { state: { email: credentials.email } });
+      }, 1500);
+    } catch (error: any) {
+      setFormError(error.message || 'Registration failed. Please try again.');
       console.error('Registration error:', error);
     } finally {
       setIsLoading(false);
@@ -68,8 +65,8 @@ const Register: React.FC = () => {
   };
 
   return (
-    <AuthLayout 
-      title="Create your account" 
+    <AuthLayout
+      title="Create your account"
       subtitle="Join us today to get started"
     >
       {formError && (
@@ -78,14 +75,14 @@ const Register: React.FC = () => {
           {formError}
         </div>
       )}
-      
+
       {formSuccess && (
         <div className="mb-4 flex items-center rounded-lg bg-brand-yellow/10 p-4 text-sm text-brand-orange dark:bg-brand-yellow/5 dark:text-brand-yellow">
           <CheckCircle2 className="mr-2 h-4 w-4" />
           {formSuccess}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <Input
           label="Username"
@@ -98,7 +95,7 @@ const Register: React.FC = () => {
           onChange={handleChange}
           error={errors.username}
         />
-        
+
         <Input
           label="Email address"
           id="email"
@@ -110,7 +107,7 @@ const Register: React.FC = () => {
           onChange={handleChange}
           error={errors.email}
         />
-        
+
         <Input
           label="Password"
           id="password"
@@ -122,7 +119,7 @@ const Register: React.FC = () => {
           onChange={handleChange}
           error={errors.password}
         />
-        
+
         <div className="flex items-center">
           <input
             id="terms"
@@ -141,7 +138,7 @@ const Register: React.FC = () => {
             </a>
           </label>
         </div>
-        
+
         <Button
           type="submit"
           className="w-full"
@@ -151,7 +148,7 @@ const Register: React.FC = () => {
         >
           Create account
         </Button>
-        
+
         <div className="mt-4 text-center text-sm text-brand-dark/60 dark:text-brand-light/60">
           Already have an account?{' '}
           <Link to="/login" className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange">
