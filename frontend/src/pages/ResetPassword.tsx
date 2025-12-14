@@ -11,7 +11,7 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') || '';
-  
+
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -21,18 +21,18 @@ const ResetPassword: React.FC = () => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (otp.length !== 6 || !/^\d+$/.test(otp)) {
       setError('Please enter a valid 6-digit OTP');
       return;
     }
-    
+
     setError(null);
     setIsLoading(true);
-    
+
     try {
-      const response = await authApi.verifyOtp(email, otp);
-      
+      const response = await authApi.verifyOtp({ email, otp });
+
       if (response.success) {
         setIsVerified(true);
         setSuccess('OTP verified successfully. Please set your new password.');
@@ -49,20 +49,20 @@ const ResetPassword: React.FC = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const passwordError = validatePassword(newPassword);
     if (passwordError) {
       setError(passwordError);
       return;
     }
-    
+
     setError(null);
     setSuccess(null);
     setIsLoading(true);
-    
+
     try {
-      const response = await authApi.resetPassword(email, otp, newPassword);
-      
+      const response = await authApi.resetPassword({ email, otp, newPassword });
+
       if (response.success) {
         setSuccess('Password reset successful! Redirecting to login...');
         setTimeout(() => {
@@ -94,14 +94,14 @@ const ResetPassword: React.FC = () => {
           {error}
         </div>
       )}
-      
+
       {success && (
         <div className="mb-4 flex items-center rounded-lg bg-brand-yellow/10 p-4 text-sm text-brand-orange dark:bg-brand-yellow/5 dark:text-brand-yellow">
           <CheckCircle2 className="mr-2 h-4 w-4" />
           {success}
         </div>
       )}
-      
+
       <form onSubmit={isVerified ? handleResetPassword : handleVerifyOtp} className="mt-8 space-y-4">
         {!isVerified ? (
           <Input
@@ -135,7 +135,7 @@ const ResetPassword: React.FC = () => {
             }}
           />
         )}
-        
+
         <Button
           type="submit"
           className="w-full"
@@ -145,7 +145,7 @@ const ResetPassword: React.FC = () => {
         >
           {isVerified ? "Reset password" : "Verify code"}
         </Button>
-        
+
         <div className="mt-4 text-center">
           <Link
             to="/login"

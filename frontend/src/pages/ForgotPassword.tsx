@@ -15,20 +15,20 @@ const ForgotPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const emailError = validateEmail(email);
     if (emailError) {
       setError(emailError);
       return;
     }
-    
+
     setError(null);
     setSuccess(null);
     setIsLoading(true);
-    
+
     try {
-      const response = await authApi.forgotPassword(email);
-      
+      const response = await authApi.forgotPassword({ email });
+
       if (response.success) {
         setSuccess('Recovery instructions have been sent to your email.');
       } else {
@@ -53,14 +53,14 @@ const ForgotPassword: React.FC = () => {
           {error}
         </div>
       )}
-      
+
       {success && (
         <div className="mb-4 flex items-center rounded-lg bg-brand-yellow/10 p-4 text-sm text-brand-orange dark:bg-brand-yellow/5 dark:text-brand-yellow">
           <CheckCircle2 className="mr-2 h-4 w-4" />
           {success}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <Input
           label="Email address"
@@ -76,7 +76,7 @@ const ForgotPassword: React.FC = () => {
             if (success) setSuccess(null);
           }}
         />
-        
+
         <Button
           type="submit"
           className="w-full"
@@ -86,7 +86,7 @@ const ForgotPassword: React.FC = () => {
         >
           Send reset instructions
         </Button>
-        
+
         <div className="mt-4 text-center">
           <Link
             to="/login"
