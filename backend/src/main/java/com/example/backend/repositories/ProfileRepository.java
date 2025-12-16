@@ -1,6 +1,5 @@
 package com.example.backend.repositories;
 
-
 import com.example.backend.models.Profile;
 import com.example.backend.models.User;
 import org.springframework.data.domain.Page;
@@ -18,33 +17,32 @@ import java.util.UUID;
 
 @Repository
 public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpecificationExecutor<Profile> {
-    Optional<Profile> findByUser(User user);
+  Optional<Profile> findByUser(User user);
 
-    // Find users with similar skills (minimum 3 matches)
-    @Query("""
-        SELECT p FROM Profile p 
-        JOIN p.skills s 
-        WHERE s.name IN :skillNames 
-          AND p.id <> :excludeProfileId 
-        GROUP BY p 
-        HAVING COUNT(s) >= 3
-    """)
-    List<Profile> findProfilesWithMatchingSkills(
-            @Param("skillNames") List<String> skillNames,
-            @Param("excludeProfileId") UUID excludeProfileId
-    );
+  // Find users with similar skills (minimum 3 matches)
+  @Query("""
+          SELECT p FROM Profile p
+          JOIN p.skills s
+          WHERE s.definition.name IN :skillNames
+            AND p.id <> :excludeProfileId
+          GROUP BY p
+          HAVING COUNT(s) >= 3
+      """)
+  List<Profile> findProfilesWithMatchingSkills(
+      @Param("skillNames") List<String> skillNames,
+      @Param("excludeProfileId") UUID excludeProfileId);
 
-    // Find users with complementary skills (not already in the current user's skill set)
-    @Query("""
-        SELECT DISTINCT p FROM Profile p 
-        JOIN p.skills s 
-        WHERE s.name NOT IN :userSkillNames 
-          AND p.id <> :userId
-    """)
-    List<Profile> findProfilesWithComplementarySkills(
-            @Param("userSkillNames") List<String> userSkillNames,
-            @Param("userId") UUID userId
-    );
+  // Find users with complementary skills (not already in the current user's skill
+  // set)
+  @Query("""
+          SELECT DISTINCT p FROM Profile p
+          JOIN p.skills s
+          WHERE s.definition.name NOT IN :userSkillNames
+            AND p.id <> :userId
+      """)
+  List<Profile> findProfilesWithComplementarySkills(
+      @Param("userSkillNames") List<String> userSkillNames,
+      @Param("userId") UUID userId);
 
-    Page<Profile> findAll(Specification<Profile> specification, Pageable pageable);
+  Page<Profile> findAll(Specification<Profile> specification, Pageable pageable);
 }
