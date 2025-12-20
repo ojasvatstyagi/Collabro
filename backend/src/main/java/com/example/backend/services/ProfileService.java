@@ -12,6 +12,7 @@ import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,6 +77,7 @@ public class ProfileService {
         return modelMapper.map(profile, ProfileDto.class);
     }
 
+    @NonNull
     public byte[] exportToPdf(Profile profile) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document();
@@ -94,7 +96,7 @@ public class ProfileService {
             document.add(new Paragraph("Completion: " + profile.getCompletionPercentage() + "%"));
 
             document.close();
-            return out.toByteArray();
+            return Objects.requireNonNull(out.toByteArray());
         } catch (Exception e) {
             throw new PdfExportException("Failed to export profile to PDF");
         }

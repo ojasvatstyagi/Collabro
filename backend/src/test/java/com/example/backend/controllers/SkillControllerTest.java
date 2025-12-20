@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -69,7 +70,7 @@ class SkillControllerTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/profile/skills")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                 .content("{\"name\":\"Java\",\"proficiency\":\"ADVANCED\"}")) // Match your DTO
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(testId.toString()))
@@ -84,7 +85,7 @@ class SkillControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/profile/skills/" + testId)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                 .content("{\"name\":\"Java\",\"proficiency\":\"ADVANCED\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testId.toString()))

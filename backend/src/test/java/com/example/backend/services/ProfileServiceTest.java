@@ -17,6 +17,7 @@ import org.modelmapper.ModelMapper;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -96,10 +97,10 @@ class ProfileServiceTest {
 
     @Test
     void saveProfile_ShouldPersistProfile() {
-        when(profileRepository.save(any())).thenReturn(testProfile);
+        when(profileRepository.save(Objects.requireNonNull(any()))).thenReturn(testProfile);
         Profile result = profileService.saveProfile(testProfile);
         assertNotNull(result);
-        verify(profileRepository).save(testProfile);
+        verify(profileRepository).save(Objects.requireNonNull(testProfile));
     }
 
     @Test
@@ -136,7 +137,7 @@ class ProfileServiceTest {
     void updateProfile_ShouldUpdateFields() {
         when(userService.getCurrentUser()).thenReturn(testUser);
         when(profileRepository.findByUser(testUser)).thenReturn(Optional.of(testProfile));
-        when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(profileRepository.save(Objects.requireNonNull(any()))).thenAnswer(inv -> inv.getArgument(0));
         when(modelMapper.map(testProfile, ProfileDto.class)).thenReturn(testProfileDto);
 
         ProfileDto result = profileService.updateProfile(testUpdateDto);
@@ -146,7 +147,7 @@ class ProfileServiceTest {
         assertEquals("Updated Bio", testProfile.getBio());
         assertEquals("Updated Education", testProfile.getEducation());
         assertEquals(testProfileDto, result);
-        verify(profileRepository).save(testProfile);
+        verify(profileRepository).save(Objects.requireNonNull(testProfile));
     }
 
     @Test

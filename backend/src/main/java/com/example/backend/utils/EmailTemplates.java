@@ -1,6 +1,9 @@
 package com.example.backend.utils;
 
+import org.springframework.lang.NonNull;
+
 public class EmailTemplates {
+    @NonNull
     public static String welcomeTemplate(String username) {
         return "<html><body style='font-family:sans-serif;'>"
                 + "<h2 style='color:#4CAF50;'>Welcome to Our Service, " + username + "!</h2>"
@@ -8,6 +11,7 @@ public class EmailTemplates {
                 + "<hr><small>&copy; 2025 Collabro</small></body></html>";
     }
 
+    @NonNull
     public static String otpTemplate(String otp) {
         return "<html><body style='font-family:sans-serif;'>"
                 + "<h2 style='color:#2196F3;'>Password Reset OTP</h2>"
@@ -16,6 +20,7 @@ public class EmailTemplates {
                 + "<hr><small>&copy; 2025 Collabro</small></body></html>";
     }
 
+    @NonNull
     public static String registrationOtpTemplate(String otp) {
         return "<html><body style='font-family:sans-serif;'>"
                 + "<h2 style='color:#4CAF50;'>Verify Your Email</h2>"
@@ -24,6 +29,7 @@ public class EmailTemplates {
                 + "<hr><small>&copy; 2025 Collabro</small></body></html>";
     }
 
+    @NonNull
     public static String passwordResetSuccessTemplate() {
         return "<html><body style='font-family:sans-serif;'>"
                 + "<h2 style='color:#4CAF50;'>Password Reset Successful</h2>"
@@ -31,6 +37,7 @@ public class EmailTemplates {
                 + "<hr><small>&copy; 2025 Collabro</small></body></html>";
     }
 
+    @NonNull
     public static String projectStatusTemplate(String project, String status) {
         return "<html><body style='font-family:sans-serif;'>"
                 + "<h2 style='color:#FF9800;'>Project Status Update</h2>"

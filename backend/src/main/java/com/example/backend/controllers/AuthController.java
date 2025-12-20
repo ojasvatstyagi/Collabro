@@ -22,6 +22,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import java.util.Objects;
 
 import java.util.Map;
 import java.util.Optional;
@@ -60,7 +61,7 @@ public class AuthController {
         registerRequest.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         User savedUser = userService.saveUser(registerRequest);
         // Generate email verification OTP
-        passwordService.generateEmailVerificationOtp(registerRequest.getEmail());
+        passwordService.generateEmailVerificationOtp(Objects.requireNonNull(registerRequest.getEmail()));
 
         // Create and saveProfile empty profile for the user
         profileService.saveProfile(profileService.createEmptyProfile(savedUser));
@@ -160,14 +161,14 @@ public class AuthController {
     @PostMapping("/forgot-password")
     @Operation(summary = "Forgot Password", description = "Sends a password reset OTP to the user's registered email")
     public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        passwordService.generateOtp(request.getEmail());
+        passwordService.generateResetOtp(Objects.requireNonNull(request.getEmail()));
         return ResponseEntity.ok(Map.of(MESSAGE_KEY, "OTP sent to email"));
     }
 
     @PostMapping("/verify-otp")
     @Operation(summary = "Verify OTP", description = "Validates the provided OTP for password reset")
     public ResponseEntity<Map<String, String>> verifyOtp(@RequestParam String email, @RequestParam String otp) {
-        if (passwordService.validateOtp(email, otp))
+        if (passwordService.validateOtp(Objects.requireNonNull(email), Objects.requireNonNull(otp)))
             return ResponseEntity.ok(Map.of(MESSAGE_KEY, "OTP verified"));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, "Invalid or expired OTP"));
     }
@@ -177,7 +178,8 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> resetPassword(@RequestParam String email,
             @RequestParam String otp,
             @RequestParam String newPassword) {
-        boolean success = passwordService.resetPassword(email, otp, newPassword);
+        boolean success = passwordService.resetPassword(Objects.requireNonNull(email), Objects.requireNonNull(otp),
+                Objects.requireNonNull(newPassword));
         if (success)
             return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Password reset successful"));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, "Failed to reset password"));
@@ -187,7 +189,8 @@ public class AuthController {
     @Operation(summary = "Verify Registration OTP", description = "Verifies the OTP sent to user's email after registration to activate the account")
     public ResponseEntity<Map<String, String>> verifyRegistrationOtp(@RequestParam String email,
             @RequestParam String otp) {
-        boolean verified = passwordService.verifyRegistrationOtp(email, otp);
+        boolean verified = passwordService.verifyRegistrationOtp(Objects.requireNonNull(email),
+                Objects.requireNonNull(otp));
         if (verified)
             return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Email verification successful"));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, "Invalid or expired OTP"));

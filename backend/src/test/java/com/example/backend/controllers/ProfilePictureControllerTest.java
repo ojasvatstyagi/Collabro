@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
+import java.util.Objects;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -84,7 +85,7 @@ class ProfilePictureControllerTest {
 
                 // Act & Assert
                 mockMvc.perform(multipart("/api/profile/picture")
-                                .file(testImage))
+                                .file(Objects.requireNonNull(testImage)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id").value(testProfile.getId().toString()))
                                 .andExpect(jsonPath("$.firstname").value(testProfile.getFirstname()))
@@ -105,7 +106,7 @@ class ProfilePictureControllerTest {
 
                 // Act & Assert
                 mockMvc.perform(multipart("/api/profile/picture")
-                                .file(emptyFile))
+                                .file(Objects.requireNonNull(emptyFile)))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message").value("File is empty"));
         }
@@ -114,7 +115,7 @@ class ProfilePictureControllerTest {
         void uploadProfilePicture_WithInvalidFileType_ShouldReturnBadRequest() throws Exception {
                 // Act & Assert
                 mockMvc.perform(multipart("/api/profile/picture")
-                                .file(testTextFile))
+                                .file(Objects.requireNonNull(testTextFile)))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message").value("Only image files are allowed"));
         }
@@ -122,7 +123,8 @@ class ProfilePictureControllerTest {
         @Test
         void getProfilePicture_WhenExists_ShouldReturnImage() throws Exception {
                 // Arrange
-                ByteArrayResource imageResource = new ByteArrayResource("image data".getBytes());
+                ByteArrayResource imageResource = new ByteArrayResource(
+                                Objects.requireNonNull("image data".getBytes()));
                 when(profileService.getCurrentUserProfile()).thenReturn(testProfile);
                 when(fileStorageService.loadFileAsResource(testProfile.getProfilePictureUrl()))
                                 .thenReturn(imageResource);
@@ -130,8 +132,8 @@ class ProfilePictureControllerTest {
                 // Act & Assert
                 mockMvc.perform(get("/api/profile/picture"))
                                 .andExpect(status().isOk())
-                                .andExpect(content().contentType(MediaType.IMAGE_JPEG))
-                                .andExpect(content().bytes("image data".getBytes()));
+                                .andExpect(content().contentType(Objects.requireNonNull(MediaType.IMAGE_JPEG)))
+                                .andExpect(content().bytes(Objects.requireNonNull("image data".getBytes())));
         }
 
         @Test

@@ -25,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -111,8 +112,8 @@ class ProfileControllerTest {
 
                 // Act & Assert
                 mockMvc.perform(put("/api/profile/me")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(updateDto)))
+                                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                .content(Objects.requireNonNull(new ObjectMapper().writeValueAsString(updateDto))))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.firstname").value(profileDto.getFirstname()))
                                 .andExpect(jsonPath("$.lastname").value(profileDto.getLastname()));
@@ -125,8 +126,8 @@ class ProfileControllerTest {
 
                 // Act & Assert
                 mockMvc.perform(put("/api/profile/me")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(new ObjectMapper().writeValueAsString(invalidDto)))
+                                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                                .content(Objects.requireNonNull(new ObjectMapper().writeValueAsString(invalidDto))))
                                 .andExpect(status().isBadRequest());
         }
 
@@ -175,8 +176,8 @@ class ProfileControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
                                                 "attachment; filename=profile_export.pdf"))
-                                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
-                                .andExpect(content().bytes(pdfContent));
+                                .andExpect(content().contentType(Objects.requireNonNull(MediaType.APPLICATION_PDF)))
+                                .andExpect(content().bytes(Objects.requireNonNull(pdfContent)));
         }
 
         @Test

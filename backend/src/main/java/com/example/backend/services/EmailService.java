@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service;
 public class EmailService {
     private final JavaMailSender mailSender;
 
-    void sendHtmlEmail(String to, String subject, String htmlContent) {
+    void sendHtmlEmail(@NonNull String to, @NonNull String subject, @NonNull String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -28,34 +29,34 @@ public class EmailService {
     }
 
     // Welcome Email
-    public void sendWelcomeEmail(String to, String username) {
+    public void sendWelcomeEmail(@NonNull String to, @NonNull String username) {
         String subject = "Welcome to Our Service!";
         String html = EmailTemplates.welcomeTemplate(username);
         sendHtmlEmail(to, subject, html);
     }
 
     // OTP Email
-    public void sendOtpEmail(String to, String otp) {
+    public void sendOtpEmail(@NonNull String to, @NonNull String otp) {
         String subject = "Your Password Reset OTP";
         String html = EmailTemplates.otpTemplate(otp);
         sendHtmlEmail(to, subject, html);
     }
 
-    public void sendRegistrationOtpEmail(String to, String otp) {
+    public void sendRegistrationOtpEmail(@NonNull String to, @NonNull String otp) {
         String subject = "Verify Your Email Address";
         String html = EmailTemplates.registrationOtpTemplate(otp);
         sendHtmlEmail(to, subject, html);
     }
 
     // Password Reset Success Email
-    public void sendPasswordResetSuccessEmail(String to) {
+    public void sendPasswordResetSuccessEmail(@NonNull String to) {
         String subject = "Password Reset Successful";
         String html = EmailTemplates.passwordResetSuccessTemplate();
         sendHtmlEmail(to, subject, html);
     }
 
     // Project Status Email
-    public void sendProjectStatusEmail(String to, String project, String status) {
+    public void sendProjectStatusEmail(@NonNull String to, @NonNull String project, @NonNull String status) {
         String subject = "Project Status Update";
         String html = EmailTemplates.projectStatusTemplate(project, status);
         sendHtmlEmail(to, subject, html);

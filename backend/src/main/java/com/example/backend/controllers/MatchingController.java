@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -30,14 +31,14 @@ public class MatchingController {
     @Operation(summary = "Get similar profiles", description = "Returns a list of similar profiles based on the current user's skills")
     public ResponseEntity<List<ProfileDto>> getSimilarProfiles() {
         UUID currentProfileId = profileService.getCurrentUserProfile().getId();
-        return ResponseEntity.ok(matchingService.findSimilarProfiles(currentProfileId));
+        return ResponseEntity.ok(matchingService.findSimilarProfiles(Objects.requireNonNull(currentProfileId)));
     }
 
     @GetMapping("/complementary")
     @Operation(summary = "Get complementary profiles", description = "Returns a list of complementary profiles based on the current user's skills")
     public ResponseEntity<List<ProfileDto>> getComplementaryProfiles() {
         UUID currentProfileId = profileService.getCurrentUserProfile().getId();
-        return ResponseEntity.ok(matchingService.findComplementaryProfiles(currentProfileId));
+        return ResponseEntity.ok(matchingService.findComplementaryProfiles(Objects.requireNonNull(currentProfileId)));
     }
 
     @GetMapping("/search")
@@ -45,6 +46,7 @@ public class MatchingController {
     public ResponseEntity<Page<ProfileDto>> searchProfiles(
             @ModelAttribute ProfileSearchCriteria criteria,
             Pageable pageable) {
-        return ResponseEntity.ok(matchingService.searchProfiles(criteria, pageable));
+        return ResponseEntity
+                .ok(matchingService.searchProfiles(Objects.requireNonNull(criteria), Objects.requireNonNull(pageable)));
     }
 }

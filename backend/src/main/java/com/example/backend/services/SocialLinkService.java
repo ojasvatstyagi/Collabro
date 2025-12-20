@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,7 @@ public class SocialLinkService {
     }
 
     public SocialLinkDto updateSocialLink(UUID id, @Valid SocialLinkDto socialLinkDto) {
-        SocialLink socialLink = socialLinkRepository.findById(id)
+        SocialLink socialLink = socialLinkRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Social link not found"));
 
         socialLink.setUrl(socialLinkDto.getUrl());
@@ -53,6 +54,6 @@ public class SocialLinkService {
     }
 
     public void deleteSocialLink(UUID id) {
-        socialLinkRepository.deleteById(id);
+        socialLinkRepository.deleteById(Objects.requireNonNull(id));
     }
 }

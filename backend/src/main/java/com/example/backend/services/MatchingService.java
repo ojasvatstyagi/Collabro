@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public class MatchingService {
     private final ProfileRepository profileRepository;
     private final ModelMapper modelMapper;
 
-    public List<ProfileDto> findSimilarProfiles(UUID profileId) {
+    public List<ProfileDto> findSimilarProfiles(@NonNull UUID profileId) {
         List<String> userSkills = getSkills(profileId);
 
         return profileRepository.findProfilesWithMatchingSkills(
@@ -32,7 +33,7 @@ public class MatchingService {
                 .toList();
     }
 
-    public List<ProfileDto> findComplementaryProfiles(UUID profileId) {
+    public List<ProfileDto> findComplementaryProfiles(@NonNull UUID profileId) {
         List<String> userSkills = getSkills(profileId);
 
         return profileRepository.findProfilesWithComplementarySkills(
@@ -43,12 +44,12 @@ public class MatchingService {
     }
 
     // 3. Filterable search
-    public Page<ProfileDto> searchProfiles(ProfileSearchCriteria criteria, Pageable pageable) {
+    public Page<ProfileDto> searchProfiles(@NonNull ProfileSearchCriteria criteria, @NonNull Pageable pageable) {
         Page<Profile> profiles = profileRepository.findAll(ProfileSpecifications.withCriteria(criteria), pageable);
         return profiles.map(this::convertToDto);
     }
 
-    private List<String> getSkills(UUID profileId) {
+    private List<String> getSkills(@NonNull UUID profileId) {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
 

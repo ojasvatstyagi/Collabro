@@ -15,6 +15,7 @@ import com.example.backend.models.SkillDefinition;
 import com.example.backend.repositories.SkillDefinitionRepository;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +48,7 @@ public class SkillService {
                     SkillDefinition newDef = SkillDefinition.builder()
                             .name(skillDto.getName())
                             .build();
-                    return skillDefinitionRepository.save(newDef);
+                    return skillDefinitionRepository.save(Objects.requireNonNull(newDef));
                 });
 
         Skill skill = Skill.builder()
@@ -56,7 +57,7 @@ public class SkillService {
                 .profile(profile)
                 .build();
 
-        skill = skillRepository.save(skill);
+        skill = skillRepository.save(Objects.requireNonNull(skill));
         profile.calculateCompletion();
         profileService.saveProfile(profile);
 
@@ -82,12 +83,12 @@ public class SkillService {
                     SkillDefinition newDef = SkillDefinition.builder()
                             .name(skillDto.getName())
                             .build();
-                    return skillDefinitionRepository.save(newDef);
+                    return skillDefinitionRepository.save(Objects.requireNonNull(newDef));
                 });
 
         skill.setDefinition(definition);
         skill.setProficiency(skillDto.getProficiency());
-        skill = skillRepository.save(skill);
+        skill = skillRepository.save(Objects.requireNonNull(skill));
 
         profile.calculateCompletion();
         profileService.saveProfile(profile);
@@ -100,7 +101,7 @@ public class SkillService {
         Skill skill = skillRepository.findByIdAndProfile(skillId, profile)
                 .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
 
-        skillRepository.delete(skill);
+        skillRepository.delete(Objects.requireNonNull(skill));
         profile.calculateCompletion();
         profileService.saveProfile(profile);
     }

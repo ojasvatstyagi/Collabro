@@ -10,7 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -35,11 +35,11 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Role not found: ROLE_USER"));
         user.setRole(role);
 
-        return userRepository.save(user);
+        return userRepository.save(Objects.requireNonNull(user));
     }
 
     public User updateUser(User user) {
-        return userRepository.save(user);
+        return userRepository.save(Objects.requireNonNull(user));
     }
 
     public User getCurrentUser() {
