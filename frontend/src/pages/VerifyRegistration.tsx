@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { MessageSquare, Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -11,6 +11,7 @@ import Input from "../components/ui/Input";
 export default function VerifyRegistration() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
@@ -20,10 +21,13 @@ export default function VerifyRegistration() {
 
     useEffect(() => {
         const emailParam = searchParams.get("email");
+        const stateEmail = location.state?.email;
         if (emailParam) {
             setEmail(emailParam);
+        } else if (stateEmail) {
+            setEmail(stateEmail);
         }
-    }, [searchParams]);
+    }, [searchParams, location]);
 
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
