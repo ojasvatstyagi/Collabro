@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import axios from "axios";
-import { User } from "../services/api/auth";
+import { authApi, LoginCredentials, RegisterCredentials, User } from "../services/api/auth";
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (userData: User) => void;
-    logout: () => void;
+    login: (credentials: LoginCredentials) => Promise<void>;
+    register: (credentials: RegisterCredentials) => Promise<void>;
+    logout: () => Promise<void>;
     isAuthenticated: boolean;
 }
 
@@ -16,15 +16,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Configure axios defaults
-    axios.defaults.withCredentials = true;
-    const API_URL = "http://localhost:8080/api"; // Should ideally be an env var
-
     const checkAuth = async () => {
         try {
-            const response = await axios.get(`${API_URL}/auth/me`);
-            if (response.data && response.data.user) {
-                setUser(response.data.user);
+            const response = await authApi.getCurrentUser();
+            if (response.data) {
+                setUser(response.data);
             } else {
                 setUser(null);
             }
@@ -40,16 +36,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkAuth();
     }, []);
 
-    const login = (userData: User) => {
-        setUser(userData);
+    const login = async (credentials: LoginCredentials) => {
+        try {
+            const response = await authApi.login(credentials);
+            if (response.data && response.data.user) {
+                setUser(response.data.user);
+            }
+        } catch (error) {
+            console.error("Login failed:", error);
+            throw error;
+        }
+    };
+
+    const register = async (credentials: RegisterCredentials) => {
+        try {
+            await authApi.register(credentials);
+            // Registration usually requires verification, so we don't set user immediately
+            // or we could if the backend returned it and allowed login without verification (unlikely here)
+        } catch (error) {
+            console.error("Registration failed:", error);
+            throw error;
+        }
     };
 
     const logout = async () => {
         try {
-            await axios.post(`${API_URL}/auth/logout`);
+            await authApi.logout();
             setUser(null);
         } catch (error) {
             console.error("Logout failed:", error);
+            // Even if logout fails server-side, clear client state
+            setUser(null);
         }
     };
 
@@ -59,6 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 user,
                 loading,
                 login,
+                register,
                 logout,
                 isAuthenticated: !!user,
             }}
