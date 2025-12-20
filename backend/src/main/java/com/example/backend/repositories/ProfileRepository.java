@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,5 +46,6 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpec
       @Param("userSkillNames") List<String> userSkillNames,
       @Param("userId") UUID userId);
 
-  Page<Profile> findAll(Specification<Profile> specification, Pageable pageable);
+  @NonNull
+  Page<Profile> findAll(@Nullable Specification<Profile> specification, @NonNull Pageable pageable);
 }

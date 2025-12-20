@@ -17,6 +17,6 @@ public interface SkillRepository extends JpaRepository<Skill, UUID> {
 
     List<Skill> findByProfile(Profile profile);
 
-    @Query("SELECT DISTINCT s.name FROM Skill s WHERE s.name LIKE %:query%")
+    @Query("SELECT DISTINCT d.name FROM Skill s JOIN s.definition d WHERE d.name LIKE %:query%")
     List<String> findSkillNamesContaining(@Param("query") String query);
 }

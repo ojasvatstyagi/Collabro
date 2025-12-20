@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -78,7 +79,7 @@ public class ProfileController {
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=profile_export.pdf")
-                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_PDF))
                     .contentLength(pdfBytes.length)
                     .body(resource);
         } catch (UserNotFoundException e) {

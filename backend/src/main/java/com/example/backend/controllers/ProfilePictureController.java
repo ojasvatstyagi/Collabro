@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/profile/picture")
@@ -28,7 +29,8 @@ public class ProfilePictureController {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(java.util.Map.of("message", "File is empty"));
         }
-        if (file.getContentType() == null || !file.getContentType().startsWith("image/")) {
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
             return ResponseEntity.badRequest().body(java.util.Map.of("message", "Only image files are allowed"));
         }
         log.info("Uploading profile picture");
@@ -45,7 +47,7 @@ public class ProfilePictureController {
 
         Resource resource = fileStorageService.loadFileAsResource(profile.getProfilePictureUrl());
         return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG) // Adjust based on actual file type
+                .contentType(Objects.requireNonNull(MediaType.IMAGE_JPEG)) // Adjust based on actual file type
                 .body(resource);
     }
 

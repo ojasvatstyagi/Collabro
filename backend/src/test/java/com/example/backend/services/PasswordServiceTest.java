@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,16 +50,16 @@ class PasswordServiceTest {
     }
 
     @Test
-    void generateOtp_ShouldCreateTokenAndSendEmail_WithCaptor() {
+    void generateResetOtp_ShouldCreateTokenAndSendEmail_WithCaptor() {
         // Arrange
         ArgumentCaptor<PasswordToken> tokenCaptor = ArgumentCaptor.forClass(PasswordToken.class);
-        when(tokenRepo.save(any(PasswordToken.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepo.save(Objects.requireNonNull(any(PasswordToken.class)))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
-        passwordService.generateOtp("test@example.com");
+        passwordService.generateResetOtp("test@example.com");
 
         // Assert
-        verify(tokenRepo).save(tokenCaptor.capture());
+        verify(tokenRepo).save(Objects.requireNonNull(tokenCaptor.capture()));
         PasswordToken savedToken = tokenCaptor.getValue();
 
         assertEquals("test@example.com", savedToken.getEmail());

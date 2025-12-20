@@ -13,6 +13,8 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Objects;
+import org.springframework.lang.NonNull;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class PasswordService {
     private final EmailService emailService;
     Random random = new SecureRandom();
 
-    public void generateOtp(String email) {
+    public void generateResetOtp(@NonNull String email) {
         String otp = String.valueOf(random.nextInt(899999) + 100000);
         PasswordToken token = new PasswordToken(
                 null,
@@ -34,10 +36,10 @@ public class PasswordService {
                 TokenType.PASSWORD_RESET);
         tokenRepo.save(token);
         // Send OTP via email
-        emailService.sendOtpEmail(email, otp);
+        emailService.sendOtpEmail(email, Objects.requireNonNull(otp));
     }
 
-    public void generateEmailVerificationOtp(String email) {
+    public void generateEmailVerificationOtp(@NonNull String email) {
         String otp = String.valueOf(random.nextInt(899999) + 100000);
         PasswordToken token = new PasswordToken(
                 null,
@@ -47,11 +49,10 @@ public class PasswordService {
                 false,
                 TokenType.EMAIL_VERIFICATION);
         tokenRepo.save(token);
-        tokenRepo.save(token);
-        emailService.sendRegistrationOtpEmail(email, otp);
+        emailService.sendRegistrationOtpEmail(email, Objects.requireNonNull(otp));
     }
 
-    public boolean verifyRegistrationOtp(String email, String otp) {
+    public boolean verifyRegistrationOtp(@NonNull String email, @NonNull String otp) {
         Optional<PasswordToken> tokenOpt = tokenRepo.findByEmailAndOtpAndUsedFalseAndTokenType(email, otp,
                 TokenType.EMAIL_VERIFICATION);
         if (tokenOpt.isEmpty())
@@ -74,13 +75,13 @@ public class PasswordService {
         return true;
     }
 
-    public boolean validateOtp(String email, String otp) {
+    public boolean validateOtp(@NonNull String email, @NonNull String otp) {
         return tokenRepo.findByEmailAndOtpAndUsedFalse(email, otp)
                 .filter(token -> token.getExpiryTime().isAfter(LocalDateTime.now()))
                 .isPresent();
     }
 
-    public boolean resetPassword(String email, String otp, String newPassword) {
+    public boolean resetPassword(@NonNull String email, @NonNull String otp, @NonNull String newPassword) {
         Optional<PasswordToken> tokenOpt = tokenRepo.findByEmailAndOtpAndUsedFalse(email, otp);
         if (tokenOpt.isEmpty())
             return false;
