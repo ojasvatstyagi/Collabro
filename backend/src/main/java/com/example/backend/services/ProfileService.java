@@ -65,6 +65,8 @@ public class ProfileService {
         profile.setLastname(updateDto.getLastname());
         profile.setBio(updateDto.getBio());
         profile.setEducation(updateDto.getEducation());
+        profile.setLocation(updateDto.getLocation());
+        profile.setPhone(updateDto.getPhone());
 
         profile.calculateCompletion(); // Optional: test impact of this
 

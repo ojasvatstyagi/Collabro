@@ -1,54 +1,43 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.SocialLinkCreateDto;
 import com.example.backend.dto.SocialLinkDto;
 import com.example.backend.services.SocialLinkService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/profile/social-links")
 @RequiredArgsConstructor
-@Slf4j
 public class SocialLinkController {
 
     private final SocialLinkService socialLinkService;
 
     @GetMapping
-    @Operation(summary = "Get current user's social links", description = "Returns the current user's social links")
+    @Operation(summary = "Get current user social links", description = "Returns the current user's social links")
     public ResponseEntity<List<SocialLinkDto>> getCurrentUserSocialLinks() {
         return ResponseEntity.ok(socialLinkService.getCurrentUserSocialLinks());
     }
 
     @PostMapping
     @Operation(summary = "Add a new social link", description = "Adds a new social link to the current user's profile")
-    public ResponseEntity<SocialLinkDto> addSocialLink(@Valid @RequestBody SocialLinkDto socialLinkDto) {
-        log.info("Adding social link: {}", socialLinkDto.getPlatform());
+    public ResponseEntity<SocialLinkDto> addSocialLink(@Valid @RequestBody SocialLinkCreateDto createDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(socialLinkService.addSocialLink(socialLinkDto));
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Update a social link", description = "Updates a social link in the current user's profile")
-    public ResponseEntity<SocialLinkDto> updateSocialLink(
-            @PathVariable UUID id,
-            @Valid @RequestBody SocialLinkDto socialLinkDto) {
-        log.info("Updating social link: {}", id);
-        return ResponseEntity.ok(socialLinkService.updateSocialLink(id, socialLinkDto));
+                .body(socialLinkService.addSocialLink(createDto));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a social link", description = "Deletes a social link from the current user's profile")
-    public ResponseEntity<Void> deleteSocialLink(@PathVariable UUID id) {
-        log.info("Deleting social link: {}", id);
-        socialLinkService.deleteSocialLink(id);
+    @Operation(summary = "Remove a social link", description = "Removes a social link from the current user's profile")
+    public ResponseEntity<Void> removeSocialLink(@PathVariable UUID id) {
+        socialLinkService.removeSocialLink(Objects.requireNonNull(id));
         return ResponseEntity.noContent().build();
     }
 }

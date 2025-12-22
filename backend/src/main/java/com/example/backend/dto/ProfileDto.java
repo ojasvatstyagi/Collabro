@@ -16,8 +16,13 @@ public class ProfileDto {
     private String lastname;
     private String bio;
     private String education;
+    private String location;
+    private String phone;
     private String profilePictureUrl;
     private boolean isProfileComplete;
     private int completionPercentage;
     private List<SkillDto> skills;
+    private List<SocialLinkDto> socialLinks;
+    private java.time.LocalDateTime createdAt;
+    private java.time.LocalDateTime updatedAt;
 }
