@@ -61,6 +61,10 @@ public class ProfileController {
             missingFields.add("bio");
         if (StringUtils.isBlank(profile.getEducation()))
             missingFields.add("education");
+        if (StringUtils.isBlank(profile.getLocation()))
+            missingFields.add("location");
+        if (StringUtils.isBlank(profile.getPhone()))
+            missingFields.add("phone");
         if (profile.getSkills() == null || profile.getSkills().isEmpty())
             missingFields.add("skills");
         return missingFields;

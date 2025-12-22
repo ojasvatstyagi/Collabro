@@ -4,8 +4,8 @@ public enum SocialPlatform {
     LINKEDIN("LinkedIn"),
     GITHUB("GitHub"),
     TWITTER("Twitter"),
-    FACEBOOK("Facebook"),
-    INSTAGRAM("Instagram");
+    WEBSITE("Website"),
+    OTHER("Other");
 
     private final String displayName;
 

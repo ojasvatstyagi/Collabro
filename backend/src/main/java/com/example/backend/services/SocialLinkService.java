@@ -1,59 +1,58 @@
 package com.example.backend.services;
 
 import com.example.backend.dto.SocialLinkDto;
+import com.example.backend.dto.SocialLinkCreateDto;
 import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.SocialLink;
 import com.example.backend.repositories.SocialLinkRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
+import org.springframework.lang.NonNull;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class SocialLinkService {
-
+    private final SocialLinkRepository socialLinkRepository;
     private final ProfileService profileService;
     private final ModelMapper modelMapper;
-    private final SocialLinkRepository socialLinkRepository;
 
     public List<SocialLinkDto> getCurrentUserSocialLinks() {
         Profile profile = profileService.getCurrentUserProfile();
-        if (profile == null)
-            return new ArrayList<>();
-        List<SocialLink> socialLinks = profile.getSocialLinks();
-
-        return socialLinks.stream()
-                .map(socialLink -> modelMapper.map(socialLink, SocialLinkDto.class))
+        return socialLinkRepository.findByProfile(profile).stream()
+                .map(this::convertToDto)
                 .toList();
     }
 
-    public SocialLinkDto addSocialLink(SocialLinkDto socialLinkDto) {
+    public SocialLinkDto addSocialLink(SocialLinkCreateDto createDto) {
         Profile profile = profileService.getCurrentUserProfile();
-        SocialLink socialLink = modelMapper.map(socialLinkDto, SocialLink.class);
+
+        SocialLink socialLink = new SocialLink();
+        socialLink.setPlatform(createDto.getPlatform());
+        socialLink.setUrl(createDto.getUrl());
         socialLink.setProfile(profile);
-        return modelMapper.map(socialLinkRepository.save(socialLink), SocialLinkDto.class);
+
+        socialLink = socialLinkRepository.save(Objects.requireNonNull(socialLink));
+
+        return convertToDto(socialLink);
     }
 
-    public SocialLinkDto updateSocialLink(UUID id, @Valid SocialLinkDto socialLinkDto) {
-        SocialLink socialLink = socialLinkRepository.findById(Objects.requireNonNull(id))
+    public void removeSocialLink(@NonNull UUID id) {
+        Profile profile = profileService.getCurrentUserProfile();
+        SocialLink socialLink = socialLinkRepository.findByIdAndProfile(id, profile)
                 .orElseThrow(() -> new ResourceNotFoundException("Social link not found"));
 
-        socialLink.setUrl(socialLinkDto.getUrl());
-        socialLink.setPlatform(socialLinkDto.getPlatform());
-        socialLinkRepository.save(socialLink);
-        return modelMapper.map(socialLink, SocialLinkDto.class);
+        socialLinkRepository.delete(Objects.requireNonNull(socialLink));
     }
 
-    public void deleteSocialLink(UUID id) {
-        socialLinkRepository.deleteById(Objects.requireNonNull(id));
+    private SocialLinkDto convertToDto(SocialLink socialLink) {
+        return modelMapper.map(socialLink, SocialLinkDto.class);
     }
 }

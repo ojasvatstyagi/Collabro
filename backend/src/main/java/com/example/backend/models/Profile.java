@@ -46,6 +46,14 @@ public class Profile {
 
     private String education;
 
+    @Column(length = 255)
+    @ToString.Include
+    private String location;
+
+    @Column(length = 50)
+    @ToString.Include
+    private String phone;
+
     private String profilePictureUrl;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -112,16 +120,22 @@ public class Profile {
             total += COMPLETION_WEIGHTS.get("skills");
         if (StringUtils.isNotBlank(profilePictureUrl))
             total += COMPLETION_WEIGHTS.get("profilePicture");
+        if (StringUtils.isNotBlank(location))
+            total += COMPLETION_WEIGHTS.get("location");
+        if (StringUtils.isNotBlank(phone))
+            total += COMPLETION_WEIGHTS.get("phone");
 
         this.completionPercentage = total;
         this.isProfileComplete = completionPercentage >= 80;
     }
 
     private static final Map<String, Integer> COMPLETION_WEIGHTS = Map.of(
-            "firstname", 20,
-            "lastname", 20,
-            "bio", 15,
-            "education", 15,
+            "firstname", 15,
+            "lastname", 15,
+            "bio", 10,
+            "education", 10,
             "skills", 15,
-            "profilePicture", 15);
+            "profilePicture", 15,
+            "location", 10,
+            "phone", 10);
 }
