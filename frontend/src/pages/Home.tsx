@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Bell, PlusCircle, Users, History, Menu, Filter, Star, Clock, MapPin } from "lucide-react";
+import { Search, Bell, PlusCircle, Users, History, Menu, Filter, Clock } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../components/ui/SideBar";
 import Button from "../components/ui/Button";
@@ -12,13 +12,10 @@ const Home: React.FC = () => {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
-  const [selectedBudget, setSelectedBudget] = useState("all");
+  const [selectedLevel, setSelectedLevel] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,13 +33,12 @@ const Home: React.FC = () => {
   // Load initial data
   useEffect(() => {
     loadProjects();
-    loadCategories();
   }, []);
 
   // Load projects when filters change
   useEffect(() => {
     loadProjects();
-  }, [searchQuery, selectedCategory, selectedDifficulty, selectedBudget]);
+  }, [searchQuery, selectedLevel]);
 
   const loadProjects = async () => {
     try {
@@ -51,9 +47,7 @@ const Home: React.FC = () => {
 
       const filters: ProjectFilters = {
         search: searchQuery || undefined,
-        category: selectedCategory !== "all" ? selectedCategory : undefined,
-        difficulty: selectedDifficulty !== "all" ? selectedDifficulty : undefined,
-        budget: selectedBudget !== "all" ? selectedBudget : undefined,
+        level: selectedLevel !== "all" ? selectedLevel : undefined,
       };
 
       const response = await projectsApi.getProjects(filters);
@@ -63,15 +57,6 @@ const Home: React.FC = () => {
       console.error("Error loading projects:", err);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const response = await projectsApi.getCategories();
-      setCategories(["all", ...(response.data || [])]);
-    } catch (err) {
-      console.error("Error loading categories:", err);
     }
   };
 
@@ -86,40 +71,27 @@ const Home: React.FC = () => {
     }
   };
 
-  const difficulties = ["all", "beginner", "intermediate", "advanced"];
-  const budgets = ["all", "unpaid", "paid", "equity", "negotiable"];
+  const levels = ["all", "BRAND_NEW", "BEGINNER", "INTERMEDIATE", "ADVANCED"];
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "Unknown date";
     const date = new Date(dateString);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffInDays === 0) return "Today";
     if (diffInDays === 1) return "Yesterday";
     if (diffInDays < 7) return `${diffInDays} days ago`;
     return date.toLocaleDateString();
   };
 
-  const getBudgetColor = (budget: string) => {
-    switch (budget) {
-      case "paid":
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case "BEGINNER":
         return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
-      case "equity":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400";
-      case "negotiable":
+      case "INTERMEDIATE":
         return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400";
-    }
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "beginner":
-        return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
-      case "intermediate":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
-      case "advanced":
+      case "ADVANCED":
         return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400";
@@ -201,15 +173,15 @@ const Home: React.FC = () => {
             <button className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-brand-dark-lighter">
               <Bell className="h-5 w-5" />
             </button>
-            <Button 
-              leftIcon={<PlusCircle className="h-5 w-5" />} 
+            <Button
+              leftIcon={<PlusCircle className="h-5 w-5" />}
               className="hidden sm:flex"
               onClick={() => navigate("/post-idea")}
             >
               Post an Idea
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               className="sm:hidden"
               onClick={() => navigate("/post-idea")}
             >
@@ -224,63 +196,27 @@ const Home: React.FC = () => {
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Category:
+                  Level:
                 </label>
                 <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  value={selectedLevel}
+                  onChange={(e) => setSelectedLevel(e.target.value)}
                   className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
                 >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category === "all" ? "All Categories" : category}
+                  {levels.map((level) => (
+                    <option key={level} value={level}>
+                      {level === "all" ? "All Levels" : level.charAt(0).toUpperCase() + level.slice(1).toLowerCase().replace('_', ' ')}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Difficulty:
-                </label>
-                <select
-                  value={selectedDifficulty}
-                  onChange={(e) => setSelectedDifficulty(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
-                >
-                  {difficulties.map((difficulty) => (
-                    <option key={difficulty} value={difficulty}>
-                      {difficulty === "all" ? "All Levels" : difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Budget:
-                </label>
-                <select
-                  value={selectedBudget}
-                  onChange={(e) => setSelectedBudget(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
-                >
-                  {budgets.map((budget) => (
-                    <option key={budget} value={budget}>
-                      {budget === "all" ? "All Budgets" : budget.charAt(0).toUpperCase() + budget.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {(selectedCategory !== "all" || selectedDifficulty !== "all" || selectedBudget !== "all" || searchQuery) && (
+              {(selectedLevel !== "all" || searchQuery) && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setSelectedCategory("all");
-                    setSelectedDifficulty("all");
-                    setSelectedBudget("all");
+                    setSelectedLevel("all");
                     setSearchQuery("");
                   }}
                 >
@@ -329,7 +265,7 @@ const Home: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              projects.map((project, index) => (
+              projects.map((project) => (
                 <div
                   key={project.id}
                   className="rounded-lg border border-gray-200 bg-white p-4 md:p-6 shadow-sm transition-all hover:border-brand-orange hover:shadow-md dark:border-gray-600 dark:bg-brand-dark-lighter dark:shadow-lg"
@@ -345,62 +281,47 @@ const Home: React.FC = () => {
                             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                               {project.title}
                             </h3>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm text-gray-600 dark:text-gray-300">
-                                {project.rating}
-                              </span>
-                            </div>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mb-2">
-                            <span>by {project.owner.username}</span>
+                            <span>by {project.createdBy.username}</span>
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
                               {formatDate(project.createdAt)}
                             </div>
                             <div className="flex items-center gap-1">
                               <Users className="h-4 w-4" />
-                              {project.applicants} interested
+                              {project.applicants || 0} interested
                             </div>
-                            {project.isRemote && (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-4 w-4" />
-                                Remote
-                              </div>
-                            )}
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <span className={cn("rounded-full px-2 py-1 text-xs font-medium", getDifficultyColor(project.difficulty))}>
-                            {project.difficulty}
-                          </span>
-                          <span className={cn("rounded-full px-2 py-1 text-xs font-medium", getBudgetColor(project.budget))}>
-                            {project.budget}
+                          <span className={cn("rounded-full px-2 py-1 text-xs font-medium", getLevelColor(project.level))}>
+                            {project.level}
                           </span>
                         </div>
                       </div>
-                      
+
                       <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 mb-4">
                         {project.description}
                       </p>
-                      
+
                       <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-4">
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-gray-400" />
                           <span className="text-sm text-gray-600 dark:text-gray-300">
-                            Team Size: {project.teamSize.min}-{project.teamSize.max}
+                            Team Size: {project.teamSize}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <History className="h-4 w-4 text-gray-400" />
                           <span className="text-sm text-gray-600 dark:text-gray-300">
-                            Duration: {project.duration}
+                            Duration: {project.expectedTimePeriod} days
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {project.techStack.map((tech, techIndex) => (
+                        {project.technologies.map((tech, techIndex) => (
                           <span
                             key={techIndex}
                             className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-orange/20 dark:text-brand-orange"
@@ -408,20 +329,17 @@ const Home: React.FC = () => {
                             {tech}
                           </span>
                         ))}
-                        <span className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                          {project.category}
-                        </span>
                       </div>
 
                       <div className="mt-4 flex gap-3">
-                        <Button 
+                        <Button
                           className="flex-1 sm:flex-none"
                           onClick={() => handleJoinProject(project.id)}
                         >
                           Join Project
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="flex-1 sm:flex-none"
                           onClick={() => navigate(`/project/${project.id}`)}
                         >
