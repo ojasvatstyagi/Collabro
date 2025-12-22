@@ -2,195 +2,90 @@ import { BaseApi, ApiResponse } from './base';
 
 // Project-related interfaces
 export interface Project {
-  id: string;
+  id: string; // UUID
   title: string;
   description: string;
-  category: string;
-  techStack: string[];
-  teamSize: {
-    min: number;
-    max: number;
-    current: number;
-  };
-  duration: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  budget: 'unpaid' | 'paid' | 'equity' | 'negotiable';
-  timeline: string;
-  requirements: string[];
-  goals: string[];
-  isRemote: boolean;
-  isOpenSource: boolean;
-  contactMethod: 'platform' | 'email' | 'discord';
-  additionalInfo: string;
-  status: 'draft' | 'active' | 'completed' | 'cancelled';
-  progress: number;
-  owner: {
+  technologies: string[];
+  level: 'BRAND_NEW' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  expectedTimePeriod: number; // In days or weeks? Assuming days based on int, or maybe undefined unit. Let's assume days for now.
+  teamSize: number; // Target size or current size? Backend just says "teamSize".
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  createdBy: {
     id: string;
     username: string;
     profilePictureUrl: string;
   };
-  members: TeamMember[];
-  applicants: number;
-  rating: number;
-  createdAt: string;
-  updatedAt: string;
-  startDate?: string;
-  endDate?: string;
+  // Relations that might be populated
+  post?: any; // Define properly if needed
+  team?: any; // Define properly if needed
+
+  // Fields NOT in backend but useful for UI (preserved if mapped, or removed if strictly following backend)
+  // For now, I will keep 'applicants' as it might be a calculated field or coming from relations, 
+  // but strictly speaking it's not on the main entity. I'll add optional fields for now to be safe.
+  applicants?: number;
 }
 
-export interface TeamMember {
-  id: string;
-  username: string;
-  firstname: string;
-  lastname: string;
-  profilePictureUrl: string;
-  role: string;
-  status: 'online' | 'away' | 'offline';
-  joinedAt: string;
-  lastSeen?: string;
+export interface ProjectFilters {
+  level?: string;
+  status?: string;
+  technology?: string; // Singular 'technology' in backend column, 'technologies' in list
+  search?: string; // Backend likely supports search
+  page?: number;
+  limit?: number;
 }
 
 export interface CreateProjectRequest {
   title: string;
   description: string;
-  category: string;
-  techStack: string[];
-  teamSize: {
-    min: number;
-    max: number;
-  };
-  duration: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  budget: 'unpaid' | 'paid' | 'equity' | 'negotiable';
-  timeline: string;
-  requirements: string[];
-  goals: string[];
-  isRemote: boolean;
-  isOpenSource: boolean;
-  contactMethod: 'platform' | 'email' | 'discord';
-  additionalInfo: string;
+  technologies: string[];
+  level: 'BRAND_NEW' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  expectedTimePeriod: number;
+  teamSize: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 }
 
-export interface UpdateProjectRequest extends Partial<CreateProjectRequest> {
-  status?: 'draft' | 'active' | 'completed' | 'cancelled';
-  progress?: number;
-}
-
-export interface ProjectFilters {
-  category?: string;
-  difficulty?: string;
-  budget?: string;
-  techStack?: string[];
-  isRemote?: boolean;
-  isOpenSource?: boolean;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
+export interface UpdateProjectRequest extends Partial<CreateProjectRequest> { }
 
 export interface JoinProjectRequest {
   message?: string;
 }
 
 // Mock data for development
-const mockTeamMembers: TeamMember[] = [
-  {
-    id: "1",
-    username: "sarah_dev",
-    firstname: "Sarah",
-    lastname: "Johnson",
-    profilePictureUrl: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
-    role: "Project Lead",
-    status: "online",
-    joinedAt: "2024-01-15T00:00:00Z",
-  },
-  {
-    id: "2",
-    username: "mike_frontend",
-    firstname: "Mike",
-    lastname: "Chen",
-    profilePictureUrl: "https://images.pexels.com/photos/2269872/pexels-photo-2269872.jpeg?auto=compress&cs=tinysrgb&w=150",
-    role: "Frontend Developer",
-    status: "online",
-    joinedAt: "2024-01-16T00:00:00Z",
-  },
-  {
-    id: "3",
-    username: "alex_backend",
-    firstname: "Alex",
-    lastname: "Rodriguez",
-    profilePictureUrl: "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150",
-    role: "Backend Developer",
-    status: "away",
-    joinedAt: "2024-01-17T00:00:00Z",
-    lastSeen: "2 hours ago",
-  },
-];
-
 const mockProjects: Project[] = [
   {
     id: "1",
     title: "Modern E-commerce Platform",
     description: "A full-stack e-commerce solution with real-time inventory management",
-    category: "Web Development",
-    techStack: ["React", "Node.js", "PostgreSQL", "Redis"],
-    teamSize: { min: 3, max: 5, current: 3 },
-    duration: "3 months",
-    difficulty: "intermediate",
-    budget: "unpaid",
-    timeline: "Week 1-2: Planning, Week 3-8: Development, Week 9-12: Testing",
-    requirements: ["React experience", "Backend development skills"],
-    goals: ["Launch MVP", "Gain 100 users"],
-    isRemote: true,
-    isOpenSource: false,
-    contactMethod: "platform",
-    additionalInfo: "Looking for passionate developers to build something amazing!",
-    status: "active",
-    progress: 65,
-    owner: {
+    technologies: ["React", "Node.js", "PostgreSQL", "Redis"],
+    level: "INTERMEDIATE",
+    expectedTimePeriod: 90,
+    teamSize: 5,
+    status: "ACTIVE",
+    createdAt: "2024-01-15T00:00:00Z",
+    createdBy: {
       id: "1",
       username: "sarah_dev",
       profilePictureUrl: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
     },
-    members: mockTeamMembers,
-    applicants: 12,
-    rating: 4.5,
-    createdAt: "2024-01-15T00:00:00Z",
-    updatedAt: "2024-01-20T00:00:00Z",
-    startDate: "2024-01-15T00:00:00Z",
-    endDate: "2024-04-15T00:00:00Z",
+    applicants: 12
   },
   {
     id: "2",
     title: "AI-Powered Analytics Dashboard",
     description: "Data visualization platform with machine learning insights",
-    category: "AI/Machine Learning",
-    techStack: ["Python", "React", "TensorFlow", "D3.js"],
-    teamSize: { min: 4, max: 6, current: 2 },
-    duration: "4 months",
-    difficulty: "advanced",
-    budget: "equity",
-    timeline: "Month 1: Research, Month 2-3: Development, Month 4: Testing",
-    requirements: ["ML experience", "Data visualization skills"],
-    goals: ["Build MVP", "Secure funding"],
-    isRemote: true,
-    isOpenSource: true,
-    contactMethod: "platform",
-    additionalInfo: "Exciting opportunity to work with cutting-edge AI technology!",
-    status: "active",
-    progress: 30,
-    owner: {
+    technologies: ["Python", "React", "TensorFlow", "D3.js"],
+    level: "ADVANCED",
+    expectedTimePeriod: 120,
+    teamSize: 6,
+    status: "ACTIVE",
+    createdAt: "2024-01-18T00:00:00Z",
+    createdBy: {
       id: "2",
       username: "data_scientist_emma",
       profilePictureUrl: "https://images.pexels.com/photos/3992656/pexels-photo-3992656.jpeg?auto=compress&cs=tinysrgb&w=150",
     },
-    members: mockTeamMembers.slice(0, 2),
-    applicants: 8,
-    rating: 4.8,
-    createdAt: "2024-01-18T00:00:00Z",
-    updatedAt: "2024-01-22T00:00:00Z",
-    startDate: "2024-01-18T00:00:00Z",
-    endDate: "2024-05-18T00:00:00Z",
+    applicants: 8
   },
 ];
 
@@ -205,11 +100,7 @@ class ProjectsApi extends BaseApi {
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            if (Array.isArray(value)) {
-              value.forEach(v => params.append(key, v));
-            } else {
-              params.append(key, value.toString());
-            }
+            params.append(key, value.toString());
           }
         });
       }
@@ -224,20 +115,12 @@ class ProjectsApi extends BaseApi {
       filteredProjects = filteredProjects.filter(project =>
         project.title.toLowerCase().includes(search) ||
         project.description.toLowerCase().includes(search) ||
-        project.techStack.some(tech => tech.toLowerCase().includes(search))
+        project.technologies.some(tech => tech.toLowerCase().includes(search))
       );
     }
 
-    if (filters?.category && filters.category !== 'all') {
-      filteredProjects = filteredProjects.filter(project => project.category === filters.category);
-    }
-
-    if (filters?.difficulty && filters.difficulty !== 'all') {
-      filteredProjects = filteredProjects.filter(project => project.difficulty === filters.difficulty);
-    }
-
-    if (filters?.budget && filters.budget !== 'all') {
-      filteredProjects = filteredProjects.filter(project => project.budget === filters.budget);
+    if (filters?.level) {
+      filteredProjects = filteredProjects.filter(project => project.level === filters.level);
     }
 
     return {
@@ -257,7 +140,6 @@ class ProjectsApi extends BaseApi {
   async getProjectById(projectId: string): Promise<ApiResponse<Project>> {
     await this.simulateDelay(400);
 
-    // Simulate API call in production
     if (import.meta.env.PROD) {
       return this.get<Project>(`/projects/${projectId}`);
     }
@@ -281,7 +163,6 @@ class ProjectsApi extends BaseApi {
   async getUserProjects(userId?: string): Promise<ApiResponse<Project[]>> {
     await this.simulateDelay(500);
 
-    // Simulate API call in production
     if (import.meta.env.PROD) {
       const endpoint = userId ? `/projects/user/${userId}` : '/projects/me';
       return this.get<Project[]>(endpoint);
@@ -298,7 +179,6 @@ class ProjectsApi extends BaseApi {
   async createProject(data: CreateProjectRequest): Promise<ApiResponse<Project>> {
     await this.simulateDelay(1000);
 
-    // Simulate API call in production
     if (import.meta.env.PROD) {
       return this.post<Project>('/projects', data);
     }
@@ -306,19 +186,12 @@ class ProjectsApi extends BaseApi {
     const newProject: Project = {
       id: Date.now().toString(),
       ...data,
-      teamSize: { ...data.teamSize, current: 1 },
-      status: 'active',
-      progress: 0,
-      owner: {
-        id: "1",
-        username: "johndoe",
-        profilePictureUrl: "https://images.pexels.com/photos/2269872/pexels-photo-2269872.jpeg?auto=compress&cs=tinysrgb&w=150",
-      },
-      members: [mockTeamMembers[0]],
-      applicants: 0,
-      rating: 0,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdBy: {
+        id: "1",
+        username: "current_user",
+        profilePictureUrl: "", // Mock
+      }
     };
 
     return {
@@ -332,7 +205,6 @@ class ProjectsApi extends BaseApi {
   async updateProject(projectId: string, data: UpdateProjectRequest): Promise<ApiResponse<Project>> {
     await this.simulateDelay(800);
 
-    // Simulate API call in production
     if (import.meta.env.PROD) {
       return this.put<Project>(`/projects/${projectId}`, data);
     }
@@ -348,7 +220,6 @@ class ProjectsApi extends BaseApi {
     const updatedProject: Project = {
       ...project,
       ...data,
-      updatedAt: new Date().toISOString(),
     };
 
     return {
@@ -362,7 +233,6 @@ class ProjectsApi extends BaseApi {
   async deleteProject(projectId: string): Promise<ApiResponse<{ message: string }>> {
     await this.simulateDelay(600);
 
-    // Simulate API call in production
     if (import.meta.env.PROD) {
       return this.delete<{ message: string }>(`/projects/${projectId}`);
     }
@@ -378,7 +248,6 @@ class ProjectsApi extends BaseApi {
   async joinProject(projectId: string, request?: JoinProjectRequest): Promise<ApiResponse<{ message: string }>> {
     await this.simulateDelay(700);
 
-    // Simulate API call in production
     if (import.meta.env.PROD) {
       return this.post<{ message: string }>(`/projects/${projectId}/join`, request);
     }
@@ -394,7 +263,6 @@ class ProjectsApi extends BaseApi {
   async leaveProject(projectId: string): Promise<ApiResponse<{ message: string }>> {
     await this.simulateDelay(500);
 
-    // Simulate API call in production
     if (import.meta.env.PROD) {
       return this.post<{ message: string }>(`/projects/${projectId}/leave`);
     }
@@ -406,37 +274,15 @@ class ProjectsApi extends BaseApi {
     };
   }
 
-  // Get project categories
+  // Get project categories - BACKEND DOES NOT SUPPORT THIS YET (only PostType which is not exactly categories)
   async getCategories(): Promise<ApiResponse<string[]>> {
     await this.simulateDelay(200);
 
-    // Simulate API call in production
-    if (import.meta.env.PROD) {
-      return this.get<string[]>('/projects/categories');
-    }
-
-    const categories = [
-      "Web Development",
-      "Mobile App",
-      "Desktop Application",
-      "AI/Machine Learning",
-      "Data Science",
-      "Game Development",
-      "Blockchain",
-      "IoT",
-      "DevOps",
-      "UI/UX Design",
-      "API Development",
-      "E-commerce",
-      "Social Platform",
-      "Educational Tool",
-      "Productivity Tool",
-      "Other",
-    ];
-
+    // Removed specific categories as backend doesn't have them yet.
+    // Could map PostType here if needed, but for now returning empty or generic.
     return {
       success: true,
-      data: categories,
+      data: [],
       message: "Categories retrieved successfully",
     };
   }
