@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, X, Search, Check } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import Button from "./Button";
 import Input from "./Input";
 import { cn } from "../../utils/cn";
@@ -7,7 +7,7 @@ import { profileApi } from "../../services/api/profile";
 
 interface Skill {
   id: string;
-  skillName: string;
+  name: string;
   proficiency?: 'BEGINNER' | 'INTERMEDIATE' | 'EXPERT';
 }
 
@@ -52,7 +52,7 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
   };
 
   const handleAddSkill = () => {
-    if (newSkill.trim() && !skills.some(skill => skill.skillName.toLowerCase() === newSkill.trim().toLowerCase())) {
+    if (newSkill.trim() && !skills.some(skill => skill.name.toLowerCase() === newSkill.trim().toLowerCase())) {
       onAddSkill(newSkill.trim(), proficiency);
       setNewSkill("");
       setSuggestions([]);
@@ -163,7 +163,7 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
               )}
             >
               <div className="flex flex-col mr-2">
-                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{skill.skillName}</span>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{skill.name}</span>
                 <span className="text-[10px] uppercase tracking-wider font-bold text-brand-orange">
                   {skill.proficiency || "Beginner"}
                 </span>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, X, Github, Linkedin, Twitter, Globe, Briefcase } from "lucide-react";
+import { Plus, X, Github, Linkedin, Twitter, Globe, Link } from "lucide-react";
 import Button from "./Button";
 import Input from "./Input";
 import { cn } from "../../utils/cn";
@@ -53,7 +53,7 @@ const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
         <div className={cn("space-y-4", className)}>
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-brand-dark dark:text-gray-100 flex items-center">
-                    <Briefcase className="mr-2 h-5 w-5" />
+                    <Link className="mr-2 h-5 w-5" />
                     Social Links
                 </h3>
                 {isEditing && !isAdding && (

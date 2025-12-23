@@ -165,7 +165,7 @@ const Landing: React.FC = () => {
         <div className="mt-8">
           <Link to="/register">
             <Button size="lg" className="group">
-              Join PeerSpace
+              Join Collabro
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
@@ -179,7 +179,7 @@ const Landing: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Users className="h-6 w-6 text-brand-orange" />
               <span className="text-xl font-medium text-gray-900 dark:text-gray-100">
-                PeerSpace
+                Collabro
               </span>
             </div>
             <div className="flex space-x-6">
@@ -193,7 +193,7 @@ const Landing: React.FC = () => {
           </div>
           <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 text-center text-sm text-gray-600 dark:text-gray-400">
             <p>
-              &copy; {new Date().getFullYear()} PeerSpace. All rights reserved.
+              &copy; {new Date().getFullYear()} Collabro. All rights reserved.
             </p>
           </div>
         </div>
