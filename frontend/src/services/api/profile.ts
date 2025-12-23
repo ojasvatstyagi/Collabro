@@ -2,7 +2,7 @@ import { BaseApi, ApiResponse } from './base';
 
 export interface Skill {
   id: string;
-  skillName: string;
+  name: string;
   proficiency: 'BEGINNER' | 'INTERMEDIATE' | 'EXPERT'; // Matches Backend Enum
   createdAt: string;
 }
@@ -18,6 +18,7 @@ export interface ProfileData {
   id: string;
   firstname: string;
   lastname: string;
+  username: string;
   bio: string;
   education: string;
   location: string;
@@ -47,7 +48,7 @@ export interface UpdateProfileRequest {
 }
 
 export interface AddSkillRequest {
-  skillName: string;
+  name: string;
   proficiency: 'BEGINNER' | 'INTERMEDIATE' | 'EXPERT';
 }
 

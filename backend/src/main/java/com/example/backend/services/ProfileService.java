@@ -76,7 +76,11 @@ public class ProfileService {
     }
 
     public ProfileDto convertToDto(Profile profile) {
-        return modelMapper.map(profile, ProfileDto.class);
+        ProfileDto dto = modelMapper.map(profile, ProfileDto.class);
+        if (profile.getUser() != null) {
+            dto.setUsername(profile.getUser().getUsername());
+        }
+        return dto;
     }
 
     @NonNull

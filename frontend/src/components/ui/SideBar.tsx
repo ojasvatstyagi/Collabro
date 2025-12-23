@@ -14,6 +14,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { useAuth } from "../../context/AuthContext";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -23,6 +24,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
 
   const navigation = [
@@ -98,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             <Users className="h-6 w-6 text-brand-orange flex-shrink-0" />
             {!isCollapsed && (
               <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                PeerSpace
+                Collabro
               </span>
             )}
           </div>
@@ -126,11 +128,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               onClick={handleProfileClick}
               title="Go to Profile"
             >
-              <div className="h-10 w-10 rounded-full bg-brand-orange/20 flex-shrink-0" />
+              {user?.profilePictureUrl ? (
+                <img
+                  src={user.profilePictureUrl}
+                  alt={user.username}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-brand-orange/20 flex items-center justify-center text-brand-orange font-bold">
+                  {user?.firstname?.[0] || user?.username?.[0] || "U"}
+                </div>
+              )}
               {!isCollapsed && (
                 <div>
                   <div className="font-medium text-gray-900 dark:text-gray-100">
-                    username
+                    {user?.firstname && user?.lastname ? `${user.firstname} ${user.lastname}` : user?.username || "Guest"}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-300">
                     View Profile

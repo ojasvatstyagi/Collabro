@@ -12,6 +12,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 import static org.mockito.Mockito.*;
 
+import java.util.Objects;
+
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
 
@@ -31,7 +33,7 @@ class EmailServiceTest {
         emailService.sendHtmlEmail("test@example.com", "Test Subject", "<p>Test Content</p>");
 
         // Assert
-        verify(mailSender).send(mimeMessage);
+        verify(mailSender).send(Objects.requireNonNull(mimeMessage));
     }
 
     @Test
@@ -39,7 +41,7 @@ class EmailServiceTest {
         // Arrange
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        doThrow(new MailSendException("Test Exception")).when(mailSender).send(any(MimeMessage.class));
+        doThrow(new MailSendException("Test Exception")).when(mailSender).send(Objects.requireNonNull(mimeMessage));
 
         // Act (for testing make sendHtmlEmail public)
         emailService.sendHtmlEmail("test@example.com", "Test Subject", "<p>Test Content</p>");
@@ -59,9 +61,9 @@ class EmailServiceTest {
         emailService.sendOtpEmail("test@example.com", "123456");
 
         // Assert
-        verify(mailSender).send(mimeMessage);
+        verify(mailSender).send(Objects.requireNonNull(mimeMessage));
         ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
-        verify(mailSender).send(messageCaptor.capture());
+        verify(mailSender).send(Objects.requireNonNull(messageCaptor.capture()));
         // Can't verify exact HTML content without parsing it
     }
 }
