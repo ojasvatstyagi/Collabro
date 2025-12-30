@@ -56,6 +56,33 @@ public class Profile {
 
     private String profilePictureUrl;
 
+    // Notification Preferences
+    @Column(name = "notifications_enabled", nullable = false)
+    @Builder.Default
+    private boolean notificationsEnabled = true;
+
+    @Column(name = "email_notifications", nullable = false)
+    @Builder.Default
+    private boolean emailNotifications = true;
+
+    @Column(name = "project_notifications", nullable = false)
+    @Builder.Default
+    private boolean projectNotifications = true;
+
+    // Team Preferences
+    @Column(name = "open_for_team_invites", nullable = false)
+    @Builder.Default
+    private boolean openForTeamInvites = false;
+
+    @Column(name = "preferred_team_size")
+    private String preferredTeamSize;
+
+    @ElementCollection
+    @CollectionTable(name = "profile_project_interests", joinColumns = @JoinColumn(name = "profile_id"))
+    @Column(name = "interest")
+    @Builder.Default
+    private List<String> projectInterests = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;

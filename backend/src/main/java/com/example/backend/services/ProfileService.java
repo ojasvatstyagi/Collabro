@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -68,6 +69,17 @@ public class ProfileService {
         profile.setLocation(updateDto.getLocation());
         profile.setPhone(updateDto.getPhone());
 
+        // Update settings if present
+        if (updateDto.getNotificationsEnabled() != null) profile.setNotificationsEnabled(updateDto.getNotificationsEnabled());
+        if (updateDto.getEmailNotifications() != null) profile.setEmailNotifications(updateDto.getEmailNotifications());
+        if (updateDto.getProjectNotifications() != null) profile.setProjectNotifications(updateDto.getProjectNotifications());
+        if (updateDto.getOpenForTeamInvites() != null) profile.setOpenForTeamInvites(updateDto.getOpenForTeamInvites());
+        if (updateDto.getPreferredTeamSize() != null) profile.setPreferredTeamSize(updateDto.getPreferredTeamSize());
+        if (updateDto.getProjectInterests() != null) {
+            profile.getProjectInterests().clear();
+            profile.getProjectInterests().addAll(updateDto.getProjectInterests());
+        }
+
         profile.calculateCompletion(); // Optional: test impact of this
 
         profile = profileRepository.save(profile);
@@ -79,7 +91,16 @@ public class ProfileService {
         ProfileDto dto = modelMapper.map(profile, ProfileDto.class);
         if (profile.getUser() != null) {
             dto.setUsername(profile.getUser().getUsername());
+            dto.setEmail(profile.getUser().getEmail());
         }
+
+        // Map settings
+        dto.setNotificationsEnabled(profile.isNotificationsEnabled());
+        dto.setEmailNotifications(profile.isEmailNotifications());
+        dto.setProjectNotifications(profile.isProjectNotifications());
+        dto.setOpenForTeamInvites(profile.isOpenForTeamInvites());
+        dto.setPreferredTeamSize(profile.getPreferredTeamSize());
+        dto.setProjectInterests(new ArrayList<>(profile.getProjectInterests()));
 
         // Transform internal file path to public URL
         if (profile.getProfilePictureUrl() != null && !profile.getProfilePictureUrl().isEmpty()) {

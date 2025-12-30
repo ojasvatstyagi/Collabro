@@ -31,4 +31,12 @@ public class ProfileUpdateDto {
 
     @Pattern(regexp = "^\\+?[0-9 .()-]{7,25}$", message = "Invalid phone number format")
     private String phone;
+
+    // Settings
+    private Boolean notificationsEnabled;
+    private Boolean emailNotifications;
+    private Boolean projectNotifications;
+    private Boolean openForTeamInvites;
+    private String preferredTeamSize;
+    private java.util.List<String> projectInterests;
 }
