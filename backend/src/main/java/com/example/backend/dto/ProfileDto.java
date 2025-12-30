@@ -15,6 +15,7 @@ import java.util.UUID;
 public class ProfileDto {
     private UUID id;
     private String username;
+    private String email;
     private String firstname;
     private String lastname;
     private String bio;
@@ -22,6 +23,15 @@ public class ProfileDto {
     private String location;
     private String phone;
     private String profilePictureUrl;
+    
+    private boolean notificationsEnabled;
+    private boolean emailNotifications;
+    private boolean projectNotifications;
+    
+    private boolean openForTeamInvites;
+    private String preferredTeamSize;
+    private List<String> projectInterests;
+
     private boolean isProfileComplete;
     private int completionPercentage;
     private List<SkillDto> skills;
