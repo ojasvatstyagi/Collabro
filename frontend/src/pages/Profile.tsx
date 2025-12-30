@@ -351,7 +351,7 @@ const Profile: React.FC = () => {
                 <div className="rounded-2xl bg-white p-8 shadow-sm border border-gray-100 dark:bg-brand-dark-lighter dark:border-gray-700 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-brand-orange/20 to-brand-orange/5 dark:from-brand-orange/10 dark:to-transparent"></div>
                   <div className="relative z-10 flex flex-col items-center text-center">
-                    <FileUpload currentImage={profile.profilePictureUrl} onImageChange={handleImageUpload} className="mx-auto w-28 h-28 border-4 border-white dark:border-brand-dark-lighter shadow-md" />
+                    <FileUpload user={profile} currentImage={profile.profilePictureUrl} onImageChange={handleImageUpload} className="mx-auto w-28 h-28 border-4 border-white dark:border-brand-dark-lighter shadow-md" />
                     {isEditingPersonalInfo && profile.profilePictureUrl && (
                       <button onClick={handleDeleteProfilePicture} className="text-xs text-red-500 hover:underline mt-2">Remove Picture</button>
                     )}

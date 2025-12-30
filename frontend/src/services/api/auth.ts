@@ -126,8 +126,8 @@ class AuthApi extends BaseApi {
   }
 
   // Get current user -> GET /api/auth/me
-  async getCurrentUser(): Promise<ApiResponse<User>> {
-    return this.get<User>("/auth/me");
+  async getCurrentUser(): Promise<ApiResponse<{ user: User }>> {
+    return this.get<{ user: User }>("/auth/me");
   }
 }
 

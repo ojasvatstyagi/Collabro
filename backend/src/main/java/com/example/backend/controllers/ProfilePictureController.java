@@ -47,7 +47,19 @@ public class ProfilePictureController {
 
         Resource resource = fileStorageService.loadFileAsResource(profile.getProfilePictureUrl());
         return ResponseEntity.ok()
-                .contentType(Objects.requireNonNull(MediaType.IMAGE_JPEG)) // Adjust based on actual file type
+                .contentType(Objects.requireNonNull(MediaType.IMAGE_JPEG)) // You might want to detect type dynamically
+                .body(resource);
+    }
+
+    @GetMapping("/{fileName:.+}")
+    @Operation(summary = "Get Profile Picture by Filename", description = "Retrieves a specific profile picture by filename")
+    public ResponseEntity<Resource> getProfilePictureFile(@PathVariable String fileName) {
+        // Construct the relative path expected by storage service
+        String filePath = "profile-pictures/" + fileName;
+        Resource resource = fileStorageService.loadFileAsResource(filePath);
+
+        return ResponseEntity.ok()
+                .contentType(Objects.requireNonNull(MediaType.IMAGE_JPEG)) // Ideally detect content type
                 .body(resource);
     }
 

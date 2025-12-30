@@ -80,6 +80,21 @@ public class ProfileService {
         if (profile.getUser() != null) {
             dto.setUsername(profile.getUser().getUsername());
         }
+
+        // Transform internal file path to public URL
+        if (profile.getProfilePictureUrl() != null && !profile.getProfilePictureUrl().isEmpty()) {
+            String path = profile.getProfilePictureUrl();
+            // If it's already a http link (e.g. from google auth later), leave it.
+            // If it's a relative path starting with profile-pictures/, convert it.
+            if (!path.startsWith("http") && path.contains("profile-pictures/")) {
+                // Extract filename
+                String filename = path.substring(path.lastIndexOf("/") + 1);
+                // Assuming standard API structure. You might want to make the base URL
+                // configurable.
+                dto.setProfilePictureUrl("/api/profile/picture/" + filename);
+            }
+        }
+
         return dto;
     }
 
