@@ -177,7 +177,7 @@ const Landing: React.FC = () => {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
-              <Users className="h-6 w-6 text-brand-orange" />
+              <img src="/logo2.png" alt="Collabro Logo" className="h-8 w-8 object-contain" />
               <span className="text-xl font-medium text-gray-900 dark:text-gray-100">
                 Collabro
               </span>
