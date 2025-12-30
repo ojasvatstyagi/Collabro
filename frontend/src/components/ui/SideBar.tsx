@@ -9,7 +9,6 @@ import {
   Award,
   Settings,
   LogOut,
-  Menu,
   X,
   UserCheck,
 } from "lucide-react";
@@ -24,8 +23,14 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // Reset error when user changes (e.g. login/logout or profile update)
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.profilePictureUrl]);
 
   const navigation = [
     { name: "Explore", icon: Compass, href: "/explore" },
@@ -89,8 +94,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
           isMobile && isCollapsed && "-translate-x-full md:translate-x-0"
         )}
       >
-        {/* Header */}
+        {/* ... (Header - unchanged) */}
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-600">
+          {/* ... header content ... */}
           <div
             className={cn(
               "flex items-center gap-2",
@@ -104,8 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               </span>
             )}
           </div>
-
-          {/* Toggle button - only show on mobile when expanded */}
+          {/* ... toggle button ... */}
           {isMobile && !isCollapsed && (
             <button
               onClick={() => setIsCollapsed(true)}
@@ -128,14 +133,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               onClick={handleProfileClick}
               title="Go to Profile"
             >
-              {user?.profilePictureUrl ? (
+              {user?.profilePictureUrl && !imageError ? (
                 <img
                   src={user.profilePictureUrl}
                   alt={user.username}
                   className="h-10 w-10 rounded-full object-cover"
+                  onError={() => setImageError(true)}
                 />
               ) : (
-                <div className="h-10 w-10 rounded-full bg-brand-orange/20 flex items-center justify-center text-brand-orange font-bold">
+                <div className="h-10 w-10 rounded-full bg-brand-orange/20 flex items-center justify-center text-brand-orange font-bold text-lg">
                   {user?.firstname?.[0] || user?.username?.[0] || "U"}
                 </div>
               )}

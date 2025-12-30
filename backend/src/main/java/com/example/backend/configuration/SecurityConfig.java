@@ -62,6 +62,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/matching/search/**",
                                 "/api/profile/skills/search",
+                                "/api/profile/picture/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html")

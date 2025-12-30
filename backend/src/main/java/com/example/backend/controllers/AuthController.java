@@ -135,7 +135,20 @@ public class AuthController {
         if (user.getProfile() != null) {
             dto.setFirstname(user.getProfile().getFirstname());
             dto.setLastname(user.getProfile().getLastname());
-            dto.setProfilePictureUrl(user.getProfile().getProfilePictureUrl());
+
+            // Transform internal file path to public URL
+            String path = user.getProfile().getProfilePictureUrl();
+            if (path != null && !path.isEmpty()) {
+                if (!path.startsWith("http") && path.contains("profile-pictures/")) {
+                    String filename = path.substring(path.lastIndexOf("/") + 1);
+                    dto.setProfilePictureUrl("/api/profile/picture/" + filename);
+                } else {
+                    dto.setProfilePictureUrl(path);
+                }
+            } else {
+                dto.setProfilePictureUrl(null);
+            }
+
             dto.setProfileComplete(user.getProfile().isProfileComplete());
         }
         if (user.getRole() != null) {
