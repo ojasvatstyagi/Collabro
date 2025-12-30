@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Users,
   Compass,
   MessageSquare,
   FolderKanban,
@@ -23,7 +22,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -103,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
               isCollapsed && "justify-center"
             )}
           >
-            <Users className="h-6 w-6 text-brand-orange flex-shrink-0" />
+            <img src="/logo2.png" alt="Collabro Logo" className="h-8 w-8 object-contain" />
             {!isCollapsed && (
               <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Collabro
