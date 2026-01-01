@@ -1,27 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from 'react';
 import {
   ArrowLeft,
   Upload,
   X,
   Plus,
-  Users,
-  Calendar,
-  Code,
-  Target,
-  Globe,
-  Clock,
-  DollarSign,
   AlertCircle,
   CheckCircle2,
   Menu,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/ui/SideBar";
-import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
-import ThemeToggle from "../components/ui/ThemeToggle";
-import { cn } from "../utils/cn";
-import { projectsApi, type CreateProjectRequest } from "../services/api/projects";
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Sidebar from '../components/ui/SideBar';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import ThemeToggle from '../components/ui/ThemeToggle';
+import { cn } from '../utils/cn';
+import {
+  projectsApi,
+  type CreateProjectRequest,
+} from '../services/api/projects';
 
 interface ProjectIdea {
   title: string;
@@ -33,43 +29,40 @@ interface ProjectIdea {
     max: number;
   };
   duration: string;
-  difficulty: "beginner" | "intermediate" | "advanced";
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
   budget: string;
-  timeline: string;
-  requirements: string[];
-  goals: string[];
   isRemote: boolean;
   isOpenSource: boolean;
-  contactMethod: "platform" | "email" | "discord";
+  contactMethod: 'platform' | 'email' | 'discord';
   additionalInfo: string;
 }
 
 const popularTechStack = [
-  "React",
-  "Vue.js",
-  "Angular",
-  "Node.js",
-  "Python",
-  "Java",
-  "TypeScript",
-  "JavaScript",
-  "PHP",
-  "Ruby",
-  "Go",
-  "Rust",
-  "Swift",
-  "Kotlin",
-  "Flutter",
-  "React Native",
-  "MongoDB",
-  "PostgreSQL",
-  "MySQL",
-  "Redis",
-  "Docker",
-  "AWS",
-  "Firebase",
-  "GraphQL",
-  "REST API",
+  'React',
+  'Vue.js',
+  'Angular',
+  'Node.js',
+  'Python',
+  'Java',
+  'TypeScript',
+  'JavaScript',
+  'PHP',
+  'Ruby',
+  'Go',
+  'Rust',
+  'Swift',
+  'Kotlin',
+  'Flutter',
+  'React Native',
+  'MongoDB',
+  'PostgreSQL',
+  'MySQL',
+  'Redis',
+  'Docker',
+  'AWS',
+  'Firebase',
+  'GraphQL',
+  'REST API',
 ];
 
 const PostIdea: React.FC = () => {
@@ -78,43 +71,29 @@ const PostIdea: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [categories, setCategories] = useState<string[]>([]);
-  
+
   const [projectIdea, setProjectIdea] = useState<ProjectIdea>({
-    title: "",
-    description: "",
-    category: "",
+    title: '',
+    description: '',
+    category: '',
     techStack: [],
-    teamSize: { min: 2, max: 5 },
-    duration: "",
-    difficulty: "intermediate",
-    budget: "unpaid",
-    timeline: "",
-    requirements: [],
-    goals: [],
+    teamSize: { min: 2, max: 5 }, // Keeping structure for now but will use just one value in submit
+    duration: '',
+    difficulty: 'intermediate',
+    budget: 'unpaid',
+    // timeline: "", // REMOVED
     isRemote: true,
     isOpenSource: false,
-    contactMethod: "platform",
-    additionalInfo: "",
+    contactMethod: 'platform',
+    additionalInfo: '',
   });
 
-  const [newTech, setNewTech] = useState("");
-  const [newRequirement, setNewRequirement] = useState("");
-  const [newGoal, setNewGoal] = useState("");
+  const [newTech, setNewTech] = useState('');
 
-  // Load categories on component mount
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
-    try {
-      const response = await projectsApi.getCategories();
-      setCategories(response.data || []);
-    } catch (error) {
-      console.error("Error loading categories:", error);
-    }
-  };
+  // Categories are hardcoded now
+  // useEffect(() => {
+  //   loadCategories();
+  // }, []);
 
   const handleInputChange = (field: keyof ProjectIdea, value: any) => {
     setProjectIdea((prev) => ({ ...prev, [field]: value }));
@@ -128,6 +107,7 @@ const PostIdea: React.FC = () => {
     }
   };
 
+  // Helper functions for tech stack
   const addTechStack = (tech: string) => {
     if (tech && !projectIdea.techStack.includes(tech)) {
       setProjectIdea((prev) => ({
@@ -147,42 +127,8 @@ const PostIdea: React.FC = () => {
   const addCustomTech = () => {
     if (newTech.trim() && !projectIdea.techStack.includes(newTech.trim())) {
       addTechStack(newTech.trim());
-      setNewTech("");
+      setNewTech('');
     }
-  };
-
-  const addRequirement = () => {
-    if (newRequirement.trim() && !projectIdea.requirements.includes(newRequirement.trim())) {
-      setProjectIdea((prev) => ({
-        ...prev,
-        requirements: [...prev.requirements, newRequirement.trim()],
-      }));
-      setNewRequirement("");
-    }
-  };
-
-  const removeRequirement = (requirement: string) => {
-    setProjectIdea((prev) => ({
-      ...prev,
-      requirements: prev.requirements.filter((r) => r !== requirement),
-    }));
-  };
-
-  const addGoal = () => {
-    if (newGoal.trim() && !projectIdea.goals.includes(newGoal.trim())) {
-      setProjectIdea((prev) => ({
-        ...prev,
-        goals: [...prev.goals, newGoal.trim()],
-      }));
-      setNewGoal("");
-    }
-  };
-
-  const removeGoal = (goal: string) => {
-    setProjectIdea((prev) => ({
-      ...prev,
-      goals: prev.goals.filter((g) => g !== goal),
-    }));
   };
 
   const validateStep = (step: number): boolean => {
@@ -191,29 +137,27 @@ const PostIdea: React.FC = () => {
     switch (step) {
       case 1:
         if (!projectIdea.title.trim()) {
-          newErrors.title = "Project title is required";
+          newErrors.title = 'Project title is required';
         }
         if (!projectIdea.description.trim()) {
-          newErrors.description = "Project description is required";
+          newErrors.description = 'Project description is required';
         }
         if (!projectIdea.category) {
-          newErrors.category = "Please select a category";
+          newErrors.category = 'Please select a category';
         }
         break;
       case 2:
         if (projectIdea.techStack.length === 0) {
-          newErrors.techStack = "Please select at least one technology";
+          newErrors.techStack = 'Please select at least one technology';
         }
         if (!projectIdea.duration) {
-          newErrors.duration = "Project duration is required";
+          newErrors.duration = 'Project duration is required';
         }
         break;
       case 3:
-        if (projectIdea.teamSize.min < 1) {
-          newErrors.teamSizeMin = "Minimum team size must be at least 1";
-        }
-        if (projectIdea.teamSize.max < projectIdea.teamSize.min) {
-          newErrors.teamSizeMax = "Maximum team size must be greater than minimum";
+        if (projectIdea.teamSize.max < 1) {
+          // Using max as the single source of truth for team size
+          newErrors.teamSizeMax = 'Team size must be at least 1';
         }
         break;
     }
@@ -241,31 +185,31 @@ const PostIdea: React.FC = () => {
         title: projectIdea.title,
         description: projectIdea.description,
         category: projectIdea.category,
-        techStack: projectIdea.techStack,
-        teamSize: projectIdea.teamSize,
+        technologies: projectIdea.techStack,
+        teamSize: projectIdea.teamSize.max, // Using max as the single value
         duration: projectIdea.duration,
-        difficulty: projectIdea.difficulty,
-        budget: projectIdea.budget as any,
-        timeline: projectIdea.timeline,
-        requirements: projectIdea.requirements,
-        goals: projectIdea.goals,
+        level: projectIdea.difficulty.toUpperCase() as any, // Map to enum
+        budget: projectIdea.budget,
         isRemote: projectIdea.isRemote,
         isOpenSource: projectIdea.isOpenSource,
         contactMethod: projectIdea.contactMethod,
         additionalInfo: projectIdea.additionalInfo,
+        status: 'ACTIVE',
       };
 
       await projectsApi.createProject(createProjectData);
-      
+
       // Show success and redirect
-      navigate("/explore", { 
-        state: { 
-          message: "Your project idea has been posted successfully!" 
-        } 
+      navigate('/explore', {
+        state: {
+          message: 'Your project idea has been posted successfully!',
+        },
       });
     } catch (error: any) {
-      console.error("Error submitting project idea:", error);
-      setErrors({ submit: error.message || "Failed to create project. Please try again." });
+      console.error('Error submitting project idea:', error);
+      setErrors({
+        submit: error.message || 'Failed to create project. Please try again.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -277,25 +221,21 @@ const PostIdea: React.FC = () => {
         <React.Fragment key={step}>
           <div
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium",
+              'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium',
               step <= currentStep
-                ? "bg-brand-orange text-white"
-                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                ? 'bg-brand-orange text-white'
+                : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
             )}
           >
-            {step < currentStep ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : (
-              step
-            )}
+            {step < currentStep ? <CheckCircle2 className="h-4 w-4" /> : step}
           </div>
           {step < 4 && (
             <div
               className={cn(
-                "h-1 w-12 mx-2",
+                'h-1 w-12 mx-2',
                 step < currentStep
-                  ? "bg-brand-orange"
-                  : "bg-gray-200 dark:bg-gray-700"
+                  ? 'bg-brand-orange'
+                  : 'bg-gray-200 dark:bg-gray-700'
               )}
             />
           )}
@@ -321,7 +261,7 @@ const PostIdea: React.FC = () => {
             <Input
               label="Project Title"
               value={projectIdea.title}
-              onChange={(e) => handleInputChange("title", e.target.value)}
+              onChange={(e) => handleInputChange('title', e.target.value)}
               error={errors.title}
               placeholder="e.g., AI-Powered Task Management App"
               required
@@ -333,14 +273,16 @@ const PostIdea: React.FC = () => {
               </label>
               <textarea
                 value={projectIdea.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange('description', e.target.value)
+                }
                 className={cn(
-                  "w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all resize-none",
-                  "bg-white dark:bg-brand-dark-lighter",
-                  "text-brand-dark dark:text-gray-100",
+                  'w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all resize-none',
+                  'bg-white dark:bg-brand-dark-lighter',
+                  'text-brand-dark dark:text-gray-100',
                   errors.description
-                    ? "border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20"
-                    : "border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600"
+                    ? 'border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20'
+                    : 'border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600'
                 )}
                 rows={6}
                 placeholder="Describe your project idea, its purpose, and what you want to achieve..."
@@ -359,22 +301,20 @@ const PostIdea: React.FC = () => {
               </label>
               <select
                 value={projectIdea.category}
-                onChange={(e) => handleInputChange("category", e.target.value)}
+                onChange={(e) => handleInputChange('category', e.target.value)}
                 className={cn(
-                  "w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all",
-                  "bg-white dark:bg-brand-dark-lighter",
-                  "text-brand-dark dark:text-gray-100",
+                  'w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all',
+                  'bg-white dark:bg-brand-dark-lighter',
+                  'text-brand-dark dark:text-gray-100',
                   errors.category
-                    ? "border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20"
-                    : "border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600"
+                    ? 'border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20'
+                    : 'border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600'
                 )}
               >
                 <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
+                <option value="Frontend">Frontend</option>
+                <option value="Backend">Backend</option>
+                <option value="Full Stack">Full Stack</option>
               </select>
               {errors.category && (
                 <div className="mt-1 flex items-center text-xs text-brand-red">
@@ -402,7 +342,7 @@ const PostIdea: React.FC = () => {
               <label className="mb-2 block text-sm font-medium text-brand-dark dark:text-gray-100">
                 Tech Stack <span className="text-brand-red">*</span>
               </label>
-              
+
               {/* Selected Technologies */}
               {projectIdea.techStack.length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-2">
@@ -451,7 +391,7 @@ const PostIdea: React.FC = () => {
                   value={newTech}
                   onChange={(e) => setNewTech(e.target.value)}
                   placeholder="Add custom technology"
-                  onKeyPress={(e) => e.key === "Enter" && addCustomTech()}
+                  onKeyPress={(e) => e.key === 'Enter' && addCustomTech()}
                 />
                 <Button
                   onClick={addCustomTech}
@@ -478,14 +418,16 @@ const PostIdea: React.FC = () => {
                 </label>
                 <select
                   value={projectIdea.duration}
-                  onChange={(e) => handleInputChange("duration", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange('duration', e.target.value)
+                  }
                   className={cn(
-                    "w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all",
-                    "bg-white dark:bg-brand-dark-lighter",
-                    "text-brand-dark dark:text-gray-100",
+                    'w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all',
+                    'bg-white dark:bg-brand-dark-lighter',
+                    'text-brand-dark dark:text-gray-100',
                     errors.duration
-                      ? "border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20"
-                      : "border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600"
+                      ? 'border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20'
+                      : 'border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600'
                   )}
                 >
                   <option value="">Select duration</option>
@@ -510,7 +452,9 @@ const PostIdea: React.FC = () => {
                 </label>
                 <select
                   value={projectIdea.difficulty}
-                  onChange={(e) => handleInputChange("difficulty", e.target.value as any)}
+                  onChange={(e) =>
+                    handleInputChange('difficulty', e.target.value as any)
+                  }
                   className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
                 >
                   <option value="beginner">Beginner</option>
@@ -537,54 +481,26 @@ const PostIdea: React.FC = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Minimum Team Size
+                  Team Size
                 </label>
                 <input
                   type="number"
                   min="1"
                   max="20"
-                  value={projectIdea.teamSize.min}
-                  onChange={(e) => handleInputChange("teamSize", {
-                    ...projectIdea.teamSize,
-                    min: parseInt(e.target.value) || 1
-                  })}
+                  value={projectIdea.teamSize.max} // Reuse MAX as the single field
+                  onChange={(e) =>
+                    handleInputChange('teamSize', {
+                      min: 1,
+                      max: parseInt(e.target.value) || 1,
+                    })
+                  }
                   className={cn(
-                    "w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all",
-                    "bg-white dark:bg-brand-dark-lighter",
-                    "text-brand-dark dark:text-gray-100",
-                    errors.teamSizeMin
-                      ? "border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20"
-                      : "border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600"
-                  )}
-                />
-                {errors.teamSizeMin && (
-                  <div className="mt-1 flex items-center text-xs text-brand-red">
-                    <AlertCircle size={12} className="mr-1" />
-                    <span>{errors.teamSizeMin}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Maximum Team Size
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={projectIdea.teamSize.max}
-                  onChange={(e) => handleInputChange("teamSize", {
-                    ...projectIdea.teamSize,
-                    max: parseInt(e.target.value) || 1
-                  })}
-                  className={cn(
-                    "w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all",
-                    "bg-white dark:bg-brand-dark-lighter",
-                    "text-brand-dark dark:text-gray-100",
+                    'w-full rounded-lg border px-4 py-3 text-sm outline-none transition-all',
+                    'bg-white dark:bg-brand-dark-lighter',
+                    'text-brand-dark dark:text-gray-100',
                     errors.teamSizeMax
-                      ? "border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20"
-                      : "border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600"
+                      ? 'border-brand-red focus:border-brand-red focus:ring-2 focus:ring-brand-red/20'
+                      : 'border-gray-300 focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600'
                   )}
                 />
                 {errors.teamSizeMax && (
@@ -596,50 +512,7 @@ const PostIdea: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-brand-dark dark:text-gray-100">
-                Team Requirements
-              </label>
-              
-              {projectIdea.requirements.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {projectIdea.requirements.map((requirement, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700"
-                    >
-                      <span className="text-sm text-brand-dark dark:text-gray-100">
-                        {requirement}
-                      </span>
-                      <button
-                        onClick={() => removeRequirement(requirement)}
-                        className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-600"
-                      >
-                        <X className="h-4 w-4 text-gray-400" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Input
-                  label=""
-                  value={newRequirement}
-                  onChange={(e) => setNewRequirement(e.target.value)}
-                  placeholder="e.g., Experience with React, UI/UX design skills"
-                  onKeyPress={(e) => e.key === "Enter" && addRequirement()}
-                />
-                <Button
-                  onClick={addRequirement}
-                  disabled={!newRequirement.trim()}
-                  className="mt-0"
-                  leftIcon={<Plus className="h-4 w-4" />}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
+            <div>{/* Team Requirements Removed */}</div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -648,7 +521,7 @@ const PostIdea: React.FC = () => {
                 </label>
                 <select
                   value={projectIdea.budget}
-                  onChange={(e) => handleInputChange("budget", e.target.value)}
+                  onChange={(e) => handleInputChange('budget', e.target.value)}
                   className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
                 >
                   <option value="unpaid">Unpaid/Volunteer</option>
@@ -663,8 +536,10 @@ const PostIdea: React.FC = () => {
                   Work Style
                 </label>
                 <select
-                  value={projectIdea.isRemote ? "remote" : "in-person"}
-                  onChange={(e) => handleInputChange("isRemote", e.target.value === "remote")}
+                  value={projectIdea.isRemote ? 'remote' : 'in-person'}
+                  onChange={(e) =>
+                    handleInputChange('isRemote', e.target.value === 'remote')
+                  }
                   className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
                 >
                   <option value="remote">Remote</option>
@@ -679,7 +554,9 @@ const PostIdea: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={projectIdea.isOpenSource}
-                  onChange={(e) => handleInputChange("isOpenSource", e.target.checked)}
+                  onChange={(e) =>
+                    handleInputChange('isOpenSource', e.target.checked)
+                  }
                   className="h-4 w-4 rounded border-gray-300 text-brand-orange focus:ring-brand-orange"
                 />
                 <span className="text-sm text-brand-dark dark:text-gray-100">
@@ -702,57 +579,9 @@ const PostIdea: React.FC = () => {
               </p>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-brand-dark dark:text-gray-100">
-                Project Goals
-              </label>
-              
-              {projectIdea.goals.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {projectIdea.goals.map((goal, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700"
-                    >
-                      <span className="text-sm text-brand-dark dark:text-gray-100">
-                        {goal}
-                      </span>
-                      <button
-                        onClick={() => removeGoal(goal)}
-                        className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-600"
-                      >
-                        <X className="h-4 w-4 text-gray-400" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div>{/* Project Goals Removed */}</div>
 
-              <div className="flex gap-2">
-                <Input
-                  label=""
-                  value={newGoal}
-                  onChange={(e) => setNewGoal(e.target.value)}
-                  placeholder="e.g., Launch MVP in 3 months, Gain 1000 users"
-                  onKeyPress={(e) => e.key === "Enter" && addGoal()}
-                />
-                <Button
-                  onClick={addGoal}
-                  disabled={!newGoal.trim()}
-                  className="mt-0"
-                  leftIcon={<Plus className="h-4 w-4" />}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
-
-            <Input
-              label="Timeline/Milestones"
-              value={projectIdea.timeline}
-              onChange={(e) => handleInputChange("timeline", e.target.value)}
-              placeholder="e.g., Week 1-2: Planning, Week 3-6: Development, Week 7-8: Testing"
-            />
+            {/* Timeline field removed */}
 
             <div>
               <label className="mb-2 block text-sm font-medium text-brand-dark dark:text-gray-100">
@@ -760,7 +589,9 @@ const PostIdea: React.FC = () => {
               </label>
               <select
                 value={projectIdea.contactMethod}
-                onChange={(e) => handleInputChange("contactMethod", e.target.value as any)}
+                onChange={(e) =>
+                  handleInputChange('contactMethod', e.target.value as any)
+                }
                 className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
               >
                 <option value="platform">Through Platform</option>
@@ -775,7 +606,9 @@ const PostIdea: React.FC = () => {
               </label>
               <textarea
                 value={projectIdea.additionalInfo}
-                onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange('additionalInfo', e.target.value)
+                }
                 className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-brand-dark placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500 resize-none"
                 rows={4}
                 placeholder="Any additional details, links to mockups, or specific requirements..."
@@ -798,7 +631,10 @@ const PostIdea: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
-      <Sidebar isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} />
+      <Sidebar
+        isCollapsed={sidebarCollapsed}
+        setIsCollapsed={setSidebarCollapsed}
+      />
 
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
@@ -823,7 +659,7 @@ const PostIdea: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate("/explore")}
+              onClick={() => navigate('/explore')}
               leftIcon={<ArrowLeft className="h-4 w-4" />}
             >
               Back to Explore
@@ -859,9 +695,7 @@ const PostIdea: React.FC = () => {
                 </Button>
 
                 {currentStep < 4 ? (
-                  <Button onClick={nextStep}>
-                    Next
-                  </Button>
+                  <Button onClick={nextStep}>Next</Button>
                 ) : (
                   <Button
                     onClick={handleSubmit}
@@ -890,13 +724,14 @@ const PostIdea: React.FC = () => {
                       {projectIdea.description}
                     </p>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-orange/20">
                       {projectIdea.category}
                     </span>
                     <span className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                      {projectIdea.teamSize.min}-{projectIdea.teamSize.max} members
+                      {projectIdea.teamSize.min}-{projectIdea.teamSize.max}{' '}
+                      members
                     </span>
                     <span className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                       {projectIdea.duration}

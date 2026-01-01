@@ -21,8 +21,14 @@ public class ProjectDto {
     private String description;
     private List<String> technologies;
     private ProjectLevel level;
-    private int expectedTimePeriod;
+    private String duration;
     private int teamSize;
+    private String category;
+    private String budget;
+    private boolean isRemote;
+    private boolean isOpenSource;
+    private String contactMethod;
+    private String additionalInfo;
     private ProjectStatus status;
     private LocalDateTime createdAt;
     private ProjectCreatorDto createdBy;

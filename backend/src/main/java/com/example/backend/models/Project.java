@@ -37,9 +37,22 @@ public class Project {
     @Column(name = "level")
     private ProjectLevel level;
 
-    private int expectedTimePeriod;
+    private String duration;
 
     private int teamSize;
+
+    private String category;
+    
+    private String budget;
+    
+    private boolean isRemote;
+    
+    private boolean isOpenSource;
+    
+    private String contactMethod;
+    
+    @Column(columnDefinition = "TEXT")
+    private String additionalInfo;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

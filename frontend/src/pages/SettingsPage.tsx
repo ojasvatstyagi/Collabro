@@ -192,7 +192,7 @@ const SettingsPage = () => {
               id="account"
               className="scroll-mt-28 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 dark:bg-brand-dark-lighter dark:ring-gray-700"
             >
-              <h2 className="mb-6 flex items-center gap-3 text-lg font-semibold">
+              <h2 className="mb-6 flex items-center gap-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 <User className="h-5 w-5 text-brand-orange" />
                 Account & Security
               </h2>
@@ -255,7 +255,7 @@ const SettingsPage = () => {
               id="notifications"
               className="scroll-mt-28 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 dark:bg-brand-dark-lighter dark:ring-gray-700"
             >
-              <h2 className="mb-6 flex items-center gap-3 text-lg font-semibold">
+              <h2 className="mb-6 flex items-center gap-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 <Bell className="h-5 w-5 text-brand-orange" />
                 Notifications
               </h2>
@@ -288,7 +288,9 @@ const SettingsPage = () => {
                   className="flex items-center justify-between py-4"
                 >
                   <div>
-                    <p className="font-medium">{item.title}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-200">
+                      {item.title}
+                    </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {item.desc}
                     </p>
@@ -309,7 +311,7 @@ const SettingsPage = () => {
               id="team"
               className="scroll-mt-28 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 dark:bg-brand-dark-lighter dark:ring-gray-700"
             >
-              <h2 className="mb-6 flex items-center gap-3 text-lg font-semibold">
+              <h2 className="mb-6 flex items-center gap-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 <TeamIcon className="h-5 w-5 text-brand-orange" />
                 Team Preferences
               </h2>
@@ -323,7 +325,7 @@ const SettingsPage = () => {
               />
 
               <select
-                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-brand-dark-lighter"
+                className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
                 value={preferredTeamSize}
                 onChange={(e) => {
                   setPreferredTeamSize(e.target.value);
@@ -348,7 +350,9 @@ const SettingsPage = () => {
                 ) : (
                   <Moon className="h-5 w-5 text-brand-orange" />
                 )}
-                Appearance
+                <span className="text-gray-900 dark:text-gray-100">
+                  Appearance
+                </span>
               </h2>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -369,7 +373,7 @@ const SettingsPage = () => {
                     {themeColor === color.value && (
                       <Check className="absolute top-2 right-2 h-4 w-4 text-green-500" />
                     )}
-                    <p className="mt-2 text-xs font-medium text-center">
+                    <p className="mt-2 text-xs font-medium text-center text-gray-900 dark:text-gray-200">
                       {color.name}
                     </p>
                   </button>

@@ -7,8 +7,14 @@ export interface Project {
   description: string;
   technologies: string[];
   level: 'BRAND_NEW' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  expectedTimePeriod: number;
+  duration: string;
   teamSize: number;
+  category: string;
+  budget: string;
+  isRemote: boolean;
+  isOpenSource: boolean;
+  contactMethod: string;
+  additionalInfo: string;
   status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;
   createdBy: {
@@ -19,11 +25,6 @@ export interface Project {
   // Relations that might be populated
   post?: any;
   team?: any;
-
-  // Fields NOT in backend but useful for UI (preserved if mapped, or removed if strictly following backend)
-  // For now, I will keep 'applicants' as it might be a calculated field or coming from relations,
-  // but strictly speaking it's not on the main entity. I'll add optional fields for now to be safe.
-  applicants?: number;
 }
 
 export interface ProjectFilters {
@@ -40,8 +41,14 @@ export interface CreateProjectRequest {
   description: string;
   technologies: string[];
   level: 'BRAND_NEW' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  expectedTimePeriod: number;
+  duration: string;
   teamSize: number;
+  category: string;
+  budget: string;
+  isRemote: boolean;
+  isOpenSource: boolean;
+  contactMethod: string;
+  additionalInfo: string;
   status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 }
 
