@@ -49,8 +49,14 @@ public class ProjectService {
         project.setDescription(projectDto.getDescription());
         project.setTechnologies(projectDto.getTechnologies());
         project.setLevel(projectDto.getLevel());
-        project.setExpectedTimePeriod(projectDto.getExpectedTimePeriod());
+        project.setDuration(projectDto.getDuration());
         project.setTeamSize(projectDto.getTeamSize());
+        project.setCategory(projectDto.getCategory());
+        project.setBudget(projectDto.getBudget());
+        project.setRemote(projectDto.isRemote());
+        project.setOpenSource(projectDto.isOpenSource());
+        project.setContactMethod(projectDto.getContactMethod());
+        project.setAdditionalInfo(projectDto.getAdditionalInfo());
         project.setStatus(ProjectStatus.ACTIVE); // Default status
         project.setCreatedBy(currentUserProfile);
         
@@ -80,8 +86,14 @@ public class ProjectService {
                 .description(project.getDescription())
                 .technologies(project.getTechnologies())
                 .level(project.getLevel())
-                .expectedTimePeriod(project.getExpectedTimePeriod())
+                .duration(project.getDuration())
                 .teamSize(project.getTeamSize())
+                .category(project.getCategory())
+                .budget(project.getBudget())
+                .isRemote(project.isRemote())
+                .isOpenSource(project.isOpenSource())
+                .contactMethod(project.getContactMethod())
+                .additionalInfo(project.getAdditionalInfo())
                 .status(project.getStatus())
                 .createdAt(project.getCreatedAt())
                 .createdBy(ProjectDto.ProjectCreatorDto.builder()
