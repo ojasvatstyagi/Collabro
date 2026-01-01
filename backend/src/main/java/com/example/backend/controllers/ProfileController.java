@@ -5,6 +5,7 @@ import com.example.backend.dto.ProfileStatusDto;
 import com.example.backend.dto.ProfileUpdateDto;
 import com.example.backend.exceptions.UserNotFoundException;
 import com.example.backend.models.Profile;
+import com.example.backend.models.User;
 import com.example.backend.services.ProfileService;
 import io.micrometer.common.util.StringUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +28,7 @@ import java.util.Objects;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final com.example.backend.services.UserService userService;
 
     @GetMapping("/me")
     @Operation(summary = "Get current user profile", description = "Returns the current user's profile")
@@ -91,4 +93,11 @@ public class ProfileController {
         }
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "Delete current user account", description = "Soft deletes the current user account")
+    public ResponseEntity<Void> deleteAccount() {
+        User user = userService.getCurrentUser();
+        userService.deleteUser(user);
+        return ResponseEntity.noContent().build(); // 204 No Content
+    }
 }

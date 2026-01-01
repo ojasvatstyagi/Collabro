@@ -61,4 +61,8 @@ public class UserService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new com.example.backend.exceptions.UnauthorizedException("User not found"));
     }
+
+    public void deleteUser(User user) {
+        userRepository.delete(user);
+    }
 }
