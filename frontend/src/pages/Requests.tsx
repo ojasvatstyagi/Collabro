@@ -1,18 +1,16 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Star,
-  User,
   ExternalLink,
   Search,
   Bell,
   PlusCircle,
   Menu,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/ui/SideBar";
-import Button from "../components/ui/Button";
-import ThemeToggle from "../components/ui/ThemeToggle";
-import { cn } from "../utils/cn";
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Sidebar from '../components/ui/SideBar';
+import Button from '../components/ui/Button';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 interface JoinRequest {
   id: string;
@@ -25,58 +23,58 @@ interface JoinRequest {
 
 const mockRequests: JoinRequest[] = [
   {
-    id: "1",
-    username: "sarah_dev",
+    id: '1',
+    username: 'sarah_dev',
     rating: 4.5,
-    projectTitle: "Modern E-commerce Platform",
-    techStack: ["React", "Node.js", "TypeScript", "PostgreSQL", "Redis"],
+    projectTitle: 'Modern E-commerce Platform',
+    techStack: ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'Redis'],
     profileImage:
-      "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150",
+      'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
   },
   {
-    id: "2",
-    username: "alex_coder",
+    id: '2',
+    username: 'alex_coder',
     rating: 4.8,
-    projectTitle: "AI-Powered Analytics Dashboard",
-    techStack: ["Python", "TensorFlow", "React", "D3.js"],
+    projectTitle: 'AI-Powered Analytics Dashboard',
+    techStack: ['Python', 'TensorFlow', 'React', 'D3.js'],
     profileImage:
-      "https://images.pexels.com/photos/2269872/pexels-photo-2269872.jpeg?auto=compress&cs=tinysrgb&w=150",
+      'https://images.pexels.com/photos/2269872/pexels-photo-2269872.jpeg?auto=compress&cs=tinysrgb&w=150',
   },
   {
-    id: "3",
-    username: "mike_frontend",
+    id: '3',
+    username: 'mike_frontend',
     rating: 4.2,
-    projectTitle: "Mobile Fitness App",
-    techStack: ["React Native", "Firebase", "Redux", "Node.js"],
+    projectTitle: 'Mobile Fitness App',
+    techStack: ['React Native', 'Firebase', 'Redux', 'Node.js'],
     profileImage:
-      "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150",
+      'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150',
   },
   {
-    id: "4",
-    username: "emma_backend",
+    id: '4',
+    username: 'emma_backend',
     rating: 4.7,
-    projectTitle: "Social Media Analytics Tool",
-    techStack: ["Django", "PostgreSQL", "Celery", "Redis"],
+    projectTitle: 'Social Media Analytics Tool',
+    techStack: ['Django', 'PostgreSQL', 'Celery', 'Redis'],
     profileImage:
-      "https://images.pexels.com/photos/3992656/pexels-photo-3992656.jpeg?auto=compress&cs=tinysrgb&w=150",
+      'https://images.pexels.com/photos/3992656/pexels-photo-3992656.jpeg?auto=compress&cs=tinysrgb&w=150',
   },
   {
-    id: "5",
-    username: "david_fullstack",
+    id: '5',
+    username: 'david_fullstack',
     rating: 4.4,
-    projectTitle: "Project Management System",
-    techStack: ["Vue.js", "Express", "MongoDB", "Socket.io"],
+    projectTitle: 'Project Management System',
+    techStack: ['Vue.js', 'Express', 'MongoDB', 'Socket.io'],
     profileImage:
-      "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150",
+      'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
   },
   {
-    id: "6",
-    username: "lisa_designer",
+    id: '6',
+    username: 'lisa_designer',
     rating: 4.9,
-    projectTitle: "Real-time Chat Application",
-    techStack: ["Figma", "React", "Tailwind CSS", "Framer Motion"],
+    projectTitle: 'Real-time Chat Application',
+    techStack: ['Figma', 'React', 'Tailwind CSS', 'Framer Motion'],
     profileImage:
-      "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150",
+      'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
   },
 ];
 
@@ -153,7 +151,10 @@ const Requests: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
-      <Sidebar isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} />
+      <Sidebar
+        isCollapsed={sidebarCollapsed}
+        setIsCollapsed={setSidebarCollapsed}
+      />
 
       <div className="flex-1 overflow-y-auto">
         <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 dark:border-gray-600 dark:bg-brand-dark-light">
@@ -192,17 +193,17 @@ const Requests: React.FC = () => {
             <button className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-brand-dark-lighter">
               <Bell className="h-5 w-5" />
             </button>
-            <Button 
-              leftIcon={<PlusCircle className="h-5 w-5" />} 
+            <Button
+              leftIcon={<PlusCircle className="h-5 w-5" />}
               className="hidden sm:flex"
-              onClick={() => navigate("/post-idea")}
+              onClick={() => navigate('/post-idea')}
             >
               New Project
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               className="sm:hidden"
-              onClick={() => navigate("/post-idea")}
+              onClick={() => navigate('/post-idea')}
             >
               <PlusCircle className="h-4 w-4" />
             </Button>
