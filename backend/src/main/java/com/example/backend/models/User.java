@@ -10,7 +10,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "users")
 @org.hibernate.annotations.SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id=?")
-@org.hibernate.annotations.Where(clause = "deleted_at IS NULL")
 @org.hibernate.annotations.SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter

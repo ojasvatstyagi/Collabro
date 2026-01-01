@@ -63,6 +63,6 @@ public class UserService {
     }
 
     public void deleteUser(User user) {
-        userRepository.delete(user);
+        userRepository.delete(Objects.requireNonNull(user));
     }
 }

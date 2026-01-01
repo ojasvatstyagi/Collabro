@@ -53,7 +53,7 @@ public class Project {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToOne
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "post_id", nullable = true)
     private Post post;
 
     @ToString.Exclude
@@ -65,7 +65,7 @@ public class Project {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToOne
-    @JoinColumn(name = "team_id", nullable = false)
+    @JoinColumn(name = "team_id", nullable = true)
     private Team team;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
