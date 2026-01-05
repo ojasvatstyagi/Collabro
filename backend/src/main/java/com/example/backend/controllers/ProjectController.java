@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.backend.services.RequestService;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final RequestService requestService;
 
     @GetMapping
     @Operation(summary = "Get all projects", description = "Retrieve a list of all projects with optional filtering")
@@ -49,5 +51,13 @@ public class ProjectController {
     public ResponseEntity<ProjectDto> createProject(@RequestBody ProjectDto projectDto) {
         ProjectDto createdProject = projectService.createProject(projectDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
+    }
+
+    @PostMapping("/{id}/join")
+    @Operation(summary = "Join a project", description = "Send a request to join a project")
+    public ResponseEntity<?> joinProject(@PathVariable UUID id, @RequestBody(required = false) com.example.backend.dto.JoinProjectRequest request) {
+        String message = request != null ? request.getMessage() : null;
+        requestService.createJoinRequest(id, message);
+        return ResponseEntity.ok().body("{\"message\": \"Join request sent successfully\"}");
     }
 }

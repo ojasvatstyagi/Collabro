@@ -156,9 +156,9 @@ const Explore: React.FC = () => {
         <div className="mx-auto max-w-7xl">
           {/* Success Message */}
           {successMessage && (
-            <div className="fixed top-4 right-4 z-50 rounded-lg bg-green-100 p-4 text-green-700 shadow-lg dark:bg-green-900/20 dark:text-green-400">
+            <div className="fixed top-4 right-4 z-50 rounded-lg bg-green-100 p-4 text-green-700 shadow-lg dark:bg-green-900 dark:text-green-100">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                <div className="h-2 w-2 rounded-full bg-green-500 dark:bg-green-400"></div>
                 {successMessage}
               </div>
             </div>
@@ -166,13 +166,13 @@ const Explore: React.FC = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="fixed top-4 right-4 z-50 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg dark:bg-red-900/20 dark:text-red-400">
+            <div className="fixed top-4 right-4 z-50 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg dark:bg-red-900 dark:text-red-100">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-red-500"></div>
+                <div className="h-2 w-2 rounded-full bg-red-400 dark:bg-red-400"></div>
                 {error}
                 <button
                   onClick={() => setError(null)}
-                  className="ml-2 text-red-500 hover:text-red-700"
+                  className="ml-2 text-red-500 hover:text-red-700 dark:text-red-300 dark:hover:text-red-100"
                 >
                   ×
                 </button>
@@ -342,7 +342,13 @@ const Explore: React.FC = () => {
                         <Button
                           variant="outline"
                           className="flex-1 sm:flex-none"
-                          onClick={() => navigate(`/project/${project.id}`)}
+                          onClick={() => {
+                            if (project.createdBy?.email) {
+                              window.location.href = `mailto:${project.createdBy.email}?subject=Project Interest: ${project.title}`;
+                            } else {
+                              navigate(`/project/${project.id}`);
+                            }
+                          }}
                         >
                           Learn More
                         </Button>

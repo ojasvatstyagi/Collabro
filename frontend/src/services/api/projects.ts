@@ -20,6 +20,7 @@ export interface Project {
   createdBy: {
     id: string;
     username: string;
+    email: string;
     profilePictureUrl: string;
   };
   // Relations that might be populated

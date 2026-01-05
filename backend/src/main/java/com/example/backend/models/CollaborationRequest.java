@@ -24,8 +24,8 @@ public class CollaborationRequest {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -41,4 +41,12 @@ public class CollaborationRequest {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @Override
+    public String toString() {
+        return "CollaborationRequest{" +
+                "id=" + id +
+                ", status=" + status +
+                ", createdAt=" + createdAt +
+                '}';
+    }
 }

@@ -65,7 +65,4 @@ public class Post {
     @JoinColumn(name = "team_id")
     private Team team;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CollaborationRequest> collaborationRequests;
-
 }
