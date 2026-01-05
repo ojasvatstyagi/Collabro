@@ -1,6 +1,6 @@
-import React, { useState, useEffect, forwardRef } from "react";
-import { cn } from "../../utils/cn";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import React, { useState, useEffect, forwardRef } from 'react';
+import { cn } from '../../utils/cn';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -27,22 +27,22 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             type={
-              type === "password" ? (showPassword ? "text" : "password") : type
+              type === 'password' ? (showPassword ? 'text' : 'password') : type
             }
             value={value}
             className={cn(
-              "peer w-full rounded-xl border px-4 pt-7 pb-2 text-sm transition-all outline-none",
-              "placeholder:text-transparent",
-              "focus:ring-2 focus:ring-brand-orange/20",
+              'peer w-full rounded-xl border px-4 pt-7 pb-2 text-sm transition-all outline-none',
+              'placeholder:text-transparent',
+              'focus:outline-none',
               labelActive
-                ? "border-brand-orange"
-                : "border-gray-300 dark:border-gray-600",
+                ? 'border-brand-orange'
+                : 'border-gray-300 dark:border-gray-600',
               error &&
-                "border-brand-red focus:border-brand-red focus:ring-brand-red/20",
-              "bg-white dark:bg-brand-dark-lighter",
-              "text-gray-900 dark:text-gray-100",
-              "disabled:bg-gray-50 disabled:text-gray-700 disabled:cursor-not-allowed",
-              "dark:disabled:bg-brand-dark dark:disabled:text-gray-300",
+                'border-brand-red focus:border-brand-red focus:ring-brand-red/20',
+              'bg-white dark:bg-brand-dark-lighter',
+              'text-gray-900 dark:text-gray-100',
+              'disabled:bg-gray-50 disabled:text-gray-700 disabled:cursor-not-allowed',
+              'dark:disabled:bg-brand-dark dark:disabled:text-gray-300',
               className
             )}
             placeholder={label}
@@ -64,11 +64,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {/* Floating Label */}
           <label
             className={cn(
-              "absolute left-4 top-2.5 z-10 origin-left select-none text-xs font-medium transition-all duration-200 pointer-events-none",
+              'absolute left-4 top-2.5 z-10 origin-left select-none text-xs font-medium transition-all duration-200 pointer-events-none',
               labelActive
-                ? "text-brand-orange"
-                : "text-gray-500 dark:text-gray-400",
-              error && labelActive && "text-brand-red"
+                ? 'text-brand-orange'
+                : 'text-gray-500 dark:text-gray-400',
+              error && labelActive && 'text-brand-red'
             )}
           >
             {label}
@@ -76,7 +76,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
 
           {/* Password Toggle */}
-          {type === "password" && (
+          {type === 'password' && (
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -100,5 +100,5 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-Input.displayName = "Input";
+Input.displayName = 'Input';
 export default Input;

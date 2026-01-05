@@ -54,7 +54,9 @@ const Register: React.FC = () => {
       await register(credentials);
       setFormSuccess('Registration successful! Redirecting to verification...');
       setTimeout(() => {
-        navigate('/verify-registration', { state: { email: credentials.email } });
+        navigate('/verify-registration', {
+          state: { email: credentials.email },
+        });
       }, 1500);
     } catch (error: any) {
       setFormError(error.message || 'Registration failed. Please try again.');
@@ -120,25 +122,6 @@ const Register: React.FC = () => {
           error={errors.password}
         />
 
-        <div className="flex items-center">
-          <input
-            id="terms"
-            name="terms"
-            type="checkbox"
-            className="h-4 w-4 rounded border-brand-dark/20 text-brand-orange focus:ring-brand-orange dark:border-brand-light/20 dark:bg-brand-dark/90"
-          />
-          <label htmlFor="terms" className="ml-2 block text-sm text-brand-dark dark:text-brand-light">
-            I agree to the{' '}
-            <a href="#" className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange">
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="#" className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange">
-              Privacy Policy
-            </a>
-          </label>
-        </div>
-
         <Button
           type="submit"
           className="w-full"
@@ -151,7 +134,10 @@ const Register: React.FC = () => {
 
         <div className="mt-4 text-center text-sm text-brand-dark/60 dark:text-brand-light/60">
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange">
+          <Link
+            to="/login"
+            className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange"
+          >
             Sign in
           </Link>
         </div>
