@@ -4,14 +4,12 @@ import {
   PlusCircle,
   Users,
   History,
-  Menu,
   Filter,
   Clock,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Sidebar from '../components/ui/SideBar';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
-import ThemeToggle from '../components/ui/ThemeToggle';
 import { cn } from '../utils/cn';
 import {
   projectsApi,
@@ -22,7 +20,6 @@ import {
 const Explore: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -113,149 +110,116 @@ const Explore: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
-      <Sidebar
-        isCollapsed={sidebarCollapsed}
-        setIsCollapsed={setSidebarCollapsed}
-      />
-
-      <div className="flex-1 overflow-hidden">
-        {/* Success Message */}
-        {successMessage && (
-          <div className="fixed top-4 right-4 z-50 rounded-lg bg-green-100 p-4 text-green-700 shadow-lg dark:bg-green-900/20 dark:text-green-400">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
-              {successMessage}
-            </div>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="fixed top-4 right-4 z-50 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg dark:bg-red-900/20 dark:text-red-400">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-red-500"></div>
-              {error}
-              <button
-                onClick={() => setError(null)}
-                className="ml-2 text-red-500 hover:text-red-700"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
-
-        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 dark:border-gray-600 dark:bg-brand-dark-light">
-          <div className="flex flex-1 items-center gap-4">
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            {/* Desktop toggle button */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:block dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Explore
-            </h1>
-            <div className="relative flex-1 max-w-2xl">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              leftIcon={<Filter className="h-4 w-4" />}
-              className="hidden md:flex"
-            >
-              Filters
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="md:hidden"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-            <ThemeToggle />
-            <Button
-              leftIcon={<PlusCircle className="h-5 w-5" />}
-              className="hidden md:flex"
-              onClick={() => navigate('/post-idea')}
-            >
-              Post an Idea
-            </Button>
-            <Button
-              size="sm"
-              className="md:hidden"
-              onClick={() => navigate('/post-idea')}
-            >
-              <PlusCircle className="h-4 w-4" />
-            </Button>
-          </div>
-        </header>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="border-b border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-brand-dark-light">
-            <div className="flex flex-wrap gap-4">
+    <DashboardLayout
+      title="Explore"
+      showSearch={true}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      searchPlaceholder="Search projects..."
+      actions={
+        <div className="flex items-center gap-2 md:gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            leftIcon={<Filter className="h-4 w-4" />}
+            className="hidden md:flex"
+          >
+            Filters
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="md:hidden"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+          <Button
+            leftIcon={<PlusCircle className="h-5 w-5" />}
+            className="hidden md:flex"
+            onClick={() => navigate('/post-idea')}
+          >
+            Post an Idea
+          </Button>
+          <Button
+            size="sm"
+            className="md:hidden"
+            onClick={() => navigate('/post-idea')}
+          >
+            <PlusCircle className="h-4 w-4" />
+          </Button>
+        </div>
+      }
+    >
+      <div className="bg-brand-light-dark p-4 md:p-8 dark:bg-brand-dark min-h-screen">
+        <div className="mx-auto max-w-7xl">
+          {/* Success Message */}
+          {successMessage && (
+            <div className="fixed top-4 right-4 z-50 rounded-lg bg-green-100 p-4 text-green-700 shadow-lg dark:bg-green-900/20 dark:text-green-400">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Level:
-                </label>
-                <select
-                  value={selectedLevel}
-                  onChange={(e) => setSelectedLevel(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
-                >
-                  {levels.map((level) => (
-                    <option key={level} value={level}>
-                      {level === 'all'
-                        ? 'All Levels'
-                        : level.charAt(0).toUpperCase() +
-                          level.slice(1).toLowerCase().replace('_', ' ')}
-                    </option>
-                  ))}
-                </select>
+                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                {successMessage}
               </div>
-
-              {(selectedLevel !== 'all' || searchQuery) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedLevel('all');
-                    setSearchQuery('');
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
             </div>
-          </div>
-        )}
+          )}
 
-        <main className="h-[calc(100vh-4rem)] overflow-y-auto p-4 md:p-8 bg-brand-light-dark dark:bg-brand-dark">
+          {/* Error Message */}
+          {error && (
+            <div className="fixed top-4 right-4 z-50 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg dark:bg-red-900/20 dark:text-red-400">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-red-500"></div>
+                {error}
+                <button
+                  onClick={() => setError(null)}
+                  className="ml-2 text-red-500 hover:text-red-700"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-600 dark:bg-brand-dark-light">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
+                    Level:
+                  </label>
+                  <select
+                    value={selectedLevel}
+                    onChange={(e) => setSelectedLevel(e.target.value)}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
+                  >
+                    {levels.map((level) => (
+                      <option key={level} value={level}>
+                        {level === 'all'
+                          ? 'All Levels'
+                          : level.charAt(0).toUpperCase() +
+                            level.slice(1).toLowerCase().replace('_', ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {(selectedLevel !== 'all' || searchQuery) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedLevel('all');
+                      setSearchQuery('');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-brand-dark dark:text-gray-100">
@@ -317,7 +281,9 @@ const Explore: React.FC = () => {
                             </h3>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mb-2">
-                            <span>by {project.createdBy.username}</span>
+                            <span>
+                              by {project.createdBy?.username || 'Unknown'}
+                            </span>
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
                               {formatDate(project.createdAt)}
@@ -356,7 +322,7 @@ const Explore: React.FC = () => {
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {project.technologies.map((tech, techIndex) => (
+                        {project.technologies?.map((tech, techIndex) => (
                           <span
                             key={techIndex}
                             className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-orange/20 dark:text-brand-orange"
@@ -387,9 +353,9 @@ const Explore: React.FC = () => {
               ))
             )}
           </div>
-        </main>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
