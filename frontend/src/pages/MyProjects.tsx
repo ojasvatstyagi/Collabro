@@ -1,146 +1,100 @@
-import React, { useState } from "react";
-import { Users, ChevronRight, Search, Bell, PlusCircle, Menu } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/ui/SideBar";
-import Button from "../components/ui/Button";
-import ThemeToggle from "../components/ui/ThemeToggle";
-import { cn } from "../utils/cn";
-import { useTheme } from "../context/ThemeContext";
+import React, { useState } from 'react';
+import { Users, ChevronRight, PlusCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import Button from '../components/ui/Button';
+import { cn } from '../utils/cn';
 
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  teamSize: string;
-  status: "ongoing" | "completed";
-  thumbnail: string;
-  techStack: string[];
-}
-
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    title: "Modern E-commerce Platform",
-    description:
-      "A full-stack e-commerce solution with real-time inventory management",
-    teamSize: "4",
-    status: "ongoing",
-    thumbnail:
-      "https://images.pexels.com/photos/39284/macbook-apple-imac-computer-39284.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-    techStack: ["React", "Node.js", "PostgreSQL"],
-  },
-  {
-    id: "2",
-    title: "AI-Powered Analytics Dashboard",
-    description: "Data visualization platform with machine learning insights",
-    teamSize: "5",
-    status: "ongoing",
-    thumbnail:
-      "https://images.pexels.com/photos/265087/pexels-photo-265087.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-    techStack: ["Python", "React", "TensorFlow"],
-  },
-  {
-    id: "3",
-    title: "Mobile Fitness App",
-    description: "Cross-platform fitness tracking application",
-    teamSize: "3",
-    status: "ongoing",
-    thumbnail:
-      "https://images.pexels.com/photos/1749303/pexels-photo-1749303.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-    techStack: ["React Native", "Firebase"],
-  },
-  {
-    id: "4",
-    title: "Social Media Analytics Tool",
-    description: "Analytics platform for social media performance tracking",
-    teamSize: "4",
-    status: "completed",
-    thumbnail:
-      "https://images.pexels.com/photos/533446/pexels-photo-533446.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-    techStack: ["Vue.js", "Django", "PostgreSQL"],
-  },
-  {
-    id: "5",
-    title: "Project Management System",
-    description: "Collaborative project management platform",
-    teamSize: "6",
-    status: "completed",
-    thumbnail:
-      "https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-    techStack: ["React", "Express", "MongoDB"],
-  },
-  {
-    id: "6",
-    title: "Real-time Chat Application",
-    description: "Instant messaging platform with video calls",
-    teamSize: "3",
-    status: "completed",
-    thumbnail:
-      "https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-    techStack: ["React", "Socket.io", "WebRTC"],
-  },
-];
+import { projectsApi, Project } from '../services/api/projects';
 
 const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
   const navigate = useNavigate();
-  const { themeColor } = useTheme();
-  const isOngoing = project.status === "ongoing";
+  // Backend uses uppercase status
+  const isOngoing = project.status === 'ACTIVE';
 
   const handleProjectClick = () => {
-    if (isOngoing) {
-      navigate(`/project/${project.id}`);
-    } else {
-      // For completed projects, you might want to navigate to a read-only view
-      // or show project details/portfolio view
-      navigate(`/project/${project.id}`);
-    }
+    navigate(`/project/${project.id}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-lg bg-white shadow-sm border border-gray-200 transition-all hover:shadow-md dark:bg-brand-dark-lighter dark:border-gray-600 dark:shadow-lg">
-      <div className="relative h-48 overflow-hidden">
-        <img
-          src={project.thumbnail}
-          alt={project.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <h3 className="absolute bottom-4 left-4 right-4 text-lg font-semibold text-white">
-          {project.title}
-        </h3>
+    <div
+      onClick={handleProjectClick}
+      className="group cursor-pointer rounded-xl bg-white p-6 shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-brand-orange/50 dark:bg-brand-dark-lighter dark:border-gray-600 dark:hover:border-brand-orange/50 dark:shadow-lg flex flex-col h-full"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white text-xl font-bold shadow-sm">
+            {project.title.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg text-brand-dark dark:text-gray-100 line-clamp-1 group-hover:text-brand-orange transition-colors">
+              {project.title}
+            </h3>
+            <span className="text-xs text-brand-dark/50 dark:text-gray-400">
+              Created {formatDate(project.createdAt)}
+            </span>
+          </div>
+        </div>
+        <span
+          className={cn(
+            'px-2 py-1 rounded-full text-xs font-medium border',
+            isOngoing
+              ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/40'
+              : 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
+          )}
+        >
+          {isOngoing ? 'Active' : 'Completed'}
+        </span>
       </div>
 
-      <div className="p-4">
-        <p className="mb-4 text-sm text-brand-dark/60 dark:text-gray-300">
-          {project.description}
-        </p>
+      <p className="text-sm text-brand-dark/70 dark:text-gray-300 mb-6 line-clamp-3 leading-relaxed flex-1">
+        {project.description}
+      </p>
 
-        <div className="mb-4 flex items-center gap-2">
-          <Users className="h-4 w-4 text-gray-400" />
-          <span className="text-sm text-brand-dark/60 dark:text-gray-300">
-            Team Size: {project.teamSize}
-          </span>
-        </div>
-
-        <div className="mb-4 flex flex-wrap gap-2">
-          {project.techStack.map((tech, index) => (
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {project.technologies?.slice(0, 3).map((tech, index) => (
             <span
               key={index}
-              className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-orange/20 dark:text-brand-orange"
+              className="rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 border border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
             >
               {tech}
             </span>
           ))}
+          {project.technologies && project.technologies.length > 3 && (
+            <span className="rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-500 border border-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700">
+              +{project.technologies.length - 3}
+            </span>
+          )}
         </div>
 
-        <Button
-          variant="primary"
-          className="w-full"
-          rightIcon={<ChevronRight className="h-4 w-4" />}
-          onClick={handleProjectClick}
-        >
-          {isOngoing ? "Project Board" : "View"}
-        </Button>
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-2 text-brand-dark/60 dark:text-gray-400">
+            <Users className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {project.teamSize} Member{project.teamSize !== 1 && 's'}
+            </span>
+          </div>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-brand-orange hover:text-brand-orange/90 p-0 hover:bg-transparent"
+            rightIcon={<ChevronRight className="h-4 w-4" />}
+          >
+            {isOngoing ? 'Manage' : 'View Details'}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -172,87 +126,129 @@ const ProjectSection: React.FC<{
 
 const MyProjects: React.FC = () => {
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const ongoingProjects = mockProjects.filter((p) => p.status === "ongoing");
-  const pastProjects = mockProjects.filter((p) => p.status === "completed");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await projectsApi.getUserProjects();
+      if (response.success && response.data) {
+        setProjects(response.data);
+      } else {
+        setError(response.message || 'Failed to load projects');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while loading projects');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const ongoingProjects = projects.filter((p) => p.status === 'ACTIVE');
+  const pastProjects = projects.filter(
+    (p) => p.status === 'COMPLETED' || p.status === 'CANCELLED'
+  );
 
   return (
-    <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
-      <Sidebar isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} />
-
-      <div className="flex-1 overflow-y-auto">
-        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 dark:border-gray-600 dark:bg-brand-dark-light">
-          <div className="flex flex-1 items-center gap-4">
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            {/* Desktop toggle button */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:block dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            <h1 className="text-xl font-semibold text-brand-dark dark:text-gray-100">
-              Projects
-            </h1>
-            <div className="relative flex-1 max-w-2xl">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-brand-dark placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-4">
-            <ThemeToggle />
-            <button className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-brand-dark-lighter">
-              <Bell className="h-5 w-5" />
-            </button>
-            <Button 
-              leftIcon={<PlusCircle className="h-5 w-5" />} 
-              className="hidden sm:flex"
-              onClick={() => navigate("/post-idea")}
-            >
-              Post an Idea
-            </Button>
-            <Button 
-              size="sm" 
-              className="sm:hidden"
-              onClick={() => navigate("/post-idea")}
-            >
-              <PlusCircle className="h-4 w-4" />
-            </Button>
-          </div>
-        </header>
-
-        <div className="container mx-auto max-w-7xl px-4 py-8 bg-brand-light-dark dark:bg-brand-dark">
-          <h1 className="mb-8 text-2xl md:text-3xl font-bold text-brand-dark dark:text-gray-100">
-            Your Projects
-          </h1>
-
-          <ProjectSection
-            title="Ongoing Projects"
-            projects={ongoingProjects}
-            showAll={ongoingProjects.length > 3}
-          />
-
-          <ProjectSection
-            title="Past Projects"
-            projects={pastProjects}
-            showAll={pastProjects.length > 3}
-          />
+    <DashboardLayout
+      title="Projects"
+      showSearch={true}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      searchPlaceholder="Search..."
+      actions={
+        <div className="flex items-center gap-2">
+          <Button
+            leftIcon={<PlusCircle className="h-5 w-5" />}
+            className="hidden sm:flex"
+            onClick={() => navigate('/post-idea')}
+          >
+            Post an Idea
+          </Button>
+          <Button
+            size="sm"
+            className="sm:hidden"
+            onClick={() => navigate('/post-idea')}
+          >
+            <PlusCircle className="h-4 w-4" />
+          </Button>
         </div>
+      }
+    >
+      <div className="container mx-auto max-w-7xl px-4 py-8 bg-brand-light-dark dark:bg-brand-dark min-h-screen">
+        <h1 className="mb-8 text-2xl md:text-3xl font-bold text-brand-dark dark:text-gray-100">
+          Your Projects
+        </h1>
+
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-brand-orange"></div>
+            <p className="mt-4 text-brand-dark/60 dark:text-gray-400">
+              Loading your projects...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <p className="text-brand-red">{error}</p>
+            <Button onClick={loadProjects} variant="outline" className="mt-4">
+              Try Again
+            </Button>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="rounded-full bg-brand-orange/10 p-6">
+              <PlusCircle className="h-12 w-12 text-brand-orange" />
+            </div>
+            <h2 className="mt-4 text-xl font-semibold text-brand-dark dark:text-gray-100">
+              You haven't posted any projects yet
+            </h2>
+            <p className="mt-2 text-brand-dark/60 dark:text-gray-400">
+              Share your idea with the community and start building your dream
+              team.
+            </p>
+            <Button
+              className="mt-6"
+              onClick={() => navigate('/post-idea')}
+              leftIcon={<PlusCircle className="h-5 w-5" />}
+            >
+              Post Your First Idea
+            </Button>
+          </div>
+        ) : (
+          <>
+            {ongoingProjects.length > 0 && (
+              <ProjectSection
+                title="Ongoing Projects"
+                projects={ongoingProjects}
+                showAll={ongoingProjects.length > 3}
+              />
+            )}
+
+            {pastProjects.length > 0 && (
+              <ProjectSection
+                title="Standard/Completed Projects"
+                projects={pastProjects}
+                showAll={pastProjects.length > 3}
+              />
+            )}
+
+            {ongoingProjects.length === 0 && pastProjects.length === 0 && (
+              <div className="py-10 text-center text-brand-dark/50 dark:text-gray-500">
+                <p>No projects found matching the current filters.</p>
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
