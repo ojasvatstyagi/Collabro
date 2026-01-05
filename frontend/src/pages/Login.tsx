@@ -1,19 +1,19 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import AuthLayout from "../components/ui/AuthLayout";
-import Input from "../components/ui/Input";
-import Button from "../components/ui/Button";
-import { validateLogin } from "../utils/validation";
-import { LoginCredentials } from "../services/api/auth";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import AuthLayout from '../components/ui/AuthLayout';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import { validateLogin } from '../utils/validation';
+import { LoginCredentials } from '../services/api/auth';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({
-    username: "",
-    password: "",
+    username: '',
+    password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,13 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const validation = validateLogin(credentials);
+    // Trim spaces here - 2 lines
+    const trimmedCredentials = {
+      username: credentials.username.trim(),
+      password: credentials.password.trim(),
+    };
+
+    const validation = validateLogin(trimmedCredentials);
     if (!validation.valid) {
       setErrors(validation.errors);
       return;
@@ -50,14 +56,14 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(credentials);
-      setFormSuccess("Login successful! Redirecting...");
+      await login(trimmedCredentials);
+      setFormSuccess('Login successful! Redirecting...');
       setTimeout(() => {
-        navigate("/explore");
+        navigate('/explore');
       }, 1500);
     } catch (error: any) {
-      setFormError(error.message || "Login failed. Please try again.");
-      console.error("Login error:", error);
+      setFormError(error.message || 'Login failed. Please try again.');
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -107,32 +113,6 @@ const Login: React.FC = () => {
           error={errors.password}
         />
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="h-4 w-4 rounded border-brand-dark/20 text-brand-orange focus:ring-brand-orange dark:border-brand-light/20 dark:bg-brand-dark/90"
-            />
-            <label
-              htmlFor="remember-me"
-              className="ml-2 block text-sm text-brand-dark dark:text-brand-light"
-            >
-              Remember me
-            </label>
-          </div>
-
-          <div className="text-sm">
-            <a
-              href="/forgot-password"
-              className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange"
-            >
-              Forgot your password?
-            </a>
-          </div>
-        </div>
-
         <Button
           type="submit"
           className="w-full"
@@ -143,8 +123,17 @@ const Login: React.FC = () => {
           Sign in
         </Button>
 
+        <div className="flex justify-center">
+          <a
+            href="/forgot-password"
+            className="text-sm font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange"
+          >
+            Forgot your password?
+          </a>
+        </div>
+
         <div className="mt-4 text-center text-sm text-brand-dark/60 dark:text-brand-light/60">
-          Don't have an account?{" "}
+          Don't have an account?{' '}
           <Link
             to="/register"
             className="font-medium text-brand-orange hover:text-brand-red dark:text-brand-yellow dark:hover:text-brand-orange"

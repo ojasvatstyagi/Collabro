@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Rocket,
@@ -9,10 +9,10 @@ import {
   Github,
   Code2,
   Palette,
-} from "lucide-react";
-import Button from "../components/ui/Button";
-import ThemeToggle from "../components/ui/ThemeToggle";
-import ParticleBackground from "../components/ui/ParticleBackground";
+} from 'lucide-react';
+import Button from '../components/ui/Button';
+import ThemeToggle from '../components/ui/ThemeToggle';
+import ParticleBackground from '../components/ui/ParticleBackground';
 
 const Landing: React.FC = () => {
   return (
@@ -28,12 +28,12 @@ const Landing: React.FC = () => {
       {/* Hero Section - Updated with relative positioning */}
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center lg:pt-32 z-10">
         <h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-gray-900 dark:text-gray-100 sm:text-7xl">
-          Find your perfect{" "}
+          Find your perfect{' '}
           <span className="relative whitespace-nowrap">
             <span className="relative bg-gradient-to-r from-brand-orange to-brand-red bg-clip-text text-transparent">
               team
             </span>
-          </span>{" "}
+          </span>{' '}
           for your next big idea
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
@@ -155,7 +155,7 @@ const Landing: React.FC = () => {
       </div>
 
       {/* CTA Section */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 text-center">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 text-center">
         <h2 className="text-3xl font-medium text-gray-900 dark:text-gray-100">
           Ready to find your next project?
         </h2>
@@ -173,18 +173,24 @@ const Landing: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-700">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <footer className="relative z-10 border-t border-gray-200 dark:border-gray-700">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
-              <img src="/logo2.png" alt="Collabro Logo" className="h-8 w-8 object-contain" />
+              <img
+                src="/logo2.png"
+                alt="Collabro Logo"
+                className="h-8 w-8 object-contain"
+              />
               <span className="text-xl font-medium text-gray-900 dark:text-gray-100">
                 Collabro
               </span>
             </div>
             <div className="flex space-x-6">
               <a
-                href="#"
+                href="https://github.com/ojasvatstyagi"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-600 hover:text-brand-orange dark:text-gray-400 dark:hover:text-brand-orange"
               >
                 <Github className="h-6 w-6" />

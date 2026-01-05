@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/ui/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -8,6 +8,7 @@ import { authApi } from '../services/api/auth';
 import { AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 const ForgotPassword: React.FC = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -31,8 +32,14 @@ const ForgotPassword: React.FC = () => {
 
       if (response.success) {
         setSuccess('Recovery instructions have been sent to your email.');
+        // Redirect to reset password page after short delay so user sees the success message
+        setTimeout(() => {
+          navigate(`/reset-password?email=${encodeURIComponent(email)}`);
+        }, 1500);
       } else {
-        setError(response.message || 'Failed to process request. Please try again.');
+        setError(
+          response.message || 'Failed to process request. Please try again.'
+        );
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
