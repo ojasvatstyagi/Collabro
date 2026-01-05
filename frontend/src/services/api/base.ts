@@ -138,10 +138,14 @@ export class BaseApi {
   // Handle API errors
   private handleError(error: any): ApiError {
     if (error.response) {
+      const data = error.response.data;
+      const message =
+        typeof data === 'string' ? data : data?.message || 'An error occurred';
+
       return {
-        message: error.response.data?.message || 'An error occurred',
+        message,
         status: error.response.status,
-        errors: error.response.data?.errors,
+        errors: typeof data === 'object' ? data?.errors : undefined,
       };
     } else if (error.request) {
       return {
@@ -157,7 +161,7 @@ export class BaseApi {
   // Simulate API delay for development
   protected async simulateDelay(ms: number = 500): Promise<void> {
     if (import.meta.env.DEV) {
-      await new Promise(resolve => setTimeout(resolve, ms));
+      await new Promise((resolve) => setTimeout(resolve, ms));
     }
   }
 }

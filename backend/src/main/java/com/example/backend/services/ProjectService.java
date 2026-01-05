@@ -99,6 +99,7 @@ public class ProjectService {
                 .createdBy(ProjectDto.ProjectCreatorDto.builder()
                         .id(project.getCreatedBy().getId())
                         .username(project.getCreatedBy().getUser().getUsername())
+                        .email(project.getCreatedBy().getUser().getEmail())
                         .profilePictureUrl(project.getCreatedBy().getProfilePictureUrl())
                         .build())
                 .build();
