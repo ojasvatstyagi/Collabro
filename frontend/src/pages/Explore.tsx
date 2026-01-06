@@ -22,6 +22,7 @@ const Explore: React.FC = () => {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedTechnology, setSelectedTechnology] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -57,6 +58,8 @@ const Explore: React.FC = () => {
       const filters: ProjectFilters = {
         search: searchQuery || undefined,
         level: selectedLevel !== 'all' ? selectedLevel : undefined,
+        technology:
+          selectedTechnology !== 'all' ? selectedTechnology : undefined,
       };
 
       const response = await projectsApi.getProjects(filters);
@@ -79,6 +82,19 @@ const Explore: React.FC = () => {
       setError(err.message || 'Failed to send join request');
     }
   };
+
+  // You might want to fetch these from backend or define a static list
+  const commonTechnologies = [
+    'all',
+    'React',
+    'Spring Boot',
+    'Java',
+    'Python',
+    'Node.js',
+    'TypeScript',
+    'Docker',
+    'AWS',
+  ];
 
   const levels = ['all', 'BRAND_NEW', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
@@ -204,13 +220,33 @@ const Explore: React.FC = () => {
                   </select>
                 </div>
 
-                {(selectedLevel !== 'all' || searchQuery) && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
+                    Tech:
+                  </label>
+                  <select
+                    value={selectedTechnology}
+                    onChange={(e) => setSelectedTechnology(e.target.value)}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
+                  >
+                    {commonTechnologies.map((tech) => (
+                      <option key={tech} value={tech}>
+                        {tech === 'all' ? 'All Tech' : tech}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {(selectedLevel !== 'all' ||
+                  searchQuery ||
+                  selectedTechnology !== 'all') && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
                       setSelectedLevel('all');
                       setSearchQuery('');
+                      setSelectedTechnology('all');
                     }}
                   >
                     Clear Filters

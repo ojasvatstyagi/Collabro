@@ -65,7 +65,9 @@ class ProjectsApi extends BaseApi {
     const params = new URLSearchParams();
     if (filters) {
       if (filters.search) params.append('search', filters.search);
+
       if (filters.level) params.append('level', filters.level);
+      if (filters.technology) params.append('technology', filters.technology);
     }
     return this.get<Project[]>(`/projects?${params.toString()}`);
   }

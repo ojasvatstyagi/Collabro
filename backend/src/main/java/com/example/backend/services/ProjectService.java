@@ -24,9 +24,10 @@ public class ProjectService {
     private final ProfileService profileService;
 
     @Transactional(readOnly = true)
-    public List<ProjectDto> getAllProjects(String search, ProjectLevel level) {
+    public List<ProjectDto> getAllProjects(String search, ProjectLevel level, String technology) {
+        List<String> techList = technology != null && !technology.isEmpty() ? List.of(technology) : null;
         org.springframework.data.jpa.domain.Specification<Project> spec = 
-            com.example.backend.repositories.specifications.ProjectSpecification.withDynamicQuery(search, level, null);
+            com.example.backend.specifications.ProjectSpecification.withDynamicQuery(search, level, techList);
             
         return projectRepository.findAll(spec).stream()
                 .map(this::convertToDto)
