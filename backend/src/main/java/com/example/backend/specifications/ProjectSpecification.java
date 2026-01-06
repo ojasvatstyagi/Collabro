@@ -1,4 +1,4 @@
-package com.example.backend.repositories.specifications;
+package com.example.backend.specifications;
 
 import com.example.backend.enums.ProjectLevel;
 import com.example.backend.models.Project;
@@ -27,7 +27,18 @@ public class ProjectSpecification {
                 spec = spec.and((r, q, c) -> c.equal(r.get("level"), level));
             }
             
-            // Technology filtering can be added here if needed, requires Join
+            if (technologies != null && !technologies.isEmpty()) {
+                // Since technologies is an ElementCollection, we join properly
+                // We want projects that contain ANY of the given technologies
+                // or ALL? Usually filtering implies "contains at least one" or "contains all".
+                // Let's implement "contains at least one" for now using join.
+                
+                // Note: Distinct is important when joining to avoid duplicate results
+                if (query != null) query.distinct(true);
+                
+                jakarta.persistence.criteria.Join<Project, String> techJoin = root.join("technologies");
+                spec = spec.and((r, q, c) -> techJoin.in(technologies));
+            }
             
             return spec.toPredicate(root, query, cb);
         };

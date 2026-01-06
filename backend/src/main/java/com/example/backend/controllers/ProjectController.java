@@ -22,10 +22,11 @@ public class ProjectController {
 
     @GetMapping
     @Operation(summary = "Get all projects", description = "Retrieve a list of all projects with optional filtering")
-    public ResponseEntity<List<ProjectDto>> getAllProjects(
+    public List<ProjectDto> getAllProjects(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) com.example.backend.enums.ProjectLevel level) {
-        return ResponseEntity.ok(projectService.getAllProjects(search, level));
+            @RequestParam(required = false) com.example.backend.enums.ProjectLevel level,
+            @RequestParam(required = false) String technology) {
+        return projectService.getAllProjects(search, level, technology);
     }
 
     @GetMapping("/{id}")
