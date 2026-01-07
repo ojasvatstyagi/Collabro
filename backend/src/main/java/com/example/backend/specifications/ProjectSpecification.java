@@ -8,7 +8,7 @@ import java.util.List;
 
 public class ProjectSpecification {
 
-    public static Specification<Project> withDynamicQuery(String search, ProjectLevel level, List<String> technologies) {
+    public static Specification<Project> withDynamicQuery(String search, ProjectLevel level, List<String> technologies, String category) {
         return (root, query, cb) -> {
             Specification<Project> spec = Specification.where(null);
 
@@ -26,13 +26,14 @@ public class ProjectSpecification {
             if (level != null) {
                 spec = spec.and((r, q, c) -> c.equal(r.get("level"), level));
             }
+
+            if (category != null && !category.isEmpty()) {
+                spec = spec.and((r, q, c) -> c.equal(r.get("category"), category));
+            }
             
             if (technologies != null && !technologies.isEmpty()) {
-                // Since technologies is an ElementCollection, we join properly
                 // We want projects that contain ANY of the given technologies
                 // or ALL? Usually filtering implies "contains at least one" or "contains all".
-                // Let's implement "contains at least one" for now using join.
-                
                 // Note: Distinct is important when joining to avoid duplicate results
                 if (query != null) query.distinct(true);
                 

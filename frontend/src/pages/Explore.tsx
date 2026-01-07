@@ -23,6 +23,10 @@ const Explore: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [selectedTechnology, setSelectedTechnology] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt,desc');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -45,10 +49,17 @@ const Explore: React.FC = () => {
     loadProjects();
   }, []);
 
-  // Load projects when filters change
+  // Load projects when filters or page change
   useEffect(() => {
     loadProjects();
-  }, [searchQuery, selectedLevel]);
+  }, [
+    searchQuery,
+    selectedLevel,
+    selectedTechnology,
+    selectedCategory,
+    sortBy,
+    page,
+  ]);
 
   const loadProjects = async () => {
     try {
@@ -60,10 +71,17 @@ const Explore: React.FC = () => {
         level: selectedLevel !== 'all' ? selectedLevel : undefined,
         technology:
           selectedTechnology !== 'all' ? selectedTechnology : undefined,
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        sort: sortBy,
+        page: page,
+        limit: 9, // Projects per page
       };
 
       const response = await projectsApi.getProjects(filters);
-      setProjects(response.data || []);
+      if (response.success && response.data) {
+        setProjects(response.data.content);
+        setTotalPages(response.data.totalPages);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load projects');
       console.error('Error loading projects:', err);
@@ -94,6 +112,18 @@ const Explore: React.FC = () => {
     'TypeScript',
     'Docker',
     'AWS',
+  ];
+
+  const categories = [
+    'all',
+    'Technology',
+    'Design',
+    'Marketing',
+    'Business',
+    'Finance',
+    'Education',
+    'Health',
+    'Other',
   ];
 
   const levels = ['all', 'BRAND_NEW', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -235,23 +265,59 @@ const Explore: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
+                      Category:
+                    </label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat === 'all' ? 'All Categories' : cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                {(selectedLevel !== 'all' ||
-                  searchQuery ||
-                  selectedTechnology !== 'all') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedLevel('all');
-                      setSearchQuery('');
-                      setSelectedTechnology('all');
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                )}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
+                      Sort:
+                    </label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
+                    >
+                      <option value="createdAt,desc">Newest First</option>
+                      <option value="createdAt,asc">Oldest First</option>
+                      <option value="title,asc">A-Z</option>
+                      <option value="title,desc">Z-A</option>
+                    </select>
+                  </div>
+
+                  {(selectedLevel !== 'all' ||
+                    searchQuery ||
+                    selectedTechnology !== 'all' ||
+                    selectedCategory !== 'all') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedLevel('all');
+                        setSearchQuery('');
+                        setSelectedTechnology('all');
+                        setSelectedCategory('all');
+                        setSortBy('createdAt,desc');
+                        setPage(0);
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -395,6 +461,31 @@ const Explore: React.FC = () => {
               ))
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {!isLoading && projects.length > 0 && totalPages > 1 && (
+            <div className="mt-8 flex justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-4 text-sm text-gray-600 dark:text-gray-300">
+                Page {page + 1} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                disabled={page >= totalPages - 1}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

@@ -32,9 +32,19 @@ export interface ProjectFilters {
   level?: string;
   status?: string;
   technology?: string;
+  category?: string;
   search?: string;
   page?: number;
   limit?: number;
+  sort?: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
 }
 
 export interface CreateProjectRequest {
@@ -61,15 +71,22 @@ export interface JoinProjectRequest {
 
 class ProjectsApi extends BaseApi {
   // Get all projects with filters
-  async getProjects(filters?: ProjectFilters): Promise<ApiResponse<Project[]>> {
+  async getProjects(
+    filters?: ProjectFilters
+  ): Promise<ApiResponse<PageResponse<Project>>> {
     const params = new URLSearchParams();
     if (filters) {
       if (filters.search) params.append('search', filters.search);
-
       if (filters.level) params.append('level', filters.level);
       if (filters.technology) params.append('technology', filters.technology);
+      if (filters.category) params.append('category', filters.category);
+      if (filters.page !== undefined)
+        params.append('page', filters.page.toString());
+      if (filters.limit !== undefined)
+        params.append('size', filters.limit.toString());
+      if (filters.sort) params.append('sort', filters.sort);
     }
-    return this.get<Project[]>(`/projects?${params.toString()}`);
+    return this.get<PageResponse<Project>>(`/projects?${params.toString()}`);
   }
 
   // Get project by ID
@@ -127,7 +144,17 @@ class ProjectsApi extends BaseApi {
   async getCategories(): Promise<ApiResponse<string[]>> {
     return {
       success: true,
-      data: ['Technology', 'Design', 'Marketing', 'Business'], // Hardcoded for now as backend doesn't support
+
+      data: [
+        'Technology',
+        'Design',
+        'Marketing',
+        'Business',
+        'Finance',
+        'Education',
+        'Health',
+        'Other',
+      ],
     };
   }
 }

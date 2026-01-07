@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -24,14 +26,13 @@ public class ProjectService {
     private final ProfileService profileService;
 
     @Transactional(readOnly = true)
-    public List<ProjectDto> getAllProjects(String search, ProjectLevel level, String technology) {
+    public Page<ProjectDto> getAllProjects(String search, ProjectLevel level, String technology, String category, Pageable pageable) {
         List<String> techList = technology != null && !technology.isEmpty() ? List.of(technology) : null;
         org.springframework.data.jpa.domain.Specification<Project> spec = 
-            com.example.backend.specifications.ProjectSpecification.withDynamicQuery(search, level, techList);
+            com.example.backend.specifications.ProjectSpecification.withDynamicQuery(search, level, techList, category);
             
-        return projectRepository.findAll(spec).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return projectRepository.findAll(spec, Objects.requireNonNull(pageable))
+                .map(this::convertToDto);
     }
 
     @Transactional(readOnly = true)

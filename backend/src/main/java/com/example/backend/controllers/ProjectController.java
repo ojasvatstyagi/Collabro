@@ -11,6 +11,10 @@ import com.example.backend.services.RequestService;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -21,12 +25,23 @@ public class ProjectController {
     private final RequestService requestService;
 
     @GetMapping
-    @Operation(summary = "Get all projects", description = "Retrieve a list of all projects with optional filtering")
-    public List<ProjectDto> getAllProjects(
+    @Operation(summary = "Get all projects", description = "Retrieve a paginated list of all projects with optional filtering")
+    public Page<ProjectDto> getAllProjects(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) com.example.backend.enums.ProjectLevel level,
-            @RequestParam(required = false) String technology) {
-        return projectService.getAllProjects(search, level, technology);
+            @RequestParam(required = false) String technology,
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+        
+        String sortField = sort[0];
+        String sortDirection = sort.length > 1 ? sort[1] : "desc";
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        
+        return projectService.getAllProjects(search, level, technology, category, pageable);
     }
 
     @GetMapping("/{id}")
