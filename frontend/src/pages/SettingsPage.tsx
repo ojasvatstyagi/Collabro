@@ -7,6 +7,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import { useTheme } from '../context/ThemeContext';
 import { profileApi, ProfileData } from '../services/api/profile';
 import { useNavigate } from 'react-router-dom';
+import { themeColors } from '../utils/helper';
 
 const SettingsPage = () => {
   const { themeColor, setThemeColor, theme } = useTheme();
@@ -25,13 +26,6 @@ const SettingsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
-
-  const themeColors = [
-    { name: 'Orange', value: 'orange', color: '#FFAC34' },
-    { name: 'Blue', value: 'blue', color: '#3B82F6' },
-    { name: 'Purple', value: 'purple', color: '#A855F7' },
-    { name: 'Green', value: 'green', color: '#22C55E' },
-  ] as const;
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
 

@@ -69,6 +69,34 @@ export interface JoinProjectRequest {
   message?: string;
 }
 
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  tags: string[];
+  dueDate: string;
+  createdAt: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  assigneeAvatar?: string;
+  projectId: string;
+}
+
+export interface CreateTaskRequest {
+  title: string;
+  description?: string;
+  priority?: string;
+  tags?: string[];
+  dueDate?: string;
+  assigneeId?: string;
+}
+
+export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
+  status?: string;
+}
+
 class ProjectsApi extends BaseApi {
   // Get all projects with filters
   async getProjects(
@@ -98,6 +126,11 @@ class ProjectsApi extends BaseApi {
   async getUserProjects(userId?: string): Promise<ApiResponse<Project[]>> {
     const endpoint = userId ? `/projects/user/${userId}` : '/projects/me';
     return this.get<Project[]>(endpoint);
+  }
+
+  // Get joined projects
+  async getJoinedProjects(): Promise<ApiResponse<Project[]>> {
+    return this.get<Project[]>('/projects/joined');
   }
 
   // Create new project
@@ -138,6 +171,37 @@ class ProjectsApi extends BaseApi {
     projectId: string
   ): Promise<ApiResponse<{ message: string }>> {
     return this.post<{ message: string }>(`/projects/${projectId}/leave`);
+  }
+
+  // Get project tasks
+  async getProjectTasks(projectId: string): Promise<ApiResponse<Task[]>> {
+    return this.get<Task[]>(`/projects/${projectId}/tasks`);
+  }
+
+  // Create task
+  async createTask(
+    projectId: string,
+    data: CreateTaskRequest
+  ): Promise<ApiResponse<Task>> {
+    return this.post<Task>(`/projects/${projectId}/tasks`, data);
+  }
+
+  // Update task
+  async updateTask(
+    taskId: string,
+    data: UpdateTaskRequest
+  ): Promise<ApiResponse<Task>> {
+    return this.patch<Task>(`/tasks/${taskId}`, data);
+  }
+
+  // Delete task
+  async deleteTask(taskId: string): Promise<ApiResponse<void>> {
+    return this.delete<void>(`/tasks/${taskId}`);
+  }
+
+  // Get project team (placeholder for now)
+  async getProjectTeam(projectId: string): Promise<ApiResponse<any[]>> {
+    return this.get<any[]>(`/projects/${projectId}/team`);
   }
 
   // Get project categories
