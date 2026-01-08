@@ -11,6 +11,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import { cn } from '../utils/cn';
+import { getLevelColor } from '../utils/helper';
+import { commonTechnologies, categories } from '../utils/lists';
 import {
   projectsApi,
   type Project,
@@ -101,31 +103,6 @@ const Explore: React.FC = () => {
     }
   };
 
-  // You might want to fetch these from backend or define a static list
-  const commonTechnologies = [
-    'all',
-    'React',
-    'Spring Boot',
-    'Java',
-    'Python',
-    'Node.js',
-    'TypeScript',
-    'Docker',
-    'AWS',
-  ];
-
-  const categories = [
-    'all',
-    'Technology',
-    'Design',
-    'Marketing',
-    'Business',
-    'Finance',
-    'Education',
-    'Health',
-    'Other',
-  ];
-
   const levels = ['all', 'BRAND_NEW', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
   const formatDate = (dateString: string) => {
@@ -140,19 +117,6 @@ const Explore: React.FC = () => {
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
     return date.toLocaleDateString();
-  };
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'BEGINNER':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
-      case 'INTERMEDIATE':
-        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'ADVANCED':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
-      default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
-    }
   };
 
   return (
