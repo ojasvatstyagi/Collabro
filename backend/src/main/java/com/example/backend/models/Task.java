@@ -1,5 +1,6 @@
 package com.example.backend.models;
 
+import com.example.backend.enums.TaskPriority;
 import com.example.backend.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -33,6 +34,15 @@ public class Task {
     @CollectionTable(name = "task_media_urls", joinColumns = @JoinColumn(name = "task_id"))
     @Column(name = "media_url")
     private List<String> mediaUrls;
+
+    @ElementCollection
+    @CollectionTable(name = "task_tags", joinColumns = @JoinColumn(name = "task_id"))
+    @Column(name = "tag")
+    private List<String> tags;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "priority")
+    private TaskPriority priority = TaskPriority.MEDIUM; // Default priority
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)

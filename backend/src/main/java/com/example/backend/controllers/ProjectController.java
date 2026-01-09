@@ -1,7 +1,9 @@
 package com.example.backend.controllers;
 
 import com.example.backend.dto.ProjectDto;
+import com.example.backend.dto.TaskDto;
 import com.example.backend.services.ProjectService;
+import com.example.backend.services.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final RequestService requestService;
+    private final TaskService taskService;
 
     @GetMapping
     @Operation(summary = "Get all projects", description = "Retrieve a paginated list of all projects with optional filtering")
@@ -56,6 +59,12 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.getMyProjects());
     }
 
+    @GetMapping("/joined")
+    @Operation(summary = "Get joined projects", description = "Retrieve projects where the current user is a team member")
+    public ResponseEntity<List<ProjectDto>> getJoinedProjects() {
+        return ResponseEntity.ok(projectService.getJoinedProjects());
+    }
+
     @GetMapping("/user/{profileId}")
     @Operation(summary = "Get user's projects", description = "Retrieve projects created by a specific user (profile ID)")
     public ResponseEntity<List<ProjectDto>> getUserProjects(@PathVariable UUID profileId) {
@@ -75,5 +84,25 @@ public class ProjectController {
         String message = request != null ? request.getMessage() : null;
         requestService.createJoinRequest(id, message);
         return ResponseEntity.ok().body("{\"message\": \"Join request sent successfully\"}");
+    }
+
+    @GetMapping("/{id}/tasks")
+    @Operation(summary = "Get project tasks", description = "Retrieve tasks for a specific project")
+    public ResponseEntity<List<TaskDto>> getProjectTasks(@PathVariable UUID id) {
+        return ResponseEntity.ok(taskService.getTasksByProject(id));
+    }
+
+    @PostMapping("/{id}/tasks")
+    @Operation(summary = "Create project task", description = "Create a new task for a specific project")
+    public ResponseEntity<TaskDto> createProjectTask(@PathVariable UUID id, @RequestBody TaskDto taskDto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(taskService.createTask(id, taskDto));
+    }
+
+    @GetMapping("/{id}/team")
+    @Operation(summary = "Get project team", description = "Retrieve team members for a specific project")
+    public ResponseEntity<List<com.example.backend.dto.ProfileDto>> getProjectTeam(@PathVariable UUID id) { // Need ProfileDto
+        // For now returning empty list or implement logic if Team Service exists
+        // Placeholder implementation
+        return ResponseEntity.ok(java.util.Collections.emptyList());
     }
 }

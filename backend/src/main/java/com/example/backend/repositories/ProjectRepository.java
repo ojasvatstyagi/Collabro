@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, UUID>, JpaSpecificationExecutor<Project> {
     java.util.List<Project> findByCreatedBy_Id(UUID id);
+    java.util.List<Project> findByTeam_Members_Id(UUID profileId);
 }

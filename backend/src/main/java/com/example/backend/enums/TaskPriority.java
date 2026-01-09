@@ -1,14 +1,14 @@
 package com.example.backend.enums;
 
-public enum TaskStatus {
-    PENDING("Pending"),
-    IN_PROGRESS("In Progress"),
-    REVIEW("In Review"),
-    COMPLETED("Completed");
+public enum TaskPriority {
+    LOW("Low"),
+    MEDIUM("Medium"),
+    HIGH("High"),
+    CRITICAL("Critical");
 
     private final String displayName;
 
-    TaskStatus(String displayName) {
+    TaskPriority(String displayName) {
         this.displayName = displayName;
     }
 
