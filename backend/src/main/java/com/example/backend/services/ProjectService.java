@@ -81,6 +81,15 @@ public class ProjectService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<ProjectDto> getJoinedProjects() {
+        Profile currentProfile = profileService.getCurrentUserProfile();
+        return projectRepository.findByTeam_Members_Id(currentProfile.getId()).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+
     private ProjectDto convertToDto(Project project) {
         return ProjectDto.builder()
                 .id(project.getId())

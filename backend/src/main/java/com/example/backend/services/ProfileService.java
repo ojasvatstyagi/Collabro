@@ -4,6 +4,7 @@ import com.example.backend.dto.ProfileDto;
 import com.example.backend.dto.ProfileUpdateDto;
 import com.example.backend.exceptions.PdfExportException;
 import com.example.backend.exceptions.UserNotFoundException;
+import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.User;
 import com.example.backend.repositories.ProfileRepository;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -142,5 +144,9 @@ public class ProfileService {
         } catch (Exception e) {
             throw new PdfExportException("Failed to export profile to PDF");
         }
+    }
+
+    public Profile getProfileById(UUID assigneeId) {
+        return profileRepository.findById(Objects.requireNonNull(assigneeId)).orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
     }
 }

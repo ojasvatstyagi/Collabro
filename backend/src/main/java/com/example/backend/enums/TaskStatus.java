@@ -3,6 +3,7 @@ package com.example.backend.enums;
 public enum TaskStatus {
     PENDING("Pending"),
     IN_PROGRESS("In Progress"),
+    REVIEW("In Review"),
     COMPLETED("Completed");
 
     private final String displayName;

@@ -126,7 +126,8 @@ const ProjectSection: React.FC<{
 
 const MyProjects: React.FC = () => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]); // Created by me
+  const [joinedProjects, setJoinedProjects] = useState<Project[]>([]); // Joined
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,12 +140,25 @@ const MyProjects: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await projectsApi.getUserProjects();
-      if (response.success && response.data) {
-        setProjects(response.data);
-      } else {
-        setError(response.message || 'Failed to load projects');
+      setIsLoading(true);
+      setError(null);
+      const [userProjectsRes, joinedProjectsRes] = await Promise.all([
+        projectsApi.getUserProjects(),
+        projectsApi.getJoinedProjects(),
+      ]);
+
+      let allProjects: Project[] = [];
+      if (userProjectsRes.success && userProjectsRes.data) {
+        allProjects = [...allProjects, ...userProjectsRes.data];
       }
+      if (joinedProjectsRes.success && joinedProjectsRes.data) {
+        // Mark joined projects distinct if needed, but for now just merging or we can split state
+        // Let's split state to be cleaner
+      }
+
+      // Actually let's use separate state for joined projects
+      setProjects(userProjectsRes.data || []);
+      setJoinedProjects(joinedProjectsRes.data || []);
     } catch (err: any) {
       setError(err.message || 'An error occurred while loading projects');
     } finally {
@@ -240,11 +254,21 @@ const MyProjects: React.FC = () => {
               />
             )}
 
-            {ongoingProjects.length === 0 && pastProjects.length === 0 && (
-              <div className="py-10 text-center text-brand-dark/50 dark:text-gray-500">
-                <p>No projects found matching the current filters.</p>
-              </div>
+            {joinedProjects.length > 0 && (
+              <ProjectSection
+                title="Joined Projects"
+                projects={joinedProjects}
+                showAll={joinedProjects.length > 3}
+              />
             )}
+
+            {ongoingProjects.length === 0 &&
+              pastProjects.length === 0 &&
+              joinedProjects.length === 0 && (
+                <div className="py-10 text-center text-brand-dark/50 dark:text-gray-500">
+                  <p>No projects found matching the current filters.</p>
+                </div>
+              )}
           </>
         )}
       </div>
