@@ -11,8 +11,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import { cn } from '../utils/cn';
-import { getLevelColor } from '../utils/helper';
-import { commonTechnologies, categories } from '../utils/lists';
+import { getLevelColor, formatDate } from '../utils/helper';
+import { commonTechnologies, categories, levels } from '../utils/lists';
 import {
   projectsApi,
   type Project,
@@ -101,22 +101,6 @@ const Explore: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Failed to send join request');
     }
-  };
-
-  const levels = ['all', 'BRAND_NEW', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Unknown date';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    return date.toLocaleDateString();
   };
 
   return (

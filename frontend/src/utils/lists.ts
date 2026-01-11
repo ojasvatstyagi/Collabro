@@ -72,3 +72,39 @@ export const dummyProfileStatus: ProfileStatus = {
   completionPercentage: 85,
   missingFields: ['location', 'phone'],
 };
+
+export const levels = [
+  'all',
+  'BRAND_NEW',
+  'BEGINNER',
+  'INTERMEDIATE',
+  'ADVANCED',
+];
+
+export const popularTechStack = [
+  'React',
+  'Vue.js',
+  'Angular',
+  'Node.js',
+  'Python',
+  'Java',
+  'TypeScript',
+  'JavaScript',
+  'PHP',
+  'Ruby',
+  'Go',
+  'Rust',
+  'Swift',
+  'Kotlin',
+  'Flutter',
+  'React Native',
+  'MongoDB',
+  'PostgreSQL',
+  'MySQL',
+  'Redis',
+  'Docker',
+  'AWS',
+  'Firebase',
+  'GraphQL',
+  'REST API',
+];
