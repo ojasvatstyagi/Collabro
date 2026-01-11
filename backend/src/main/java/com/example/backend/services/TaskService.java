@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -84,7 +83,7 @@ public class TaskService {
     public List<TaskDto> getTasksByProject(UUID projectId) {
         return taskRepository.findByProjectId(Objects.requireNonNull(projectId)).stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private TaskDto convertToDto(Task task) {

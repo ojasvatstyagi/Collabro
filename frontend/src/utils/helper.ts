@@ -64,3 +64,17 @@ export const themeColors = [
   { name: 'Purple', value: 'purple', color: '#A855F7' },
   { name: 'Green', value: 'green', color: '#22C55E' },
 ] as const;
+
+export const formatDate = (dateString: string) => {
+  if (!dateString) return 'Unknown date';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInDays = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (diffInDays === 0) return 'Today';
+  if (diffInDays === 1) return 'Yesterday';
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  return date.toLocaleDateString();
+};

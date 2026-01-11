@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
-  Users,
   CheckSquare,
-  Plus,
-  Search,
   Eye,
-  Trash2,
   FileText,
   MessageSquare,
 } from 'lucide-react';
@@ -17,16 +13,17 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { cn } from '../utils/cn';
 import {
-  getStatusColor,
-  getStatusIcon,
-  getPriorityColor,
-} from '../utils/helper';
-import {
   projectsApi,
   Project,
   Task,
   CreateTaskRequest,
 } from '../services/api/projects';
+
+// Import extracted components
+import OverviewTab from '../components/workspace/OverviewTab';
+import TasksTab from '../components/workspace/TasksTab';
+import FilesTab from '../components/workspace/FilesTab';
+import ChatTab from '../components/workspace/ChatTab';
 
 const ProjectWorkspace: React.FC = () => {
   const navigate = useNavigate();
@@ -39,7 +36,9 @@ const ProjectWorkspace: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tasks'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'tasks' | 'files' | 'chat'
+  >('overview');
   const [selectedTaskStatus, setSelectedTaskStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -149,104 +148,6 @@ const ProjectWorkspace: React.FC = () => {
     }
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    const matchesStatus =
-      selectedTaskStatus === 'all' || task.status === selectedTaskStatus;
-    const matchesSearch =
-      searchQuery === '' ||
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
-
-  const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
-    const StatusIcon = getStatusIcon(task.status);
-
-    return (
-      <div className="rounded-lg bg-white p-4 shadow-sm border border-gray-200 transition-all hover:shadow-md dark:bg-brand-dark-lighter dark:border-gray-600">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <StatusIcon
-              className={cn('h-4 w-4', getStatusColor(task.status))}
-            />
-            <h3 className="font-medium text-brand-dark dark:text-gray-100">
-              {task.title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                'rounded-full px-2 py-1 text-xs font-medium',
-                getPriorityColor(task.priority)
-              )}
-            >
-              {task.priority}
-            </span>
-
-            {/* Dropdown for Actions could go here, for now just a delete button */}
-            <button
-              onClick={() => handleDeleteTask(task.id)}
-              className="text-gray-400 hover:text-red-500 transition-colors"
-              title="Delete Task"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <p className="text-sm text-brand-dark/60 dark:text-gray-300 mb-3">
-          {task.description}
-        </p>
-
-        <div className="flex flex-wrap gap-1 mb-3">
-          {task.tags?.map((tag, index) => (
-            <span
-              key={index}
-              className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-orange/20"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between mt-4 border-t border-gray-100 pt-3 dark:border-gray-700">
-          {/* Assignee / Status Change */}
-          <div className="flex items-center gap-2">
-            <select
-              value={task.status}
-              onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
-              className="text-xs rounded border border-gray-200 bg-gray-50 px-2 py-1 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-            >
-              <option value="PENDING">Pending</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="REVIEW">Review</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-brand-dark/60 dark:text-gray-300">
-            {task.assigneeName && (
-              <span
-                title={`Assigned to ${task.assigneeName}`}
-                className="flex items-center gap-1"
-              >
-                <Users className="h-3 w-3" />
-                {task.assigneeName}
-              </span>
-            )}
-            {task.dueDate && (
-              <span
-                title={`Due ${new Date(task.dueDate).toLocaleDateString()}`}
-              >
-                {new Date(task.dueDate).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   if (isLoading) {
     // Simple Loading State
     return (
@@ -287,7 +188,7 @@ const ProjectWorkspace: React.FC = () => {
           onClick={() => navigate('/projects')}
           leftIcon={<ArrowLeft className="h-4 w-4" />}
         >
-          Back
+          Back to Projects
         </Button>
       }
     >
@@ -323,168 +224,25 @@ const ProjectWorkspace: React.FC = () => {
         {/* Tab Content */}
         <div className="flex-1 bg-brand-light-dark dark:bg-brand-dark p-4 md:p-8">
           {activeTab === 'overview' && (
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-6">
-                {/* Overview Card */}
-                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200 dark:bg-brand-dark-lighter dark:border-gray-600">
-                  <h2 className="text-lg font-semibold text-brand-dark dark:text-gray-100 mb-4">
-                    Project Overview
-                  </h2>
-                  <p className="text-brand-dark/80 dark:text-gray-200 mb-6 whitespace-pre-wrap">
-                    {project.description}
-                  </p>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-sm font-medium text-brand-dark/60 dark:text-gray-300">
-                        Level
-                      </label>
-                      <p className="font-medium text-brand-dark dark:text-gray-100 capitalize">
-                        {project.level.toLowerCase()}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-brand-dark/60 dark:text-gray-300">
-                        Category
-                      </label>
-                      <p className="font-medium text-brand-dark dark:text-gray-100">
-                        {project.category}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-6">
-                    <label className="text-sm font-medium text-brand-dark/60 dark:text-gray-300">
-                      Technology Stack
-                    </label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {project.technologies.map((tech, i) => (
-                        <span
-                          key={i}
-                          className="rounded bg-brand-orange/10 px-2 py-1 text-xs font-medium text-brand-orange dark:bg-brand-orange/20"
-                        >
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sidebar Information */}
-              <div className="space-y-6">
-                {/* Team Card (Placeholder mainly until team API is full) */}
-                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200 dark:bg-brand-dark-lighter dark:border-gray-600">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-brand-dark dark:text-gray-100">
-                      Team Members
-                    </h2>
-                    {/* <Button size="sm" variant="ghost" leftIcon={<Plus className="h-4 w-4"/>}>Invite</Button> */}
-                  </div>
-
-                  {team.length > 0 ? (
-                    <div className="space-y-3">
-                      {team.map((member: any, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                            {member.profilePictureUrl ? (
-                              <img
-                                src={member.profilePictureUrl}
-                                alt=""
-                                className="h-full w-full rounded-full object-cover"
-                              />
-                            ) : (
-                              <Users className="h-5 w-5" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-brand-dark dark:text-gray-100">
-                              {member.firstname} {member.lastname}
-                            </p>
-                            {/* Role if available */}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 italic">
-                      No team members yet.
-                    </div>
-                  )}
-
-                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="h-10 w-10 rounded-full bg-brand-orange/10 flex items-center justify-center text-brand-orange">
-                        {project.createdBy.profilePictureUrl ? (
-                          <img
-                            src={project.createdBy.profilePictureUrl}
-                            alt=""
-                            className="h-full w-full rounded-full object-cover"
-                          />
-                        ) : (
-                          <Users className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-brand-dark dark:text-gray-100">
-                          {project.createdBy.username}
-                        </p>
-                        <p className="text-xs text-gray-500">Owner</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <OverviewTab project={project} team={team} />
           )}
 
           {activeTab === 'tasks' && (
-            <div className="h-full">
-              <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search tasks..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full sm:w-64 rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm text-brand-dark placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500"
-                    />
-                  </div>
-                  <select
-                    value={selectedTaskStatus}
-                    onChange={(e) => setSelectedTaskStatus(e.target.value)}
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
-                  >
-                    <option value="all">All Tasks</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="REVIEW">Review</option>
-                    <option value="COMPLETED">Completed</option>
-                  </select>
-                </div>
-                <Button
-                  leftIcon={<Plus className="h-4 w-4" />}
-                  onClick={() => setIsTaskModalOpen(true)}
-                >
-                  New Task
-                </Button>
-              </div>
-
-              {filteredTasks.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-20 text-gray-500">
-                  <p>No tasks found. Create one to get started!</p>
-                </div>
-              )}
-            </div>
+            <TasksTab
+              tasks={tasks}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedTaskStatus={selectedTaskStatus}
+              setSelectedTaskStatus={setSelectedTaskStatus}
+              onOpenCreateModal={() => setIsTaskModalOpen(true)}
+              onUpdateStatus={handleUpdateTaskStatus}
+              onDeleteTask={handleDeleteTask}
+            />
           )}
+
+          {activeTab === 'files' && <FilesTab />}
+
+          {activeTab === 'chat' && <ChatTab />}
         </div>
       </div>
 
