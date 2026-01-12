@@ -90,6 +90,21 @@ public class ProjectService {
     }
 
 
+    @Transactional(readOnly = true)
+    public List<com.example.backend.dto.ProfileDto> getProjectTeam(UUID projectId) {
+        Project project = projectRepository.findById(Objects.requireNonNull(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+                
+        if (project.getTeam() == null) {
+            return java.util.Collections.emptyList();
+        }
+        
+        return project.getTeam().getMembers().stream()
+                .map(profileService::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+
     private ProjectDto convertToDto(Project project) {
         return ProjectDto.builder()
                 .id(project.getId())

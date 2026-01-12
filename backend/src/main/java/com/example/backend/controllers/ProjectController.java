@@ -100,9 +100,7 @@ public class ProjectController {
 
     @GetMapping("/{id}/team")
     @Operation(summary = "Get project team", description = "Retrieve team members for a specific project")
-    public ResponseEntity<List<com.example.backend.dto.ProfileDto>> getProjectTeam(@PathVariable UUID id) { // Need ProfileDto
-        // For now returning empty list or implement logic if Team Service exists
-        // Placeholder implementation
-        return ResponseEntity.ok(java.util.Collections.emptyList());
+    public ResponseEntity<List<com.example.backend.dto.ProfileDto>> getProjectTeam(@PathVariable UUID id) {
+        return ResponseEntity.ok(projectService.getProjectTeam(id));
     }
 }
