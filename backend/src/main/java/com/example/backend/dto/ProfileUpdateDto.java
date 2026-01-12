@@ -29,7 +29,7 @@ public class ProfileUpdateDto {
     @Size(max = 255, message = "Location cannot exceed 255 characters")
     private String location;
 
-    @Pattern(regexp = "^\\+?[0-9 .()-]{7,25}$", message = "Invalid phone number format")
+    @Pattern(regexp = "^$|^\\+?[0-9 .()-]{7,25}$", message = "Invalid phone number format")
     private String phone;
 
     // Settings
