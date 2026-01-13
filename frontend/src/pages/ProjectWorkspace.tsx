@@ -308,6 +308,25 @@ const ProjectWorkspace: React.FC = () => {
                 }
               />
             </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Assignee
+              </label>
+              <select
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:bg-brand-dark-lighter dark:border-gray-600 dark:text-white"
+                value={newTaskData.assigneeId || ''}
+                onChange={(e) =>
+                  setNewTaskData({ ...newTaskData, assigneeId: e.target.value })
+                }
+              >
+                <option value="">Unassigned</option>
+                {team.map((member: any) => (
+                  <option key={member.id} value={member.id}>
+                    {member.firstname} {member.lastname} ({member.username})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
