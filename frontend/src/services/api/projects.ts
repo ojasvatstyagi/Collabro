@@ -221,6 +221,77 @@ class ProjectsApi extends BaseApi {
       ],
     };
   }
+
+  // File Operations
+  async uploadFile(
+    projectId: string,
+    file: File
+  ): Promise<ApiResponse<ProjectFile>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.post<ProjectFile>(`/projects/${projectId}/files`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+
+  async getProjectFiles(
+    projectId: string
+  ): Promise<ApiResponse<ProjectFile[]>> {
+    return this.get<ProjectFile[]>(`/projects/${projectId}/files`);
+  }
+
+  async deleteFile(fileId: string): Promise<ApiResponse<void>> {
+    return this.delete<void>(`/project-files/${fileId}`);
+  }
+
+  getDownloadUrl(fileId: string): string {
+    return `${this.baseUrl}/project-files/${fileId}/download`;
+  }
+
+  // Chat Operations
+  async getProjectMessages(
+    projectId: string,
+    page = 0,
+    size = 20
+  ): Promise<ApiResponse<PageResponse<ChatMessage>>> {
+    return this.get<PageResponse<ChatMessage>>(
+      `/projects/${projectId}/messages?page=${page}&size=${size}`
+    );
+  }
+
+  async sendProjectMessage(
+    projectId: string,
+    content: string
+  ): Promise<ApiResponse<ChatMessage>> {
+    return this.post<ChatMessage>(`/projects/${projectId}/messages`, {
+      content,
+    });
+  }
+}
+
+export interface ProjectFile {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  size: number;
+  createdAt: string;
+  uploadedById: string;
+  uploadedByName: string;
+  uploadedByAvatar?: string;
+  projectId: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  content: string;
+  createdAt: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  projectId: string;
 }
 
 export const projectsApi = new ProjectsApi();
