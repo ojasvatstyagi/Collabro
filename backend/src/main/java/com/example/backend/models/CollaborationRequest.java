@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -36,10 +37,21 @@ public class CollaborationRequest {
     @Enumerated(EnumType.STRING)
     private RequestStatus status = PENDING; // PENDING, ACCEPTED, REJECTED, ON_HOLD
 
+    @Column(columnDefinition = "TEXT")
+    private String message;
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
 
     @Override
     public String toString() {
