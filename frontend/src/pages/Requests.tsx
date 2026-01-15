@@ -1,90 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Star,
   ExternalLink,
   Search,
   Bell,
   PlusCircle,
   Menu,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/ui/SideBar';
 import Button from '../components/ui/Button';
 import ThemeToggle from '../components/ui/ThemeToggle';
+import { requestsApi, JoinRequest } from '../services/api/requests';
+import { toast } from 'react-hot-toast';
 
-interface JoinRequest {
-  id: string;
-  username: string;
-  rating: number;
-  projectTitle: string;
-  techStack: string[];
-  profileImage: string;
-}
+const RequestCard: React.FC<{
+  request: JoinRequest;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+  isProcessing: boolean;
+}> = ({ request, onApprove, onReject, isProcessing }) => {
+  const navigate = useNavigate();
 
-const mockRequests: JoinRequest[] = [
-  {
-    id: '1',
-    username: 'sarah_dev',
-    rating: 4.5,
-    projectTitle: 'Modern E-commerce Platform',
-    techStack: ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'Redis'],
-    profileImage:
-      'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
-  },
-  {
-    id: '2',
-    username: 'alex_coder',
-    rating: 4.8,
-    projectTitle: 'AI-Powered Analytics Dashboard',
-    techStack: ['Python', 'TensorFlow', 'React', 'D3.js'],
-    profileImage:
-      'https://images.pexels.com/photos/2269872/pexels-photo-2269872.jpeg?auto=compress&cs=tinysrgb&w=150',
-  },
-  {
-    id: '3',
-    username: 'mike_frontend',
-    rating: 4.2,
-    projectTitle: 'Mobile Fitness App',
-    techStack: ['React Native', 'Firebase', 'Redux', 'Node.js'],
-    profileImage:
-      'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150',
-  },
-  {
-    id: '4',
-    username: 'emma_backend',
-    rating: 4.7,
-    projectTitle: 'Social Media Analytics Tool',
-    techStack: ['Django', 'PostgreSQL', 'Celery', 'Redis'],
-    profileImage:
-      'https://images.pexels.com/photos/3992656/pexels-photo-3992656.jpeg?auto=compress&cs=tinysrgb&w=150',
-  },
-  {
-    id: '5',
-    username: 'david_fullstack',
-    rating: 4.4,
-    projectTitle: 'Project Management System',
-    techStack: ['Vue.js', 'Express', 'MongoDB', 'Socket.io'],
-    profileImage:
-      'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150',
-  },
-  {
-    id: '6',
-    username: 'lisa_designer',
-    rating: 4.9,
-    projectTitle: 'Real-time Chat Application',
-    techStack: ['Figma', 'React', 'Tailwind CSS', 'Framer Motion'],
-    profileImage:
-      'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
-  },
-];
-
-const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
   return (
     <div className="rounded-lg bg-white p-4 md:p-6 shadow-sm border border-gray-200 transition-all hover:shadow-md dark:bg-brand-dark-lighter dark:border-gray-600 dark:shadow-lg">
       <div className="flex flex-col sm:flex-row items-start gap-4">
         <img
-          src={request.profileImage}
-          alt={request.username}
+          src={
+            request.requester.profilePictureUrl ||
+            'https://via.placeholder.com/150'
+          }
+          alt={request.requester.username}
           className="h-12 w-12 rounded-full object-cover flex-shrink-0"
         />
 
@@ -92,19 +41,17 @@ const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
             <div>
               <h3 className="font-medium text-brand-dark dark:text-gray-100">
-                {request.username}
+                {request.requester.firstname} {request.requester.lastname}
               </h3>
-              <div className="mt-1 flex items-center gap-1">
-                <Star className="h-4 w-4 fill-brand-yellow text-brand-yellow" />
-                <span className="text-sm text-brand-dark/60 dark:text-gray-300">
-                  Rating {request.rating}
-                </span>
-              </div>
+              <p className="text-sm text-brand-dark/60 dark:text-gray-400">
+                @{request.requester.username}
+              </p>
             </div>
             <Button
               variant="outline"
               size="sm"
               className="group w-full sm:w-auto"
+              onClick={() => navigate(`/profile/${request.requester.id}`)}
               rightIcon={
                 <ExternalLink className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               }
@@ -115,30 +62,80 @@ const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
 
           <div className="mt-4">
             <p className="text-sm text-brand-dark/60 dark:text-gray-300">
-              The user has requested to join the
+              Requested to join
             </p>
             <p className="mt-1 font-medium text-brand-dark dark:text-gray-100">
               {request.projectTitle}
             </p>
           </div>
 
+          {request.message && (
+            <div className="mt-3 p-3 bg-gray-50 dark:bg-brand-dark rounded-lg">
+              <p className="text-sm text-brand-dark/80 dark:text-gray-300 italic">
+                "{request.message}"
+              </p>
+            </div>
+          )}
+
           <div className="mt-4 flex flex-wrap gap-2">
-            {request.techStack.map((tech, index) => (
+            {request.requester.skills.map((skill, index) => (
               <span
                 key={index}
                 className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
               >
-                {tech}
+                {skill}
               </span>
             ))}
           </div>
 
-          <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <Button className="flex-1">Add to team</Button>
-            <Button variant="outline" className="flex-1">
-              Decline
-            </Button>
-          </div>
+          {request.status === 'PENDING' && (
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <Button
+                className="flex-1"
+                onClick={() => onApprove(request.id)}
+                disabled={isProcessing}
+                leftIcon={
+                  isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )
+                }
+              >
+                {isProcessing ? 'Processing...' : 'Add to team'}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => onReject(request.id)}
+                disabled={isProcessing}
+                leftIcon={<XCircle className="h-4 w-4" />}
+              >
+                Decline
+              </Button>
+            </div>
+          )}
+
+          {request.status === 'APPROVED' && (
+            <div className="mt-4 flex items-center gap-2 text-green-600 dark:text-green-400">
+              <CheckCircle className="h-5 w-5" />
+              <span className="text-sm font-medium">Approved</span>
+            </div>
+          )}
+
+          {request.status === 'REJECTED' && (
+            <div className="mt-4">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <XCircle className="h-5 w-5" />
+                <span className="text-sm font-medium">Rejected</span>
+              </div>
+              {request.rejectionReason && (
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Reason: {request.rejectionReason}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -148,6 +145,101 @@ const RequestCard: React.FC<{ request: JoinRequest }> = ({ request }) => {
 const Requests: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<
+    'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
+  >('PENDING');
+
+  // Fetch requests on mount and when filter changes
+  useEffect(() => {
+    fetchRequests();
+  }, [statusFilter]);
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const status = statusFilter === 'ALL' ? undefined : statusFilter;
+      const response = await requestsApi.getReceivedRequests(status);
+
+      if (response.success && response.data) {
+        setRequests(response.data);
+      } else {
+        setError('Failed to fetch requests');
+      }
+    } catch (err: any) {
+      console.error('Error fetching requests:', err);
+      setError(err.message || 'Failed to fetch requests');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (requestId: number) => {
+    try {
+      setProcessingId(requestId);
+
+      const response = await requestsApi.approveRequest(requestId);
+
+      if (response.success) {
+        toast.success(
+          response.message || 'Request approved! User added to team.'
+        );
+
+        // Update local state
+        setRequests((prev) =>
+          prev.map((req) =>
+            req.id === requestId ? { ...req, status: 'APPROVED' as const } : req
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error('Error approving request:', err);
+      toast.error(err.message || 'Failed to approve request');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (requestId: number) => {
+    try {
+      setProcessingId(requestId);
+
+      const response = await requestsApi.rejectRequest(requestId);
+
+      if (response.success) {
+        toast.success(response.message || 'Request rejected');
+
+        // Update local state
+        setRequests((prev) =>
+          prev.map((req) =>
+            req.id === requestId ? { ...req, status: 'REJECTED' as const } : req
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error('Error rejecting request:', err);
+      toast.error(err.message || 'Failed to reject request');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Filter requests by search query
+  const filteredRequests = requests.filter((request) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      request.requester.username.toLowerCase().includes(searchLower) ||
+      request.requester.firstname.toLowerCase().includes(searchLower) ||
+      request.requester.lastname.toLowerCase().includes(searchLower) ||
+      request.projectTitle.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
@@ -183,6 +275,8 @@ const Requests: React.FC = () => {
               <input
                 type="text"
                 placeholder="Search requests..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-brand-dark placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500"
               />
             </div>
@@ -211,15 +305,93 @@ const Requests: React.FC = () => {
         </header>
 
         <div className="container mx-auto max-w-5xl px-4 py-8 bg-brand-light-dark dark:bg-brand-dark">
-          <h1 className="mb-8 text-2xl md:text-3xl font-bold text-brand-dark dark:text-gray-100">
-            Requests to join your projects
-          </h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-brand-dark dark:text-gray-100">
+              Requests to join your projects
+            </h1>
 
-          <div className="grid gap-6">
-            {mockRequests.map((request) => (
-              <RequestCard key={request.id} request={request} />
-            ))}
+            {/* Status filter */}
+            <div className="flex gap-2">
+              {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(
+                (status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      statusFilter === status
+                        ? 'bg-brand-orange text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                )
+              )}
+            </div>
           </div>
+
+          {/* Loading state */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
+              <span className="ml-3 text-gray-600 dark:text-gray-400">
+                Loading requests...
+              </span>
+            </div>
+          )}
+
+          {/* Error state */}
+          {error && !loading && (
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-red-800 dark:text-red-300">
+                  Error loading requests
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                  {error}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={fetchRequests}
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !error && filteredRequests.length === 0 && (
+            <div className="text-center py-12">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                No requests found
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {searchQuery
+                  ? 'Try adjusting your search query'
+                  : "You don't have any join requests at the moment"}
+              </p>
+            </div>
+          )}
+
+          {/* Requests list */}
+          {!loading && !error && filteredRequests.length > 0 && (
+            <div className="grid gap-6">
+              {filteredRequests.map((request) => (
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  isProcessing={processingId === request.id}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
