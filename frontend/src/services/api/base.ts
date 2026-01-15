@@ -57,6 +57,10 @@ export class BaseApi {
     this.client = apiClient;
   }
 
+  public get baseUrl(): string {
+    return API_BASE_URL;
+  }
+
   // Generic GET request
   protected async get<T>(
     endpoint: string,
