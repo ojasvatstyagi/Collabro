@@ -85,12 +85,6 @@ const Profile: React.FC = () => {
           'Falling back to dummy data for development/demo purposes if API fails completely'
         );
 
-        // Only fallback if we strictly want to or if it's a specific "not found" that implies new user waiting for setup
-        // But for "User Data Population" task, we probably want to see the real error if it fails.
-        // However, keeping the fallback as per user request history ("User Data Population" implies it WAS showing fallback).
-        // I will keep the fallback but log the error so we can debug.
-        // Also handling the case where backend might return 401/403 - usually intercepted by BaseApi but let's be safe.
-
         setProfile(dummyProfile);
         setProfileStatus(dummyProfileStatus);
         setFormData({
@@ -199,15 +193,59 @@ const Profile: React.FC = () => {
     if (!validateForm()) return;
     try {
       setIsSaving(true);
-      try {
-        const updatedProfileResponse = await profileApi.updateProfile(formData);
-        const updatedProfile = updatedProfileResponse.data;
-        if (updatedProfile) setProfile(updatedProfile);
-      } catch (apiError) {
-        setProfile((prev) => (prev ? { ...prev, ...formData } : null));
+      setErrors({}); // Clear previous errors
+
+      const updatedProfileResponse = await profileApi.updateProfile(formData);
+      const updatedProfile = updatedProfileResponse.data;
+
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        setIsEditingPersonalInfo(false);
+        await refreshProfileStatus();
       }
-      setIsEditingPersonalInfo(false);
-      await refreshProfileStatus();
+    } catch (apiError: any) {
+      console.error('Failed to save profile:', apiError);
+
+      // Parse backend validation errors
+      if (apiError.response?.data) {
+        const errorData = apiError.response.data;
+        const backendErrors: Record<string, string> = {};
+
+        // Handle Spring Boot validation error format
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          errorData.errors.forEach((err: any) => {
+            if (err.field) {
+              backendErrors[err.field] = err.defaultMessage || err.message;
+            }
+          });
+        } else if (typeof errorData === 'string') {
+          // Handle simple string error messages
+          // Try to extract field name from message like "phone: Invalid phone number format"
+          const match = errorData.match(/^(\w+):\s*(.+)$/);
+          if (match) {
+            backendErrors[match[1]] = match[2];
+          } else {
+            // Generic error
+            backendErrors.general = errorData;
+          }
+        } else if (errorData.message) {
+          backendErrors.general = errorData.message;
+        }
+
+        if (Object.keys(backendErrors).length > 0) {
+          setErrors(backendErrors);
+        } else {
+          // Fallback error message
+          setErrors({
+            general:
+              'Failed to save profile. Please check your input and try again.',
+          });
+        }
+      } else {
+        setErrors({
+          general: 'Network error. Please check your connection and try again.',
+        });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -493,6 +531,14 @@ const Profile: React.FC = () => {
                     </Button>
                   )}
                 </div>
+                {errors.general && (
+                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start">
+                    <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      {errors.general}
+                    </p>
+                  </div>
+                )}
                 {isEditingPersonalInfo ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
