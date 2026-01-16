@@ -1,12 +1,14 @@
 package com.example.backend.controllers;
 
 import com.example.backend.dto.*;
+import com.example.backend.exceptions.TokenRefreshException;
+import com.example.backend.models.RefreshToken;
 import com.example.backend.models.User;
-
+import com.example.backend.repositories.RefreshTokenRepository;
+import com.example.backend.security.JwtTokenProvider;
 import com.example.backend.services.PasswordService;
 import com.example.backend.services.ProfileService;
 import com.example.backend.services.UserService;
-import com.example.backend.utils.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,12 +39,18 @@ public class AuthController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final ProfileService profileService;
-    private final JwtUtils jwtUtils;
-
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordService passwordService;
     private final ModelMapper modelMapper;
+    
+    @Value("${jwt.cookie.name}")
+    private String refreshTokenCookieName;
+    
+    @Value("${jwt.cookie.max-age}")
+    private int refreshTokenCookieMaxAge;
 
-    @Value("${app.jwt.expiration}")
+    @Value("${jwt.access-token-expiration}")
     private long jwtExpirationMs;
     private static final String MESSAGE_KEY = "message";
 
@@ -84,35 +92,80 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MESSAGE_KEY, "Email not verified"));
         }
 
-        String jwtToken = jwtUtils.generateJwtToken(user);
-        // create cookie — set SameSite=None for cross-site usage, secure based on
-        // env/request
-        boolean secure = request.isSecure(); // or read property
-        ResponseCookie cookie = ResponseCookie.from("jwt", jwtToken)
+        // Generate access and refresh tokens
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getUsername());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUsername());
+        
+        // Delete old refresh tokens for this user
+        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
+        
+        // Save new refresh token to database
+        RefreshToken refreshTokenEntity = RefreshToken.builder()
+                .token(refreshToken)
+                .user(user)
+                .expiryDate(java.time.LocalDateTime.now().plusDays(7))
+                .build();
+        refreshTokenRepository.save(Objects.requireNonNull(refreshTokenEntity));
+        
+        // Set refresh token as HTTP-only cookie
+        boolean secure = request.isSecure();
+        ResponseCookie cookie = ResponseCookie.from(Objects.requireNonNull(refreshTokenCookieName), Objects.requireNonNull(refreshToken))
                 .httpOnly(true)
-                .secure(secure) // true on HTTPS, false on local dev
+                .secure(secure)
                 .path("/")
-                .maxAge(jwtExpirationMs / 1000) // expiration in seconds
-                .sameSite(secure ? "None" : "Lax") // allow cross-site cookie if secure, otherwise Lax for local
+                .maxAge(refreshTokenCookieMaxAge)
+                .sameSite(secure ? "None" : "Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        
         log.info("Login successful for user: {}", loginRequest.getUsername());
         UserDto dto = convertToDto(user);
 
-        return ResponseEntity.ok(Map.of("user", dto));
+        return ResponseEntity.ok(Map.of(
+            "user", dto,
+            "accessToken", accessToken,
+            "tokenType", "Bearer",
+            "expiresIn", 900
+        ));
     }
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
         String jwt = parseJwt(request);
-        if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-            String username = jwtUtils.getUserNameFromJwtToken(jwt);
+        if (jwt != null && jwtTokenProvider.validateToken(jwt)) {
+            String username = jwtTokenProvider.getUsernameFromToken(jwt);
             Optional<User> userOpt = userService.findUserByUsername(username);
             if (userOpt.isPresent()) {
                 return ResponseEntity.ok(Map.of("user", convertToDto(userOpt.get())));
             }
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MESSAGE_KEY, "Unauthorized"));
+    }
+    
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken", required = false) String refreshToken) {
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Refresh token not found"));
+        }
+        
+        RefreshToken tokenEntity = refreshTokenRepository.findByToken(refreshToken)
+            .orElseThrow(() -> new TokenRefreshException("Invalid refresh token"));
+        
+        if (tokenEntity.isExpired()) {
+            refreshTokenRepository.delete(tokenEntity);
+            throw new TokenRefreshException("Refresh token expired. Please login again.");
+        }
+        
+        String newAccessToken = jwtTokenProvider.generateAccessToken(
+            tokenEntity.getUser().getUsername()
+        );
+        
+        return ResponseEntity.ok(Map.of(
+            "accessToken", newAccessToken,
+            "tokenType", "Bearer",
+            "expiresIn", 900
+        ));
     }
 
     private String parseJwt(HttpServletRequest request) {
@@ -158,16 +211,27 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<Map<String, String>> logout(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            HttpServletRequest request, 
+            HttpServletResponse response) {
+        
+        // Delete refresh token from database
+        if (refreshToken != null) {
+            refreshTokenRepository.deleteByToken(refreshToken);
+        }
+        
+        // Clear refresh token cookie
         boolean secure = request.isSecure();
-        ResponseCookie jwtCookie = ResponseCookie.from("jwt", "")
+        ResponseCookie cookie = ResponseCookie.from(Objects.requireNonNull(refreshTokenCookieName), "")
                 .httpOnly(true)
                 .secure(secure)
                 .path("/")
                 .maxAge(0)
                 .sameSite(secure ? "None" : "Lax")
                 .build();
-        response.setHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        
         return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Logout successful"));
     }
 

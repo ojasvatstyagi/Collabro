@@ -27,20 +27,16 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationEntryPoint customEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
-
-    private final boolean jwtEnabled;
     private final List<String> allowedOrigins;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
             CustomAuthenticationEntryPoint customEntryPoint,
             CustomAccessDeniedHandler customAccessDeniedHandler,
-            @Value("${app.jwt.enabled:true}") boolean jwtEnabled,
             @Value("#{'${app.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.customEntryPoint = customEntryPoint;
         this.customAccessDeniedHandler = customAccessDeniedHandler;
-        this.jwtEnabled = jwtEnabled;
         this.allowedOrigins = allowedOrigins;
     }
 
@@ -71,11 +67,8 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(customEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler))
-                .httpBasic(AbstractHttpConfigurer::disable);
-
-        if (jwtEnabled) {
-            http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        }
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
