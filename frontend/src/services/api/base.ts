@@ -1,4 +1,10 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
+import { tokenService } from '../tokenService';
 
 // API Configuration
 const API_BASE_URL = '/api'; // Use proxy
@@ -8,22 +14,102 @@ const API_TIMEOUT = 10000; // 10 seconds
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
-  withCredentials: true,
+  withCredentials: true, // Important for cookies
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Response interceptor for handling common errors
+// Track if we're currently refreshing the token
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Request interceptor to add access token
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = tokenService.getAccessToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for handling 401 and automatic token refresh
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access - maybe redirect to login logic here if needed
-      // But for now just reject
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401 errors (except for auth endpoints)
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/')
+    ) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => {
+            return apiClient(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Try to refresh the token
+        const response = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+
+        if (response.data.accessToken) {
+          tokenService.setAccessToken(response.data.accessToken);
+          processQueue(null, response.data.accessToken);
+
+          // Retry the original request with new token
+          originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+
+        // Refresh failed, clear token and redirect to login
+        tokenService.clearAccessToken();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
