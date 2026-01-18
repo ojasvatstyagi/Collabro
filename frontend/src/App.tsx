@@ -20,6 +20,7 @@ import { AuthProvider } from './context/AuthContext';
 
 import { useAuth } from './context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function AppContent() {
   const { theme } = useTheme();
@@ -54,16 +55,20 @@ function AppContent() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-registration" element={<VerifyRegistration />} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/achievements" element={<Achievements />} />
-        <Route path="/projects" element={<MyProjects />} />
-        <Route path="/teams" element={<Teams />} />
-        <Route path="/project/:projectId" element={<ProjectWorkspace />} />
-        <Route path="/post-idea" element={<PostIdea />} />
-        <Route path="/requests" element={<Requests />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/settings" element={<SettingsPage />} />
+
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/achievements" element={<Achievements />} />
+          <Route path="/projects" element={<MyProjects />} />
+          <Route path="/teams" element={<Teams />} />
+          <Route path="/project/:projectId" element={<ProjectWorkspace />} />
+          <Route path="/post-idea" element={<PostIdea />} />
+          <Route path="/requests" element={<Requests />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
       </Routes>
     </div>
   );

@@ -1,4 +1,5 @@
-import { BaseApi, ApiResponse } from "./base";
+import { BaseApi, ApiResponse } from './base';
+import { tokenService } from '../tokenService';
 
 // Auth-related interfaces (unchanged)
 export interface LoginCredentials {
@@ -25,8 +26,8 @@ export interface User {
 
 export interface AuthResponse {
   user: User;
-  token?: string;
-  refreshToken?: string;
+  accessToken?: string;
+  tokenType?: string;
   expiresIn?: number;
 }
 
@@ -55,22 +56,28 @@ class AuthApi extends BaseApi {
   async login(
     credentials: LoginCredentials
   ): Promise<ApiResponse<AuthResponse>> {
-    // Directly call backend
-    return this.post<AuthResponse>("/auth/login", credentials);
+    const response = await this.post<AuthResponse>('/auth/login', credentials);
+
+    // Store access token if present
+    if (response.success && response.data?.accessToken) {
+      tokenService.setAccessToken(response.data.accessToken);
+    }
+
+    return response;
   }
 
   // Register new user -> POST /api/auth/register
   async register(
     credentials: RegisterCredentials
   ): Promise<ApiResponse<AuthResponse>> {
-    return this.post<AuthResponse>("/auth/register", credentials);
+    return this.post<AuthResponse>('/auth/register', credentials);
   }
 
   // Forgot password -> POST /api/auth/forgot-password
   async forgotPassword(
     request: ForgotPasswordRequest
   ): Promise<ApiResponse<{ message: string }>> {
-    return this.post<{ message: string }>("/auth/forgot-password", request);
+    return this.post<{ message: string }>('/auth/forgot-password', request);
   }
 
   // Verify OTP -> POST /api/auth/verify-otp?email=...&otp=...
@@ -110,24 +117,33 @@ class AuthApi extends BaseApi {
   async changePassword(
     request: ChangePasswordRequest
   ): Promise<ApiResponse<{ message: string }>> {
-    return this.put<{ message: string }>("/auth/change-password", request);
+    return this.put<{ message: string }>('/auth/change-password', request);
   }
 
   // Logout user -> POST /api/auth/logout
   async logout(): Promise<ApiResponse<{ message: string }>> {
-    return this.post<{ message: string }>("/auth/logout", {});
+    const response = await this.post<{ message: string }>('/auth/logout', {});
+
+    // Clear access token
+    tokenService.clearAccessToken();
+
+    return response;
   }
 
-  // Refresh token -> POST /api/auth/refresh (if implemented server-side)
+  // Refresh token -> POST /api/auth/refresh (handled automatically by interceptor)
   async refreshToken(): Promise<
-    ApiResponse<{ token: string; expiresIn: number }>
+    ApiResponse<{ accessToken: string; tokenType: string; expiresIn: number }>
   > {
-    return this.post<{ token: string; expiresIn: number }>("/auth/refresh", {});
+    return this.post<{
+      accessToken: string;
+      tokenType: string;
+      expiresIn: number;
+    }>('/auth/refresh', {});
   }
 
   // Get current user -> GET /api/auth/me
   async getCurrentUser(): Promise<ApiResponse<{ user: User }>> {
-    return this.get<{ user: User }>("/auth/me");
+    return this.get<{ user: User }>('/auth/me');
   }
 }
 
