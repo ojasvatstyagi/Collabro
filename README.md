@@ -61,6 +61,59 @@ graph TD
     API -->|Async Tasks| Email[Email Service]
 ```
 
+### 🔐 Authentication Architecture
+
+Collabro employs a robust **Stateless Authentication** system designed for security and scalability, minimizing database load while ensuring session persistence.
+
+#### Token Strategy
+
+| Token Type        | Lifespan   | Storage                     | Purpose             |
+| ----------------- | ---------- | --------------------------- | ------------------- |
+| **Access Token**  | 15 minutes | Memory + localStorage       | API authentication  |
+| **Refresh Token** | 7 days     | HTTP-only cookie + Database | Renew access tokens |
+
+#### Authentication Flow
+
+The following sequence diagram illustrates the complete login and automatic token refresh process:
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend
+    participant DB as Database
+
+    Note over U,DB: Login Flow
+    U->>FE: Enter credentials
+    FE->>BE: POST /api/auth/login
+    BE->>DB: Validate credentials
+    DB-->>BE: User found
+    BE->>BE: Generate access + refresh tokens
+    BE->>DB: Save refresh token
+    BE-->>FE: Access token (JSON) + Refresh cookie
+    FE->>FE: Store access token
+
+    Note over U,DB: API Request with Expired Token
+    FE->>BE: API request + Bearer {expired token}
+    BE-->>FE: 401 Unauthorized
+    FE->>FE: Detect 401, trigger refresh
+    FE->>BE: POST /api/auth/refresh (cookie auto-sent)
+    BE->>DB: Validate refresh token
+    DB-->>BE: Token valid
+    BE->>BE: Generate new access token
+    BE-->>FE: New access token
+    FE->>FE: Update stored token
+    FE->>BE: Retry original request
+    BE-->>FE: Success response
+```
+
+#### Security Features
+
+- **HTTP-Only Cookies**: Refresh tokens are inaccessible to client-side JavaScript, preventing XSS attacks.
+- **Automatic Rotation**: New refresh tokens can be issued on use (configurable) to detect theft.
+- **Database Revocation**: Admins can revoke sessions by deleting the refresh token from the database.
+- **Race Condition Handling**: Frontend request queueing ensures multiple concurrent requests don't trigger multiple refreshes.
+
 ---
 
 ## 💾 Database Architecture
@@ -72,27 +125,47 @@ The database is designed to handle complex relationships between users, teams, a
 ```mermaid
 erDiagram
     Users ||--|| Profiles : "has"
+    Users ||--o{ RefreshTokens : "owns"
+    Users }o--|| Roles : "assigned"
+
     Profiles ||--|{ SocialLinks : "owns"
     Profiles ||--|{ Skills : "possesses"
     Profiles ||--|{ Posts : "authors"
-    Profiles ||--|{ CreatedProjects : "creates"
-    Profiles ||--|{ AssignedTasks : "works on"
-    Profiles ||--|{ ReceivedReviews : "receives"
-    Profiles }|--|{ Teams : "belongs to"
+    Profiles ||--|{ Projects : "creates"
+    Profiles ||--|{ Tasks : "assigned to"
+    Profiles ||--|{ Notifications : "receives"
+    Profiles ||--|{ ChatMessages : "sends"
+    Profiles ||--|{ ProjectFiles : "uploads"
+    Profiles }o--|| Teams : "creates"
+    Profiles }o--|| Teams : "owns"
+    Profiles }|--|{ Teams : "member of"
 
     Projects ||--|{ Tasks : "contains"
-    Projects ||--|| Teams : "managed by"
-    Projects ||--|| Posts : "promoted via"
+    Projects ||--o| Teams : "managed by"
+    Projects ||--o| Posts : "promoted via"
+    Projects ||--|{ Reviews : "receives"
+    Projects ||--|{ CollaborationRequests : "receives"
+    Projects ||--|{ ChatMessages : "has chat"
+    Projects ||--|{ ProjectFiles : "contains"
 
-    Teams ||--|| Posts : "recruits via"
+    Teams ||--o| Posts : "recruits via"
 
-    Posts ||--|{ CollaborationRequests : "receives"
+    Posts ||--|{ CollaborationRequests : "triggers"
+
     CollaborationRequests }|--|| Profiles : "requested by"
+
+    Skills }o--|| SkillDefinitions : "defined by"
+
+    Reviews }o--|| Profiles : "written by"
+    Reviews }o--|| Profiles : "targets"
+    Reviews }o--|| Projects : "for project"
+
+    ChatMessages }|--|{ Profiles : "read by"
 
     Users {
         UUID id PK
-        string username
-        string email
+        string username UK
+        string email UK
         string password
         boolean isVerified
         datetime deletedAt
@@ -100,40 +173,153 @@ erDiagram
 
     Profiles {
         UUID id PK
+        UUID user_id FK
         string firstname
         string lastname
         string bio
         string education
+        string location
+        string phone
         string profilePictureUrl
         int completionPercentage
+        boolean notificationsEnabled
+        datetime deletedAt
     }
 
     Projects {
         UUID id PK
+        UUID profile_id FK "createdBy"
+        long team_id FK
+        UUID post_id FK
         string title
         string description
         string status
+        string level
         int teamSize
         datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
     }
 
     Teams {
         long id PK
+        UUID profile_id FK "createdBy"
+        UUID owner_id FK "owner"
         string teamName
         string status
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
     }
 
     Tasks {
-        long id PK
+        UUID id PK
+        UUID project_id FK
+        UUID assigned_to FK
+        string title
+        string description
+        string status
+        string priority
+        datetime deadline
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Posts {
+        UUID id PK
+        UUID profile_id FK "author"
+        UUID project_id FK
+        long team_id FK
+        string postType
         string title
         string status
-        datetime dueDate
+        datetime createdAt
+    }
+
+    CollaborationRequests {
+        long id PK
+        UUID project_id FK
+        UUID profile_id FK "requester"
+        string status
+        string message
+        string rejectionReason
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Reviews {
+        UUID id PK
+        UUID reviewer_id FK
+        UUID reviewed_id FK
+        UUID project_id FK
+        int rating
+        string comment
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    RefreshTokens {
+        long id PK
+        UUID user_id FK
+        string token UK
+        datetime expiryDate
+        datetime createdAt
+    }
+
+    Notifications {
+        UUID id PK
+        UUID recipient_id FK
+        string type
+        boolean isRead
+        UUID relatedEntityId
+        string relatedEntityType
+        string payload
+        datetime createdAt
+    }
+
+    ChatMessages {
+        UUID id PK
+        UUID project_id FK
+        UUID sender_id FK
+        string content
+        datetime createdAt
+    }
+
+    ProjectFiles {
+        UUID id PK
+        UUID project_id FK
+        UUID uploaded_by_id FK
+        string fileName
+        string fileUrl
+        string fileType
+        long size
+        datetime createdAt
     }
 
     Skills {
-        long id PK
-        string name
+        UUID id PK
+        UUID profile_id FK
+        UUID skill_definition_id FK
         string proficiency
+        datetime createdAt
+    }
+
+    SkillDefinitions {
+        UUID id PK
+        string name UK
+        string category
+    }
+
+    SocialLinks {
+        UUID id PK
+        UUID profile_id FK
+        string platform
+        string url
+    }
+
+    Roles {
+        long id PK
+        string name UK
     }
 ```
 
