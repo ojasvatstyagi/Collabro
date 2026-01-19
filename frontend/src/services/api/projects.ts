@@ -204,6 +204,14 @@ class ProjectsApi extends BaseApi {
     return this.get<any[]>(`/projects/${projectId}/team`);
   }
 
+  // Remove team member
+  async removeTeamMember(
+    projectId: string,
+    userId: string
+  ): Promise<ApiResponse<void>> {
+    return this.delete<void>(`/projects/${projectId}/team/${userId}`);
+  }
+
   // Get project categories
   async getCategories(): Promise<ApiResponse<string[]>> {
     return {

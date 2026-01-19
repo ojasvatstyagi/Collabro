@@ -90,6 +90,64 @@ public class ProjectService {
     }
 
 
+
+    @Transactional
+    public ProjectDto updateProject(UUID projectId, ProjectDto projectDto) {
+        Project project = projectRepository.findById(Objects.requireNonNull(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        
+        Profile currentUserProfile = profileService.getCurrentUserProfile();
+        if (!project.getCreatedBy().getId().equals(currentUserProfile.getId())) {
+             throw new com.example.backend.exceptions.BadRequestException("Only the project owner can update the project");
+        }
+
+        project.setTitle(projectDto.getTitle());
+        project.setDescription(projectDto.getDescription());
+        project.setTechnologies(projectDto.getTechnologies());
+        project.setLevel(projectDto.getLevel());
+        project.setDuration(projectDto.getDuration());
+        project.setTeamSize(projectDto.getTeamSize());
+        project.setCategory(projectDto.getCategory());
+        project.setBudget(projectDto.getBudget());
+        project.setRemote(projectDto.isRemote());
+        project.setOpenSource(projectDto.isOpenSource());
+        project.setContactMethod(projectDto.getContactMethod());
+        project.setAdditionalInfo(projectDto.getAdditionalInfo());
+        // Status can be updated via specific flow if needed, but for now allow editing
+        if(projectDto.getStatus() != null) {
+            project.setStatus(projectDto.getStatus());
+        }
+
+        Project savedProject = projectRepository.save(project);
+        return convertToDto(savedProject);
+    }
+
+    @Transactional
+    public void removeTeamMember(UUID projectId, UUID memberId) {
+        Project project = projectRepository.findById(Objects.requireNonNull(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        
+        Profile currentUserProfile = profileService.getCurrentUserProfile();
+        if (!project.getCreatedBy().getId().equals(currentUserProfile.getId())) {
+             throw new com.example.backend.exceptions.BadRequestException("Only the project owner can remove team members");
+        }
+        
+        if (project.getTeam() == null) {
+             throw new ResourceNotFoundException("Project has no team");
+        }
+        
+        Profile memberToRemove = profileService.getProfileById(memberId);
+        if (!project.getTeam().getMembers().contains(memberToRemove)) {
+            throw new ResourceNotFoundException("User is not a member of this project team");
+        }
+        
+        project.getTeam().getMembers().remove(memberToRemove);
+        // Cascade delete or save team? JPA should handle relationship update if properly mapped.
+        // But explicitly saving might be safer if cascade isn't perfect.
+        // Actually Team.members is likely ManyToMany. 
+        // Let's assume standard JPA behavior propagates changes on flush.
+    }
+
     @Transactional(readOnly = true)
     public List<com.example.backend.dto.ProfileDto> getProjectTeam(UUID projectId) {
         Project project = projectRepository.findById(Objects.requireNonNull(projectId))

@@ -98,9 +98,23 @@ public class ProjectController {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskService.createTask(id, taskDto));
     }
 
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update project", description = "Update project details")
+    public ResponseEntity<ProjectDto> updateProject(@PathVariable UUID id, @RequestBody ProjectDto projectDto) {
+        return ResponseEntity.ok(projectService.updateProject(id, projectDto));
+    }
+
     @GetMapping("/{id}/team")
     @Operation(summary = "Get project team", description = "Retrieve team members for a specific project")
     public ResponseEntity<List<com.example.backend.dto.ProfileDto>> getProjectTeam(@PathVariable UUID id) {
         return ResponseEntity.ok(projectService.getProjectTeam(id));
+    }
+
+    @DeleteMapping("/{id}/team/{userId}")
+    @Operation(summary = "Remove team member", description = "Remove a member from the project team")
+    public ResponseEntity<Void> removeTeamMember(@PathVariable UUID id, @PathVariable UUID userId) {
+        projectService.removeTeamMember(id, userId);
+        return ResponseEntity.noContent().build();
     }
 }

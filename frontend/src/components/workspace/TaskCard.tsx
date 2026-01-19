@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Trash2 } from 'lucide-react';
+import { Users, Trash2, Edit } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import {
   getStatusColor,
@@ -10,14 +10,16 @@ import { Task } from '../../services/api/projects';
 
 interface TaskCardProps {
   task: Task;
-  onStatusChange: (taskId: string, newStatus: string) => void;
+  onUpdateStatus: (taskId: string, newStatus: string) => void;
   onDelete: (taskId: string) => void;
+  onEdit: (task: Task) => void;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
   task,
-  onStatusChange,
+  onUpdateStatus,
   onDelete,
+  onEdit,
 }) => {
   const StatusIcon = getStatusIcon(task.status);
 
@@ -26,14 +28,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <StatusIcon className={cn('h-4 w-4', getStatusColor(task.status))} />
-          <h3 className="font-medium text-brand-dark dark:text-gray-100">
+          <h3 className="font-medium text-brand-dark dark:text-gray-100 line-clamp-1">
             {task.title}
           </h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <span
             className={cn(
-              'rounded-full px-2 py-1 text-xs font-medium',
+              'rounded-full px-2 py-1 text-xs font-medium mr-1',
               getPriorityColor(task.priority)
             )}
           >
@@ -41,8 +43,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </span>
 
           <button
+            onClick={() => onEdit(task)}
+            className="p-1 text-gray-400 hover:text-brand-orange transition-colors"
+            title="Edit Task"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => onDelete(task.id)}
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
             title="Delete Task"
           >
             <Trash2 className="h-4 w-4" />
@@ -50,7 +59,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         </div>
       </div>
 
-      <p className="text-sm text-brand-dark/60 dark:text-gray-300 mb-3">
+      <p className="text-sm text-brand-dark/60 dark:text-gray-300 mb-3 line-clamp-2">
         {task.description}
       </p>
 
@@ -69,7 +78,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <div className="flex items-center gap-2">
           <select
             value={task.status}
-            onChange={(e) => onStatusChange(task.id, e.target.value)}
+            onChange={(e) => onUpdateStatus(task.id, e.target.value)}
             className="text-xs rounded border border-gray-200 bg-gray-50 px-2 py-1 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
           >
             <option value="PENDING">Pending</option>
