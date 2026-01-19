@@ -13,6 +13,7 @@ interface TasksTabProps {
   onOpenCreateModal: () => void;
   onUpdateStatus: (taskId: string, newStatus: string) => void;
   onDeleteTask: (taskId: string) => void;
+  onEditTask: (task: Task) => void;
 }
 
 const TasksTab: React.FC<TasksTabProps> = ({
@@ -24,6 +25,7 @@ const TasksTab: React.FC<TasksTabProps> = ({
   onOpenCreateModal,
   onUpdateStatus,
   onDeleteTask,
+  onEditTask,
 }) => {
   const filteredTasks = tasks.filter((task) => {
     const matchesStatus =
@@ -70,19 +72,22 @@ const TasksTab: React.FC<TasksTabProps> = ({
       </div>
 
       {filteredTasks.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredTasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
-              onStatusChange={onUpdateStatus}
+              onUpdateStatus={onUpdateStatus}
               onDelete={onDeleteTask}
+              onEdit={onEditTask}
             />
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 text-gray-500">
-          <p>No tasks found. Create one to get started!</p>
+        <div className="col-span-full py-12 text-center text-gray-500">
+          {tasks.length === 0
+            ? 'No tasks created yet.'
+            : 'No tasks found matching your filters.'}
         </div>
       )}
     </div>

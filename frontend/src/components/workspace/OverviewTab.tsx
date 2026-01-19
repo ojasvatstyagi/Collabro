@@ -1,20 +1,42 @@
 import React from 'react';
-import { Users } from 'lucide-react';
+import { Users, Edit, Trash2 } from 'lucide-react';
 import { Project } from '../../services/api/projects';
+import Button from '../ui/Button';
 
 interface OverviewTabProps {
   project: Project;
   team: any[];
+  isOwner: boolean;
+  onEditProject: () => void;
+  onRemoveMember: (memberId: string) => void;
 }
 
-const OverviewTab: React.FC<OverviewTabProps> = ({ project, team }) => {
+const OverviewTab: React.FC<OverviewTabProps> = ({
+  project,
+  team,
+  isOwner,
+  onEditProject,
+  onRemoveMember,
+}) => {
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-6">
         <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200 dark:bg-brand-dark-lighter dark:border-gray-600">
-          <h2 className="text-lg font-semibold text-brand-dark dark:text-gray-100 mb-4">
-            Project Overview
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-brand-dark dark:text-gray-100">
+              Project Overview
+            </h2>
+            {isOwner && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onEditProject}
+                leftIcon={<Edit className="h-3 w-3" />}
+              >
+                Edit
+              </Button>
+            )}
+          </div>
           <p className="text-brand-dark/80 dark:text-gray-200 mb-6 whitespace-pre-wrap">
             {project.description}
           </p>
@@ -67,23 +89,40 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ project, team }) => {
           {team.length > 0 ? (
             <div className="space-y-3">
               {team.map((member: any, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                    {member.profilePictureUrl ? (
-                      <img
-                        src={member.profilePictureUrl}
-                        alt=""
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <Users className="h-5 w-5" />
-                    )}
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-3 group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                      {member.profilePictureUrl ? (
+                        <img
+                          src={member.profilePictureUrl}
+                          alt=""
+                          className="h-full w-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <Users className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-brand-dark dark:text-gray-100">
+                        {member.firstname} {member.lastname}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        @{member.username}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-brand-dark dark:text-gray-100">
-                      {member.firstname} {member.lastname}
-                    </p>
-                  </div>
+                  {isOwner && (
+                    <button
+                      onClick={() => onRemoveMember(member.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                      title="Remove Member"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
