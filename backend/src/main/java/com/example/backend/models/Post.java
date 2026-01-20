@@ -15,7 +15,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "posts", indexes = {
+    @Index(name = "idx_post_profile", columnList = "profile_id"),
+    @Index(name = "idx_post_status", columnList = "status"),
+    @Index(name = "idx_post_type", columnList = "postType"),
+    @Index(name = "idx_post_created", columnList = "created_at")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -64,5 +69,18 @@ public class Post {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "team_id")
     private Team team;
+
+    @PrePersist
+    @PreUpdate
+    private void validatePostTarget() {
+        boolean hasProject = project != null;
+        boolean hasTeam = team != null;
+        
+        if (hasProject == hasTeam) { // Both true or both false
+            throw new IllegalStateException(
+                "Post must be linked to either a Project OR a Team, not both or neither"
+            );
+        }
+    }
 
 }

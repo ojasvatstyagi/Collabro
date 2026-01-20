@@ -13,7 +13,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "teams")
+@Table(name = "teams", indexes = {
+    @Index(name = "idx_team_profile", columnList = "profile_id"),
+    @Index(name = "idx_team_owner", columnList = "owner_id"),
+    @Index(name = "idx_team_status", columnList = "status")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -36,6 +40,12 @@ public class Team {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false)
+    private Profile owner;
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToOne(mappedBy = "team")
     private Post post;
 
@@ -53,5 +63,13 @@ public class Team {
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
+    @org.hibernate.annotations.UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
 }

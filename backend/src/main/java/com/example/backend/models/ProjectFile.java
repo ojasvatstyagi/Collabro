@@ -12,7 +12,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "project_files")
+@Table(name = "project_files", indexes = {
+    @Index(name = "idx_file_project", columnList = "project_id"),
+    @Index(name = "idx_file_uploader", columnList = "uploaded_by_id"),
+    @Index(name = "idx_file_created", columnList = "created_at")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -15,7 +15,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "projects")
+@Table(name = "projects", indexes = {
+    @Index(name = "idx_project_profile", columnList = "profile_id"),
+    @Index(name = "idx_project_status", columnList = "status"),
+    @Index(name = "idx_project_team", columnList = "team_id"),
+    @Index(name = "idx_project_created", columnList = "created_at")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -63,6 +68,11 @@ public class Project {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
+    @org.hibernate.annotations.UpdateTimestamp
+    private LocalDateTime updatedAt;
+
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToOne
@@ -89,5 +99,11 @@ public class Project {
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CollaborationRequest> collaborationRequests;
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProjectFile> files;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
 }
