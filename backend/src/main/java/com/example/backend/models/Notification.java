@@ -9,7 +9,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", indexes = {
+    @Index(name = "idx_notification_recipient", columnList = "recipient_id"),
+    @Index(name = "idx_notification_read", columnList = "isRead"),
+    @Index(name = "idx_notification_created", columnList = "created_at"),
+    @Index(name = "idx_notification_entity", columnList = "related_entity_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,6 +36,12 @@ public class Notification {
     @Column(nullable = false)
     @Builder.Default
     private boolean isRead = false;
+
+    @Column(name = "related_entity_id")
+    private UUID relatedEntityId;
+
+    @Column(name = "related_entity_type", length = 50)
+    private String relatedEntityType; // e.g., "PROJECT", "TEAM", "TASK"
 
     @Column(columnDefinition = "TEXT")
     private String payload;

@@ -12,7 +12,17 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "reviews")
+@Table(name = "reviews", 
+    indexes = {
+        @Index(name = "idx_review_reviewer", columnList = "reviewer_id"),
+        @Index(name = "idx_review_reviewed", columnList = "reviewed_id"),
+        @Index(name = "idx_review_project", columnList = "project_id")
+    },
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_review_unique",
+        columnNames = {"reviewer_id", "reviewed_id", "project_id"}
+    )
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,6 +41,11 @@ public class Review {
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
+    @org.hibernate.annotations.UpdateTimestamp
+    private LocalDateTime updatedAt;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

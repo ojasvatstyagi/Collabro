@@ -12,7 +12,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "chat_messages")
+@Table(name = "chat_messages", indexes = {
+    @Index(name = "idx_chat_project", columnList = "project_id"),
+    @Index(name = "idx_chat_sender", columnList = "sender_id"),
+    @Index(name = "idx_chat_created", columnList = "created_at")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,4 +44,9 @@ public class ChatMessage {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
     private Profile sender;
+
+    @ElementCollection
+    @CollectionTable(name = "chat_message_read_by", joinColumns = @JoinColumn(name = "message_id"))
+    @Column(name = "profile_id")
+    private java.util.Set<UUID> readBy = new java.util.HashSet<>();
 }

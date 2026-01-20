@@ -15,7 +15,12 @@ import java.time.LocalDateTime;
 import static com.example.backend.enums.RequestStatus.PENDING;
 
 @Entity
-@Table(name = "requests")
+@Table(name = "requests", indexes = {
+    @Index(name = "idx_request_project", columnList = "project_id"),
+    @Index(name = "idx_request_profile", columnList = "profile_id"),
+    @Index(name = "idx_request_status", columnList = "status"),
+    @Index(name = "idx_request_created", columnList = "created_at")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,6 +38,10 @@ public class CollaborationRequest {
     @ManyToOne
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile requester;
+
+    @ManyToOne
+@JoinColumn(name = "post_id")
+private Post post;
 
     @Enumerated(EnumType.STRING)
     private RequestStatus status = PENDING; // PENDING, ACCEPTED, REJECTED, ON_HOLD

@@ -131,6 +131,9 @@ public class Profile {
     @Builder.Default
     private List<Review> givenReviews = new ArrayList<>();
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     // Helper method to calculate completion
     public void calculateCompletion() {
         int total = 0;

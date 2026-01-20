@@ -15,7 +15,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tasks")
+@Table(name = "tasks", indexes = {
+    @Index(name = "idx_task_project", columnList = "project_id"),
+    @Index(name = "idx_task_assigned", columnList = "assigned_to"),
+    @Index(name = "idx_task_status", columnList = "status"),
+    @Index(name = "idx_task_deadline", columnList = "deadline")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -52,6 +57,11 @@ public class Task {
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "deadline", nullable = false)
     private LocalDateTime deadline;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "updated_at")
+    @org.hibernate.annotations.UpdateTimestamp
+    private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
