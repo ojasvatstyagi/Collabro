@@ -3,7 +3,6 @@ package com.example.backend.services;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -62,8 +61,5 @@ class EmailServiceTest {
 
         // Assert
         verify(mailSender).send(Objects.requireNonNull(mimeMessage));
-        ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
-        verify(mailSender).send(Objects.requireNonNull(messageCaptor.capture()));
-        // Can't verify exact HTML content without parsing it
     }
 }

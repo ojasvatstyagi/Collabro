@@ -113,7 +113,7 @@ class SkillServiceTest {
 
         when(profileService.getCurrentUserProfile()).thenReturn(testProfile);
         when(skillDefinitionRepository.findByNormalizedName("python")).thenReturn(Optional.of(pythonDef));
-        when(skillRepository.save(Objects.requireNonNull(any(Skill.class)))).thenReturn(savedSkill);
+        when(skillRepository.save(any(Skill.class))).thenReturn(savedSkill);
         when(modelMapper.map(savedSkill, SkillDto.class)).thenReturn(expectedDto);
 
         // Act
@@ -124,9 +124,8 @@ class SkillServiceTest {
         assertEquals("Python", result.getName());
         verify(profileService).saveProfile(testProfile);
         verify(skillRepository)
-                .save(Objects.requireNonNull(
-                        argThat(skill -> skill != null && skill.getName().equals("Python")
-                                && skill.getProfile().equals(testProfile))));
+                .save(argThat(skill -> skill != null && skill.getName().equals("Python")
+                        && skill.getProfile().equals(testProfile)));
     }
 
     @Test
