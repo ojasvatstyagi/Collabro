@@ -21,9 +21,16 @@ public class RefreshToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    /** SHA-256 hex of the refresh JWT: the raw token is never stored. */
     @Column(nullable = false, unique = true, length = 500)
     private String token;
-    
+
+    /** Hash of the token this one replaced on its last rotation; used to detect replay of a rotated token. */
+    @Column(length = 500)
+    private String previousToken;
+
+    private LocalDateTime rotatedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

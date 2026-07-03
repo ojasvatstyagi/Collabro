@@ -75,12 +75,6 @@ public class Project {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToOne
-    @JoinColumn(name = "post_id", nullable = true)
-    private Post post;
-
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile createdBy;
@@ -93,9 +87,6 @@ public class Project {
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
-
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> reviews;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CollaborationRequest> collaborationRequests;

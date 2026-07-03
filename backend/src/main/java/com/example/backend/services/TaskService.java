@@ -3,6 +3,7 @@ package com.example.backend.services;
 import com.example.backend.dto.TaskDto; // Need to create this
 import com.example.backend.enums.TaskPriority;
 import com.example.backend.enums.TaskStatus;
+import com.example.backend.exceptions.BadRequestException;
 import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.Project;
@@ -25,15 +26,20 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final ProfileService profileService;
+    private final ProjectAccessService projectAccessService;
 
     @Transactional
     public TaskDto createTask(UUID projectId, TaskDto taskDto) {
         Project project = projectRepository.findById(Objects.requireNonNull(projectId))
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        
+        projectAccessService.requireMember(project);
+        if (taskDto.getTitle() == null || taskDto.getTitle().isBlank()) {
+            throw new BadRequestException("Task title is required");
+        }
+
         Profile assignee = null;
         if (taskDto.getAssigneeId() != null) {
-            assignee = profileService.getProfileById(taskDto.getAssigneeId());
+            assignee = resolveAssignee(project, taskDto.getAssigneeId());
         }
 
         Task task = new Task();
@@ -54,8 +60,14 @@ public class TaskService {
     public TaskDto updateTask(UUID taskId, TaskDto taskDto) {
         Task task = taskRepository.findById(Objects.requireNonNull(taskId))
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+        projectAccessService.requireMember(task.getProject());
 
-        if (taskDto.getTitle() != null) task.setTitle(taskDto.getTitle());
+        if (taskDto.getTitle() != null) {
+            if (taskDto.getTitle().isBlank()) {
+                throw new BadRequestException("Task title cannot be blank");
+            }
+            task.setTitle(taskDto.getTitle());
+        }
         if (taskDto.getDescription() != null) task.setDescription(taskDto.getDescription());
         if (taskDto.getStatus() != null) task.setStatus(taskDto.getStatus());
         if (taskDto.getPriority() != null) task.setPriority(taskDto.getPriority());
@@ -63,8 +75,7 @@ public class TaskService {
         if (taskDto.getDueDate() != null) task.setDeadline(taskDto.getDueDate());
         
         if (taskDto.getAssigneeId() != null) {
-             Profile assignee = profileService.getProfileById(taskDto.getAssigneeId());
-             task.setAssignedTo(assignee);
+             task.setAssignedTo(resolveAssignee(task.getProject(), taskDto.getAssigneeId()));
         }
 
         Task updatedTask = taskRepository.save(Objects.requireNonNull(task));
@@ -73,17 +84,28 @@ public class TaskService {
     
     @Transactional
     public void deleteTask(UUID taskId) {
-        if (!taskRepository.existsById(Objects.requireNonNull(taskId))) {
-            throw new ResourceNotFoundException("Task not found");
-        }
-        taskRepository.deleteById(taskId);
+        Task task = taskRepository.findById(Objects.requireNonNull(taskId))
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+        projectAccessService.requireMember(task.getProject());
+        taskRepository.delete(task);
     }
-    
+
     @Transactional(readOnly = true)
     public List<TaskDto> getTasksByProject(UUID projectId) {
-        return taskRepository.findByProjectId(Objects.requireNonNull(projectId)).stream()
+        Project project = projectRepository.findById(Objects.requireNonNull(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        projectAccessService.requireMember(project);
+        return taskRepository.findByProjectId(projectId).stream()
                 .map(this::convertToDto)
                 .toList();
+    }
+
+    private Profile resolveAssignee(Project project, UUID assigneeId) {
+        Profile assignee = profileService.getProfileById(assigneeId);
+        if (!projectAccessService.isMember(project, assignee)) {
+            throw new BadRequestException("Assignee must be a member of the project");
+        }
+        return assignee;
     }
 
     private TaskDto convertToDto(Task task) {
@@ -98,7 +120,7 @@ public class TaskService {
                 .createdAt(task.getCreatedAt())
                 .assigneeId(task.getAssignedTo() != null ? task.getAssignedTo().getId() : null)
                 .assigneeName(task.getAssignedTo() != null ? task.getAssignedTo().getFirstname() + " " + task.getAssignedTo().getLastname() : null)
-                .assigneeAvatar(task.getAssignedTo() != null ? task.getAssignedTo().getProfilePictureUrl() : null)
+                .assigneeAvatar(task.getAssignedTo() != null ? ProfileService.publicPictureUrl(task.getAssignedTo().getProfilePictureUrl()) : null)
                 .projectId(task.getProject().getId())
                 .build();
     }

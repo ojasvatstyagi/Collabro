@@ -32,5 +32,11 @@ public class PasswordToken {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TokenType tokenType;
+
+    /** Wrong guesses so far; the token is burned once this reaches the service's limit. */
+    @Column(nullable = false, columnDefinition = "int not null default 0")
+    private int attempts = 0;
+
+    private LocalDateTime createdAt;
 }
 

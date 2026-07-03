@@ -36,11 +36,6 @@ public class Task {
     private String description;
 
     @ElementCollection
-    @CollectionTable(name = "task_media_urls", joinColumns = @JoinColumn(name = "task_id"))
-    @Column(name = "media_url")
-    private List<String> mediaUrls;
-
-    @ElementCollection
     @CollectionTable(name = "task_tags", joinColumns = @JoinColumn(name = "task_id"))
     @Column(name = "tag")
     private List<String> tags;

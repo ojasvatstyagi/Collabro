@@ -10,4 +10,6 @@ import java.util.UUID;
 @Repository
 public interface ProjectFileRepository extends JpaRepository<ProjectFile, UUID> {
     List<ProjectFile> findByProjectIdOrderByCreatedAtDesc(UUID projectId);
+    List<ProjectFile> findByUploadedById(UUID profileId);
+    long countByUploadedById(UUID profileId);
 }

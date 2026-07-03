@@ -3,8 +3,7 @@ package com.example.backend.enums;
 public enum RequestStatus {
     PENDING("Pending"),
     APPROVED("Approved"),
-    REJECTED("Rejected"),
-    ON_HOLD("On Hold");
+    REJECTED("Rejected");
 
     private final String displayName;
 

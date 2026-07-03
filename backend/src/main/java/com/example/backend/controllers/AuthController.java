@@ -1,13 +1,12 @@
 package com.example.backend.controllers;
 
 import com.example.backend.dto.*;
-import com.example.backend.exceptions.TokenRefreshException;
-import com.example.backend.models.RefreshToken;
 import com.example.backend.models.User;
-import com.example.backend.repositories.RefreshTokenRepository;
 import com.example.backend.security.JwtTokenProvider;
+import com.example.backend.services.AccountService;
 import com.example.backend.services.PasswordService;
 import com.example.backend.services.ProfileService;
+import com.example.backend.services.RefreshTokenService;
 import com.example.backend.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,7 +31,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin
 @Slf4j
 public class AuthController {
 
@@ -40,15 +38,26 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final ProfileService profileService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
     private final PasswordService passwordService;
+    private final AccountService accountService;
     private final ModelMapper modelMapper;
-    
+
+    // Checked against when the username is unknown, so a missing user costs the same time as a wrong password
+    private volatile String dummyPasswordHash;
+
     @Value("${jwt.cookie.name}")
     private String refreshTokenCookieName;
     
     @Value("${jwt.cookie.max-age}")
     private int refreshTokenCookieMaxAge;
+
+    // Behind a TLS-terminating proxy the request itself looks insecure, so production sets this explicitly
+    @Value("${jwt.cookie.secure:false}")
+    private boolean refreshTokenCookieSecure;
+
+    @Value("${jwt.cookie.same-site:Lax}")
+    private String refreshTokenCookieSameSite;
 
     @Value("${jwt.access-token-expiration}")
     private long jwtExpirationMs;
@@ -82,7 +91,12 @@ public class AuthController {
             HttpServletResponse response) {
         log.info("Attempting login for user: {}", loginRequest.getUsername());
         Optional<User> userOpt = userService.findUserByUsername(loginRequest.getUsername());
-        if (userOpt.isEmpty() || !passwordEncoder.matches(loginRequest.getPassword(), userOpt.get().getPassword())) {
+        if (userOpt.isEmpty()) {
+            passwordEncoder.matches(loginRequest.getPassword(), dummyHash());
+            log.warn("Invalid credentials for user: {}", loginRequest.getUsername());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MESSAGE_KEY, "Invalid credentials"));
+        }
+        if (!passwordEncoder.matches(loginRequest.getPassword(), userOpt.get().getPassword())) {
             log.warn("Invalid credentials for user: {}", loginRequest.getUsername());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MESSAGE_KEY, "Invalid credentials"));
         }
@@ -92,32 +106,11 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MESSAGE_KEY, "Email not verified"));
         }
 
-        // Generate access and refresh tokens
+        // Generate access and refresh tokens; the refresh token is stored hashed, replacing any previous one
         String accessToken = jwtTokenProvider.generateAccessToken(user.getUsername());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUsername());
-        
-        // Delete old refresh tokens for this user
-        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
-        
-        // Save new refresh token to database
-        RefreshToken refreshTokenEntity = RefreshToken.builder()
-                .token(refreshToken)
-                .user(user)
-                .expiryDate(java.time.LocalDateTime.now().plusDays(7))
-                .build();
-        refreshTokenRepository.save(Objects.requireNonNull(refreshTokenEntity));
-        
-        // Set refresh token as HTTP-only cookie
-        boolean secure = request.isSecure();
-        ResponseCookie cookie = ResponseCookie.from(Objects.requireNonNull(refreshTokenCookieName), Objects.requireNonNull(refreshToken))
-                .httpOnly(true)
-                .secure(secure)
-                .path("/")
-                .maxAge(refreshTokenCookieMaxAge)
-                .sameSite(secure ? "None" : "Lax")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        
+        String refreshToken = refreshTokenService.issue(user);
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie(refreshToken, request).toString());
+
         log.info("Login successful for user: {}", loginRequest.getUsername());
         UserDto dto = convertToDto(user);
 
@@ -125,14 +118,39 @@ public class AuthController {
             "user", dto,
             "accessToken", accessToken,
             "tokenType", "Bearer",
-            "expiresIn", 900
+            "expiresIn", accessTokenLifetimeSeconds()
         ));
+    }
+
+    private String dummyHash() {
+        if (dummyPasswordHash == null) {
+            dummyPasswordHash = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
+        }
+        return dummyPasswordHash;
+    }
+
+    private long accessTokenLifetimeSeconds() {
+        return jwtExpirationMs / 1000;
+    }
+
+    private ResponseCookie refreshCookie(String value, HttpServletRequest request) {
+        boolean secure = refreshTokenCookieSecure || request.isSecure();
+        // Browsers drop SameSite=None cookies that are not Secure, so fall back to Lax in that case
+        String sameSite = !secure && "None".equalsIgnoreCase(refreshTokenCookieSameSite) ? "Lax"
+                : refreshTokenCookieSameSite;
+        return ResponseCookie.from(Objects.requireNonNull(refreshTokenCookieName), Objects.requireNonNull(value))
+                .httpOnly(true)
+                .secure(secure)
+                .path("/")
+                .maxAge(value.isEmpty() ? 0 : refreshTokenCookieMaxAge)
+                .sameSite(sameSite)
+                .build();
     }
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
         String jwt = parseJwt(request);
-        if (jwt != null && jwtTokenProvider.validateToken(jwt)) {
+        if (jwt != null && jwtTokenProvider.validateAccessToken(jwt)) {
             String username = jwtTokenProvider.getUsernameFromToken(jwt);
             Optional<User> userOpt = userService.findUserByUsername(username);
             if (userOpt.isPresent()) {
@@ -143,28 +161,23 @@ public class AuthController {
     }
     
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken", required = false) String refreshToken) {
+    public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken", required = false) String refreshToken,
+            HttpServletRequest request, HttpServletResponse response) {
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", "Refresh token not found"));
         }
-        
-        RefreshToken tokenEntity = refreshTokenRepository.findByToken(refreshToken)
-            .orElseThrow(() -> new TokenRefreshException("Invalid refresh token"));
-        
-        if (tokenEntity.isExpired()) {
-            refreshTokenRepository.delete(tokenEntity);
-            throw new TokenRefreshException("Refresh token expired. Please login again.");
+
+        // Single-use refresh token: validates it, swaps in a new one, and rejects replays
+        RefreshTokenService.Rotation rotation = refreshTokenService.rotate(refreshToken);
+        if (rotation.refreshToken() != null) {
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie(rotation.refreshToken(), request).toString());
         }
-        
-        String newAccessToken = jwtTokenProvider.generateAccessToken(
-            tokenEntity.getUser().getUsername()
-        );
-        
+
         return ResponseEntity.ok(Map.of(
-            "accessToken", newAccessToken,
+            "accessToken", rotation.accessToken(),
             "tokenType", "Bearer",
-            "expiresIn", 900
+            "expiresIn", accessTokenLifetimeSeconds()
         ));
     }
 
@@ -173,12 +186,6 @@ public class AuthController {
 
         if (org.springframework.util.StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
-        } else if (request.getCookies() != null) {
-            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                if ("jwt".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
         }
         return null;
     }
@@ -218,21 +225,27 @@ public class AuthController {
         
         // Delete refresh token from database
         if (refreshToken != null) {
-            refreshTokenRepository.deleteByToken(refreshToken);
+            refreshTokenService.revoke(refreshToken);
         }
-        
+
         // Clear refresh token cookie
-        boolean secure = request.isSecure();
-        ResponseCookie cookie = ResponseCookie.from(Objects.requireNonNull(refreshTokenCookieName), "")
-                .httpOnly(true)
-                .secure(secure)
-                .path("/")
-                .maxAge(0)
-                .sameSite(secure ? "None" : "Lax")
-                .build();
-        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.setHeader(HttpHeaders.SET_COOKIE, refreshCookie("", request).toString());
         
         return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Logout successful"));
+    }
+
+    // Needs a logged-in user even though /api/auth/** is public: SecurityConfig requires authentication for this path
+    @PutMapping("/change-password")
+    @Operation(summary = "Change password", description = "Changes the current user's password and signs out their other sessions")
+    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordRequest changeRequest,
+            HttpServletRequest request, HttpServletResponse response) {
+        User user = userService.getCurrentUser();
+        accountService.changePassword(user, changeRequest.getCurrentPassword(), changeRequest.getNewPassword());
+
+        // Every other session of this user ends; this device gets a fresh one so it stays signed in
+        String refreshToken = refreshTokenService.issue(user);
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie(refreshToken, request).toString());
+        return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Password changed"));
     }
 
     @PostMapping("/forgot-password")
@@ -244,19 +257,18 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     @Operation(summary = "Verify OTP", description = "Validates the provided OTP for password reset")
-    public ResponseEntity<Map<String, String>> verifyOtp(@RequestParam String email, @RequestParam String otp) {
-        if (passwordService.validateOtp(Objects.requireNonNull(email), Objects.requireNonNull(otp)))
+    public ResponseEntity<Map<String, String>> verifyOtp(@Valid @RequestBody OtpVerificationRequest request) {
+        if (passwordService.validateOtp(Objects.requireNonNull(request.getEmail()),
+                Objects.requireNonNull(request.getOtp())))
             return ResponseEntity.ok(Map.of(MESSAGE_KEY, "OTP verified"));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, "Invalid or expired OTP"));
     }
 
     @PostMapping("/reset-password")
     @Operation(summary = "Reset Password", description = "Resets the user's password using a valid OTP")
-    public ResponseEntity<Map<String, String>> resetPassword(@RequestParam String email,
-            @RequestParam String otp,
-            @RequestParam String newPassword) {
-        boolean success = passwordService.resetPassword(Objects.requireNonNull(email), Objects.requireNonNull(otp),
-                Objects.requireNonNull(newPassword));
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        boolean success = passwordService.resetPassword(Objects.requireNonNull(request.getEmail()),
+                Objects.requireNonNull(request.getOtp()), Objects.requireNonNull(request.getNewPassword()));
         if (success)
             return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Password reset successful"));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, "Failed to reset password"));
@@ -264,10 +276,10 @@ public class AuthController {
 
     @PostMapping("/verify-registration-otp")
     @Operation(summary = "Verify Registration OTP", description = "Verifies the OTP sent to user's email after registration to activate the account")
-    public ResponseEntity<Map<String, String>> verifyRegistrationOtp(@RequestParam String email,
-            @RequestParam String otp) {
-        boolean verified = passwordService.verifyRegistrationOtp(Objects.requireNonNull(email),
-                Objects.requireNonNull(otp));
+    public ResponseEntity<Map<String, String>> verifyRegistrationOtp(
+            @Valid @RequestBody OtpVerificationRequest request) {
+        boolean verified = passwordService.verifyRegistrationOtp(Objects.requireNonNull(request.getEmail()),
+                Objects.requireNonNull(request.getOtp()));
         if (verified)
             return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Email verification successful"));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MESSAGE_KEY, "Invalid or expired OTP"));

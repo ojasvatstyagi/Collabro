@@ -47,7 +47,7 @@ public class ProfilePictureController {
 
         Resource resource = fileStorageService.loadFileAsResource(profile.getProfilePictureUrl());
         return ResponseEntity.ok()
-                .contentType(Objects.requireNonNull(MediaType.IMAGE_JPEG)) // You might want to detect type dynamically
+                .contentType(MediaType.parseMediaType(FileStorageService.pictureContentType(profile.getProfilePictureUrl())))
                 .body(resource);
     }
 
@@ -59,7 +59,7 @@ public class ProfilePictureController {
         Resource resource = fileStorageService.loadFileAsResource(filePath);
 
         return ResponseEntity.ok()
-                .contentType(Objects.requireNonNull(MediaType.IMAGE_JPEG)) // Ideally detect content type
+                .contentType(MediaType.parseMediaType(FileStorageService.pictureContentType(fileName)))
                 .body(resource);
     }
 

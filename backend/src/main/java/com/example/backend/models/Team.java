@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -44,11 +45,6 @@ public class Team {
     @JoinColumn(name = "owner_id", nullable = false)
     private Profile owner;
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @OneToOne(mappedBy = "team")
-    private Post post;
-
     // Optional project linked to this team
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -57,7 +53,7 @@ public class Team {
 
     @ManyToMany
     @JoinTable(name = "team_members", joinColumns = @JoinColumn(name = "team_id"), inverseJoinColumns = @JoinColumn(name = "profile_id"))
-    private List<Profile> members;
+    private List<Profile> members = new ArrayList<>();
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)

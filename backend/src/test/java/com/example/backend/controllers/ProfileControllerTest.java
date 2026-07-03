@@ -38,6 +38,10 @@ class ProfileControllerTest {
 
         @Mock
         private ProfileService profileService;
+        @Mock
+        private com.example.backend.services.UserService userService;
+        @Mock
+        private com.example.backend.services.AccountService accountService;
 
         @InjectMocks
         private ProfileController profileController;
@@ -48,7 +52,9 @@ class ProfileControllerTest {
 
         @BeforeEach
         void setup() {
-                mockMvc = MockMvcBuilders.standaloneSetup(profileController).build();
+                mockMvc = MockMvcBuilders.standaloneSetup(profileController)
+                                .setControllerAdvice(new com.example.backend.exceptions.GlobalExceptionHandler())
+                                .build();
 
                 // Initialize test data
                 UUID profileId = UUID.randomUUID();
@@ -77,6 +83,8 @@ class ProfileControllerTest {
                                 .lastname("Doe")
                                 .bio("Software Developer")
                                 .education("Computer Science")
+                                .location("Berlin")
+                                .phone("+49123456789")
                                 .skills(List.of(Skill.builder()
                                                 .id(skillId)
                                                 .definition(SkillDefinition.builder().name("Java").build())
@@ -160,7 +168,7 @@ class ProfileControllerTest {
                                 .andExpect(jsonPath("$.complete").value(false))
                                 .andExpect(jsonPath("$.completionPercentage").value(30))
                                 .andExpect(jsonPath("$.missingFields").isArray())
-                                .andExpect(jsonPath("$.missingFields.length()").value(5))
+                                .andExpect(jsonPath("$.missingFields.length()").value(7))
                                 .andExpect(jsonPath("$.message").value("Please complete your profile"));
         }
 
@@ -189,5 +197,40 @@ class ProfileControllerTest {
                 // Act & Assert
                 mockMvc.perform(get("/api/profile/export"))
                                 .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void deleteAccount_WithThePassword_DeactivatesTheAccount() throws Exception {
+                com.example.backend.models.User user = new com.example.backend.models.User();
+                when(userService.getCurrentUser()).thenReturn(user);
+
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/profile/me")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"password\":\"secret-pass\"}"))
+                                .andExpect(status().isNoContent());
+
+                org.mockito.Mockito.verify(accountService).deleteAccount(user, "secret-pass");
+        }
+
+        @Test
+        void deleteAccount_WithoutAPassword_IsRejectedAndDeletesNothing() throws Exception {
+                for (String body : new String[] { "{}", "{\"password\":\"\"}", "{\"password\":\"  \"}" }) {
+                        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/profile/me")
+                                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                                        .andExpect(status().isBadRequest());
+                }
+                org.mockito.Mockito.verifyNoInteractions(accountService);
+        }
+
+        @Test
+        void exportProfile_WhenTheProfileIsIncomplete_ExplainsWhy() throws Exception {
+                profile.setProfileComplete(false);
+                when(profileService.getCurrentUserProfile()).thenReturn(profile);
+
+                mockMvc.perform(get("/api/profile/export"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(content().string("Complete your profile before exporting it as a PDF"));
+
+                org.mockito.Mockito.verify(profileService, org.mockito.Mockito.never()).exportToPdf(any());
         }
 }

@@ -27,6 +27,7 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpec
           JOIN p.skills s
           WHERE s.definition.name IN :skillNames
             AND p.id <> :excludeProfileId
+            AND p.deletedAt IS NULL
           GROUP BY p
           HAVING COUNT(s) >= 3
       """)
@@ -41,6 +42,7 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpec
           JOIN p.skills s
           WHERE s.definition.name NOT IN :userSkillNames
             AND p.id <> :userId
+            AND p.deletedAt IS NULL
       """)
   List<Profile> findProfilesWithComplementarySkills(
       @Param("userSkillNames") List<String> userSkillNames,

@@ -10,5 +10,4 @@ public class ProfileSearchCriteria {
     private String education; // Filter by education (e.g., "MIT")
     private String location; // Filter by location (e.g., "New York")
     private Proficiency minProficiency; // Minimum skill level (e.g., Proficiency.INTERMEDIATE)
-    private Integer minSharedSkills; // Minimum shared skills (e.g., 3)
 }

@@ -3,6 +3,7 @@ package com.example.backend.services;
 import com.example.backend.dto.CollaborationRequestDTO;
 import com.example.backend.dto.RequestStatsDTO;
 import com.example.backend.enums.RequestStatus;
+import com.example.backend.enums.TeamStatus;
 import com.example.backend.exceptions.BadRequestException;
 import com.example.backend.exceptions.ResourceNotFoundException;
 import com.example.backend.models.CollaborationRequest;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,14 +44,21 @@ public class RequestService {
             throw new BadRequestException("You cannot join your own project");
         }
 
-        // Validate: No duplicate requests
-        if (requestRepository.findByProjectAndRequester(project, requester).isPresent()) {
-            throw new BadRequestException("Request already exists");
-        }
-
         // Check if already a team member
         if (project.getTeam() != null && project.getTeam().getMembers().contains(requester)) {
             throw new BadRequestException("You are already a member of this project");
+        }
+
+        // Only one request may be waiting at a time. A finished one (rejected, or left over from a
+        // membership that has since ended) must not stop the user from asking again.
+        Optional<CollaborationRequest> previous = requestRepository.findByProjectAndRequester(project, requester);
+        if (previous.isPresent()) {
+            if (previous.get().getStatus() == RequestStatus.PENDING) {
+                throw new BadRequestException("Request already exists");
+            }
+            requestRepository.delete(previous.get());
+            // Applied before the insert below: Hibernate would otherwise insert first and hit the unique key
+            requestRepository.flush();
         }
 
         CollaborationRequest request = new CollaborationRequest();
@@ -61,6 +70,7 @@ public class RequestService {
         return requestRepository.save(request);
     }
 
+    @Transactional(readOnly = true)
     public List<CollaborationRequestDTO> getReceivedRequests(RequestStatus status) {
         Profile currentUser = profileService.getCurrentUserProfile();
         
@@ -76,6 +86,7 @@ public class RequestService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<CollaborationRequestDTO> getSentRequests(RequestStatus status) {
         Profile currentUser = profileService.getCurrentUserProfile();
         
@@ -91,7 +102,8 @@ public class RequestService {
                 .collect(Collectors.toList());
     }
 
-    public CollaborationRequest getRequestById(Long requestId) {
+    @Transactional(readOnly = true)
+    public CollaborationRequestDTO getRequestById(Long requestId) {
         CollaborationRequest request = requestRepository.findById(Objects.requireNonNull(requestId))
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
         
@@ -104,8 +116,8 @@ public class RequestService {
         if (!isProjectOwner && !isRequester) {
             throw new AccessDeniedException("You don't have permission to view this request");
         }
-        
-        return request;
+
+        return mapToDTO(request);
     }
 
     @Transactional
@@ -181,6 +193,7 @@ public class RequestService {
         requestRepository.delete(request);
     }
 
+    @Transactional(readOnly = true)
     public RequestStatsDTO getRequestStats() {
         Profile currentUser = profileService.getCurrentUserProfile();
         
@@ -202,6 +215,9 @@ public class RequestService {
             team = new Team();
             team.setTeamName(project.getTitle() + " Team");
             team.setProject(project);
+            team.setStatus(TeamStatus.ACTIVE);
+            team.setCreatedBy(project.getCreatedBy());
+            team.setOwner(project.getCreatedBy());
             team = teamRepository.save(team);
             project.setTeam(team);
             projectRepository.save(project);
@@ -224,10 +240,10 @@ public class RequestService {
         
         CollaborationRequestDTO.RequesterDTO requesterDTO = CollaborationRequestDTO.RequesterDTO.builder()
                 .id(requester.getId())
-                .username(requester.getUser().getUsername())
+                .username(requester.displayUsername())
                 .firstname(requester.getFirstname())
                 .lastname(requester.getLastname())
-                .profilePictureUrl(requester.getProfilePictureUrl())
+                .profilePictureUrl(ProfileService.publicPictureUrl(requester.getProfilePictureUrl()))
                 .skills(skills)
                 .build();
         

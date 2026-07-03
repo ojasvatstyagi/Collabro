@@ -1,6 +1,7 @@
 package com.example.backend.specifications;
 
 import com.example.backend.dto.ProfileSearchCriteria;
+import com.example.backend.enums.Proficiency;
 import com.example.backend.models.Profile;
 import com.example.backend.models.Skill;
 import jakarta.persistence.criteria.Join;
@@ -8,6 +9,7 @@ import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ProfileSpecifications {
@@ -16,17 +18,27 @@ public class ProfileSpecifications {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Skill filter
-            if (criteria.getSkills() != null && !criteria.getSkills().isEmpty()) {
-                Join<Profile, Skill> skillJoin = root.join("skills");
-                predicates.add(skillJoin.get("name").in(criteria.getSkills()));
+            // Profiles of deleted accounts are never listed
+            predicates.add(cb.isNull(root.get("deletedAt")));
 
-                // Proficiency filter
+            // Skill filter. The skill's name lives on its definition (Skill.getName() is only a derived getter),
+            // and is matched case-insensitively through the normalized name.
+            List<String> normalizedNames = criteria.getSkills() == null ? List.of()
+                    : criteria.getSkills().stream()
+                            .filter(name -> name != null && !name.isBlank())
+                            .map(name -> name.trim().toLowerCase())
+                            .toList();
+            if (!normalizedNames.isEmpty()) {
+                Join<Profile, Skill> skillJoin = root.join("skills");
+                predicates.add(skillJoin.get("definition").get("normalizedName").in(normalizedNames));
+
+                // Proficiency is stored as text, so comparing it with >= would be alphabetical
+                // ("ADVANCED" < "BEGINNER"). Match the levels at or above the minimum instead.
                 if (criteria.getMinProficiency() != null) {
-                    predicates.add(cb.greaterThanOrEqualTo(
-                            skillJoin.get("proficiency"),
-                            criteria.getMinProficiency()));
+                    predicates.add(skillJoin.get("proficiency").in(levelsFrom(criteria.getMinProficiency())));
                 }
+                // A profile with several matching skills would otherwise appear once per skill
+                query.distinct(true);
             }
 
             // Education filter
@@ -44,5 +56,11 @@ public class ProfileSpecifications {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private static List<Proficiency> levelsFrom(Proficiency minimum) {
+        return Arrays.stream(Proficiency.values())
+                .filter(level -> level.ordinal() >= minimum.ordinal())
+                .toList();
     }
 }

@@ -45,8 +45,4 @@ public class ChatMessage {
     @JoinColumn(name = "sender_id", nullable = false)
     private Profile sender;
 
-    @ElementCollection
-    @CollectionTable(name = "chat_message_read_by", joinColumns = @JoinColumn(name = "message_id"))
-    @Column(name = "profile_id")
-    private java.util.Set<UUID> readBy = new java.util.HashSet<>();
 }

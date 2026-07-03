@@ -50,14 +50,21 @@ public class ProjectFileController {
         Resource resource = projectFileService.loadFileAsResource(fileId);
         ProjectFile fileEntity = projectFileService.getFileEntity(fileId);
         
-        String contentType = "application/octet-stream";
-        if (fileEntity.getFileType() != null) {
-            contentType = fileEntity.getFileType();
+        // The type was supplied by the uploader. A malformed one must not fail the download, and it is always
+        // served as an attachment, so the browser saves it instead of rendering (and running) it.
+        MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
+        try {
+            if (fileEntity.getFileType() != null) {
+                contentType = MediaType.parseMediaType(fileEntity.getFileType());
+            }
+        } catch (org.springframework.http.InvalidMediaTypeException ignored) {
+            // keep application/octet-stream
         }
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(Objects.requireNonNull(contentType)))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileEntity.getFileName() + "\"")
+                .contentType(contentType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment()
+                        .filename(fileEntity.getFileName(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
                 .body(resource);
     }
 }

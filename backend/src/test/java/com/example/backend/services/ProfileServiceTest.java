@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.PublicProfileDto;
 import com.example.backend.dto.ProfileDto;
 import com.example.backend.dto.ProfileUpdateDto;
 import com.example.backend.exceptions.UserNotFoundException;
@@ -70,7 +71,7 @@ class ProfileServiceTest {
                 .education(testProfile.getEducation())
                 .profilePictureUrl(null)
                 .completionPercentage(0)
-                .isProfileComplete(false)
+                .profileComplete(false)
                 .skills(new ArrayList<>())
                 .build();
 
@@ -87,7 +88,9 @@ class ProfileServiceTest {
         Profile result = profileService.createEmptyProfile(testUser);
         assertNotNull(result);
         assertEquals(testUser, result.getUser());
-        assertNull(result.getFirstname());
+        // placeholder names: the firstname/lastname columns are NOT NULL
+        assertEquals("New", result.getFirstname());
+        assertEquals("User", result.getLastname());
     }
 
     @Test
@@ -97,7 +100,7 @@ class ProfileServiceTest {
 
     @Test
     void saveProfile_ShouldPersistProfile() {
-        when(profileRepository.save(Objects.requireNonNull(any()))).thenReturn(testProfile);
+        when(profileRepository.save(any())).thenReturn(testProfile);
         Profile result = profileService.saveProfile(testProfile);
         assertNotNull(result);
         verify(profileRepository).save(Objects.requireNonNull(testProfile));
@@ -137,7 +140,7 @@ class ProfileServiceTest {
     void updateProfile_ShouldUpdateFields() {
         when(userService.getCurrentUser()).thenReturn(testUser);
         when(profileRepository.findByUser(testUser)).thenReturn(Optional.of(testProfile));
-        when(profileRepository.save(Objects.requireNonNull(any()))).thenAnswer(inv -> inv.getArgument(0));
+        when(profileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(modelMapper.map(testProfile, ProfileDto.class)).thenReturn(testProfileDto);
 
         ProfileDto result = profileService.updateProfile(testUpdateDto);
@@ -163,5 +166,46 @@ class ProfileServiceTest {
         // Assert
         assertNotNull(result, "PDF byte array should not be null");
         assertTrue(result.length > 0, "PDF byte array should not be empty");
+    }
+
+    @Test
+    void toPublicDto_ExposesNoContactDetailsOrSettings() throws Exception {
+        testUser.setEmail("alice@example.com");
+        testProfile.setPhone("+49123456789");
+        testProfile.setProfilePictureUrl("profile-pictures/abc_me.png");
+
+        PublicProfileDto dto = profileService.toPublicDto(testProfile);
+
+        assertEquals("testuser", dto.getUsername());
+        assertEquals("John", dto.getFirstname());
+        assertEquals("/api/profile/picture/abc_me.png", dto.getProfilePictureUrl());
+        String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(dto);
+        assertFalse(json.contains("alice@example.com"), json);
+        assertFalse(json.contains("+49123456789"), json);
+        assertFalse(json.toLowerCase().contains("\"email\""), json);
+        assertFalse(json.toLowerCase().contains("\"phone\""), json);
+    }
+
+    @Test
+    void toPublicDto_ListsSkillsByName() {
+        testProfile.getSkills().add(com.example.backend.models.Skill.builder()
+                .id(UUID.randomUUID())
+                .definition(com.example.backend.models.SkillDefinition.builder().name("Java").build())
+                .proficiency(com.example.backend.enums.Proficiency.EXPERT)
+                .build());
+
+        PublicProfileDto dto = profileService.toPublicDto(testProfile);
+
+        assertEquals(1, dto.getSkills().size());
+        assertEquals("Java", dto.getSkills().get(0).getName());
+        assertEquals(com.example.backend.enums.Proficiency.EXPERT, dto.getSkills().get(0).getProficiency());
+    }
+
+    @Test
+    void publicPictureUrl_ConvertsStoredPathsToLoadableUrls() {
+        assertEquals("/api/profile/picture/abc_me.png", ProfileService.publicPictureUrl("profile-pictures/abc_me.png"));
+        assertEquals("https://example.com/me.png", ProfileService.publicPictureUrl("https://example.com/me.png"));
+        assertNull(ProfileService.publicPictureUrl(null));
+        assertNull(ProfileService.publicPictureUrl(""));
     }
 }

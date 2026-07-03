@@ -1,5 +1,6 @@
 package com.example.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,7 +33,8 @@ public class ProfileDto {
     private String preferredTeamSize;
     private List<String> projectInterests;
 
-    private boolean isProfileComplete;
+    @JsonProperty("isProfileComplete")
+    private boolean profileComplete;
     private int completionPercentage;
     private List<SkillDto> skills;
     private List<SocialLinkDto> socialLinks;

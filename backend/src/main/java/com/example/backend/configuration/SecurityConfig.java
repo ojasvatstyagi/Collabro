@@ -54,6 +54,8 @@ public class SecurityConfig {
                 }))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Must come before the permitAll below: first matching rule wins
+                        .requestMatchers("/api/auth/change-password").authenticated()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/matching/search/**",

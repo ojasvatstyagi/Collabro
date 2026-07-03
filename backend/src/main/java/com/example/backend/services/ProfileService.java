@@ -2,6 +2,8 @@ package com.example.backend.services;
 
 import com.example.backend.dto.ProfileDto;
 import com.example.backend.dto.ProfileUpdateDto;
+import com.example.backend.dto.PublicProfileDto;
+import com.example.backend.dto.SkillDto;
 import com.example.backend.exceptions.PdfExportException;
 import com.example.backend.exceptions.UserNotFoundException;
 import com.example.backend.exceptions.ResourceNotFoundException;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -119,6 +122,36 @@ public class ProfileService {
         }
 
         return dto;
+    }
+
+    /** The view of a profile that other users may see: no email, phone or settings. */
+    public PublicProfileDto toPublicDto(Profile profile) {
+        List<SkillDto> skills = profile.getSkills() == null ? List.of()
+                : profile.getSkills().stream()
+                        .map(skill -> new SkillDto(skill.getId(), skill.getName(), skill.getProficiency()))
+                        .toList();
+        return PublicProfileDto.builder()
+                .id(profile.getId())
+                .username(profile.getUser() != null ? profile.getUser().getUsername() : null)
+                .firstname(profile.getFirstname())
+                .lastname(profile.getLastname())
+                .bio(profile.getBio())
+                .education(profile.getEducation())
+                .location(profile.getLocation())
+                .profilePictureUrl(publicPictureUrl(profile.getProfilePictureUrl()))
+                .skills(skills)
+                .build();
+    }
+
+    /** Turns the stored picture path into the URL the browser can load (external links pass through). */
+    public static String publicPictureUrl(String path) {
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        if (!path.startsWith("http") && path.contains("profile-pictures/")) {
+            return "/api/profile/picture/" + path.substring(path.lastIndexOf("/") + 1);
+        }
+        return path;
     }
 
     @NonNull

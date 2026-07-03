@@ -1,11 +1,13 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.DeleteAccountRequest;
 import com.example.backend.dto.ProfileDto;
 import com.example.backend.dto.ProfileStatusDto;
 import com.example.backend.dto.ProfileUpdateDto;
-import com.example.backend.exceptions.UserNotFoundException;
+import com.example.backend.exceptions.BadRequestException;
 import com.example.backend.models.Profile;
 import com.example.backend.models.User;
+import com.example.backend.services.AccountService;
 import com.example.backend.services.ProfileService;
 import io.micrometer.common.util.StringUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +31,7 @@ public class ProfileController {
 
     private final ProfileService profileService;
     private final com.example.backend.services.UserService userService;
+    private final AccountService accountService;
 
     @GetMapping("/me")
     @Operation(summary = "Get current user profile", description = "Returns the current user's profile")
@@ -75,29 +78,24 @@ public class ProfileController {
     @GetMapping(value = "/export", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @Operation(summary = "Export current user profile to PDF", description = "Exports the current user's profile to a PDF file")
     public ResponseEntity<Resource> exportProfile() {
-        try {
-            if (!profileService.getCurrentUserProfile().isProfileComplete())
-                throw new UserNotFoundException("Profile not found");
-            Profile profile = profileService.getCurrentUserProfile();
-            byte[] pdfBytes = profileService.exportToPdf(profile);
-
-            ByteArrayResource resource = new ByteArrayResource(pdfBytes);
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=profile_export.pdf")
-                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_PDF))
-                    .contentLength(pdfBytes.length)
-                    .body(resource);
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.notFound().build();
+        Profile profile = profileService.getCurrentUserProfile();
+        if (!profile.isProfileComplete()) {
+            throw new BadRequestException("Complete your profile before exporting it as a PDF");
         }
+        byte[] pdfBytes = profileService.exportToPdf(profile);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=profile_export.pdf")
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_PDF))
+                .contentLength(pdfBytes.length)
+                .body(new ByteArrayResource(pdfBytes));
     }
 
     @DeleteMapping("/me")
     @Operation(summary = "Delete current user account", description = "Soft deletes the current user account")
-    public ResponseEntity<Void> deleteAccount() {
+    public ResponseEntity<Void> deleteAccount(@Valid @RequestBody DeleteAccountRequest request) {
         User user = userService.getCurrentUser();
-        userService.deleteUser(user);
+        accountService.deleteAccount(user, request.getPassword());
         return ResponseEntity.noContent().build(); // 204 No Content
     }
 }

@@ -1,6 +1,6 @@
 package com.example.backend.controllers;
 
-import com.example.backend.dto.ProfileDto;
+import com.example.backend.dto.PublicProfileDto;
 import com.example.backend.dto.ProfileSearchCriteria;
 import com.example.backend.services.MatchingService;
 import com.example.backend.services.ProfileService;
@@ -29,21 +29,21 @@ public class MatchingController {
 
     @GetMapping("/similar")
     @Operation(summary = "Get similar profiles", description = "Returns a list of similar profiles based on the current user's skills")
-    public ResponseEntity<List<ProfileDto>> getSimilarProfiles() {
+    public ResponseEntity<List<PublicProfileDto>> getSimilarProfiles() {
         UUID currentProfileId = profileService.getCurrentUserProfile().getId();
         return ResponseEntity.ok(matchingService.findSimilarProfiles(Objects.requireNonNull(currentProfileId)));
     }
 
     @GetMapping("/complementary")
     @Operation(summary = "Get complementary profiles", description = "Returns a list of complementary profiles based on the current user's skills")
-    public ResponseEntity<List<ProfileDto>> getComplementaryProfiles() {
+    public ResponseEntity<List<PublicProfileDto>> getComplementaryProfiles() {
         UUID currentProfileId = profileService.getCurrentUserProfile().getId();
         return ResponseEntity.ok(matchingService.findComplementaryProfiles(Objects.requireNonNull(currentProfileId)));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Search for profiles", description = "Searches for profiles based on the provided criteria like location, education")
-    public ResponseEntity<Page<ProfileDto>> searchProfiles(
+    public ResponseEntity<Page<PublicProfileDto>> searchProfiles(
             @ModelAttribute ProfileSearchCriteria criteria,
             Pageable pageable) {
         return ResponseEntity

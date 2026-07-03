@@ -22,14 +22,14 @@ public class ChatService {
 
     private final ChatMessageRepository chatMessageRepository;
     private final ProjectRepository projectRepository;
-    private final ProfileService profileService;
+    private final ProjectAccessService projectAccessService;
 
     @Transactional
     public ChatMessageDto sendMessage(UUID projectId, String content) {
         Project project = projectRepository.findById(Objects.requireNonNull(projectId))
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-        
-        Profile sender = profileService.getCurrentUserProfile();
+
+        Profile sender = projectAccessService.requireMember(project);
         
         ChatMessage message = new ChatMessage();
         message.setContent(content);
@@ -42,9 +42,9 @@ public class ChatService {
     
     @Transactional(readOnly = true)
     public Page<ChatMessageDto> getProjectMessages(UUID projectId, Pageable pageable) {
-        if (!projectRepository.existsById(Objects.requireNonNull(projectId))) {
-             throw new ResourceNotFoundException("Project not found");
-        }
+        Project project = projectRepository.findById(Objects.requireNonNull(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+        projectAccessService.requireMember(project);
         return chatMessageRepository.findByProjectIdOrderByCreatedAtDesc(projectId, pageable)
                 .map(this::convertToDto);
     }
@@ -55,8 +55,8 @@ public class ChatService {
                 .content(message.getContent())
                 .createdAt(message.getCreatedAt())
                 .senderId(message.getSender().getId())
-                .senderName(message.getSender().getUser().getUsername()) // or firstname + lastname
-                .senderAvatar(message.getSender().getProfilePictureUrl())
+                .senderName(message.getSender().displayUsername()) // or firstname + lastname
+                .senderAvatar(ProfileService.publicPictureUrl(message.getSender().getProfilePictureUrl()))
                 .projectId(message.getProject().getId())
                 .build();
     }

@@ -1,6 +1,5 @@
 package com.example.backend.controllers;
 
-import com.example.backend.dto.ApproveRequestDTO;
 import com.example.backend.dto.CollaborationRequestDTO;
 import com.example.backend.dto.JoinProjectRequest;
 import com.example.backend.dto.RejectRequestDTO;
@@ -23,7 +22,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/requests")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class RequestController {
 
     private final RequestService requestService;
@@ -78,7 +76,7 @@ public class RequestController {
     @GetMapping("/{requestId}")
     @Operation(summary = "Get a specific request by ID", description = "Get a specific request by ID")
     public ResponseEntity<Map<String, Object>> getRequestById(@PathVariable Long requestId) {
-        CollaborationRequest request = requestService.getRequestById(requestId);
+        CollaborationRequestDTO request = requestService.getRequestById(requestId);
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -89,9 +87,7 @@ public class RequestController {
 
     @PostMapping("/{requestId}/approve")
     @Operation(summary = "Approve a join request", description = "Approve a join request")
-    public ResponseEntity<Map<String, Object>> approveRequest(
-            @PathVariable Long requestId,
-            @RequestBody(required = false) ApproveRequestDTO approveDTO) {
+    public ResponseEntity<Map<String, Object>> approveRequest(@PathVariable Long requestId) {
         
         CollaborationRequestDTO request = requestService.approveRequest(requestId);
         
