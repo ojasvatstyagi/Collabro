@@ -28,13 +28,6 @@ public class EmailService {
         }
     }
 
-    // Welcome Email
-    public void sendWelcomeEmail(@NonNull String to, @NonNull String username) {
-        String subject = "Welcome to Our Service!";
-        String html = EmailTemplates.welcomeTemplate(username);
-        sendHtmlEmail(to, subject, html);
-    }
-
     // OTP Email
     public void sendOtpEmail(@NonNull String to, @NonNull String otp) {
         String subject = "Your Password Reset OTP";
@@ -55,10 +48,4 @@ public class EmailService {
         sendHtmlEmail(to, subject, html);
     }
 
-    // Project Status Email
-    public void sendProjectStatusEmail(@NonNull String to, @NonNull String project, @NonNull String status) {
-        String subject = "Project Status Update";
-        String html = EmailTemplates.projectStatusTemplate(project, status);
-        sendHtmlEmail(to, subject, html);
-    }
 }
