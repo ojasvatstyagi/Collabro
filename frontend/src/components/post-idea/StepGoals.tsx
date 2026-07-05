@@ -4,7 +4,10 @@ import { ProjectIdeaState } from './types';
 
 interface StepGoalsProps {
   data: ProjectIdeaState;
-  onChange: (field: keyof ProjectIdeaState, value: any) => void;
+  onChange: <K extends keyof ProjectIdeaState>(
+    field: K,
+    value: ProjectIdeaState[K]
+  ) => void;
   errors: Record<string, string>;
 }
 
@@ -26,7 +29,7 @@ const StepGoals: React.FC<StepGoalsProps> = ({ data, onChange, errors }) => {
         </label>
         <select
           value={data.contactMethod}
-          onChange={(e) => onChange('contactMethod', e.target.value as any)}
+          onChange={(e) => onChange('contactMethod', e.target.value as ProjectIdeaState['contactMethod'])}
           className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/20 dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
         >
           <option value="platform">Through Platform</option>

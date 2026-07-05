@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import { authApi } from "../services/api/auth";
+import { errorMessage } from "../utils/errors";
 import { Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
@@ -35,15 +36,11 @@ export default function VerifyRegistration() {
         setError(null);
 
         try {
-            // Logic based on AuthController: verifyRegistrationOtp(email, otp)
-            await axios.post("http://localhost:8080/api/auth/verify-registration-otp", null, {
-                params: { email, otp },
-                withCredentials: true
-            });
+            await authApi.verifyRegistrationOtp({ email, otp });
             setSuccess(true);
             setTimeout(() => navigate("/login"), 2000);
-        } catch (err: any) {
-            setError(err.response?.data?.message || "Verification failed. Please try again.");
+        } catch (err) {
+            setError(errorMessage(err, "Verification failed. Please try again."));
         } finally {
             setLoading(false);
         }

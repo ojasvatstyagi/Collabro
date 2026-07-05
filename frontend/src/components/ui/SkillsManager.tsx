@@ -94,6 +94,11 @@ const SkillsManager: React.FC<SkillsManagerProps> = ({
               placeholder="e.g., React, Python..."
               className="w-full"
             />
+            {isSearching && suggestions.length === 0 && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Searching...
+              </p>
+            )}
             {suggestions.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                 {suggestions.map((suggestion, index) => (

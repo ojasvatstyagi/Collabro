@@ -7,6 +7,7 @@ import { validateRegister } from '../utils/validation';
 import { RegisterCredentials } from '../services/api/auth';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { errorMessage } from '../utils/errors';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -58,9 +59,8 @@ const Register: React.FC = () => {
           state: { email: credentials.email },
         });
       }, 1500);
-    } catch (error: any) {
-      setFormError(error.message || 'Registration failed. Please try again.');
-      console.error('Registration error:', error);
+    } catch (error) {
+      setFormError(errorMessage(error, 'Registration failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }

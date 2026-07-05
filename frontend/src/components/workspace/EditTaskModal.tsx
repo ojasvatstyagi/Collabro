@@ -7,13 +7,14 @@ import {
   UpdateTaskRequest,
   projectsApi,
 } from '../../services/api/projects';
+import type { PublicProfile } from '../../services/api/teams';
 
 interface EditTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task;
   onUpdate: (updatedTask: Task) => void;
-  team: any[];
+  team: PublicProfile[];
 }
 
 const EditTaskModal: React.FC<EditTaskModalProps> = ({
@@ -134,7 +135,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
             }
           >
             <option value="">Unassigned</option>
-            {team.map((member: any) => (
+            {team.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.firstname} {member.lastname} ({member.username})
               </option>

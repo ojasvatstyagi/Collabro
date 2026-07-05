@@ -1,4 +1,5 @@
 import { BaseApi, ApiResponse } from './base';
+import type { PublicProfile } from './teams';
 
 // Project-related interfaces
 export interface Project {
@@ -20,12 +21,8 @@ export interface Project {
   createdBy: {
     id: string;
     username: string;
-    email: string;
     profilePictureUrl: string;
   };
-  // Relations that might be populated
-  post?: any;
-  team?: any;
 }
 
 export interface ProjectFilters {
@@ -63,7 +60,7 @@ export interface CreateProjectRequest {
   status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 }
 
-export interface UpdateProjectRequest extends Partial<CreateProjectRequest> {}
+export type UpdateProjectRequest = Partial<CreateProjectRequest>;
 
 export interface JoinProjectRequest {
   message?: string;
@@ -200,8 +197,8 @@ class ProjectsApi extends BaseApi {
   }
 
   // Get project team (placeholder for now)
-  async getProjectTeam(projectId: string): Promise<ApiResponse<any[]>> {
-    return this.get<any[]>(`/projects/${projectId}/team`);
+  async getProjectTeam(projectId: string): Promise<ApiResponse<PublicProfile[]>> {
+    return this.get<PublicProfile[]>(`/projects/${projectId}/team`);
   }
 
   // Remove team member
@@ -254,8 +251,9 @@ class ProjectsApi extends BaseApi {
     return this.delete<void>(`/project-files/${fileId}`);
   }
 
-  getDownloadUrl(fileId: string): string {
-    return `${this.baseUrl}/project-files/${fileId}/download`;
+  // A plain link would not carry the access token, so fetch the file through the shared client
+  async downloadFile(fileId: string): Promise<Blob> {
+    return this.getBlob(`/project-files/${fileId}/download`);
   }
 
   // Chat Operations

@@ -1,8 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Send, MessageSquare, WifiOff } from 'lucide-react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import Button from '../ui/Button';
 import { projectsApi, ChatMessage } from '../../services/api/projects';
+import { errorMessage } from '../../utils/errors';
+
+const POLL_INTERVAL_MS = 5000;
+const MAX_BACKOFF_MS = 60000;
 
 const ChatTab: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -10,76 +15,81 @@ const ChatTab: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  // Set while the server cannot be reached or refuses us; cleared by the next good poll
+  const [connectionProblem, setConnectionProblem] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Poll for messages every 5 seconds
-  useEffect(() => {
-    if (projectId) {
-      loadMessages();
-      const interval = setInterval(loadMessages, 5000);
-      return () => clearInterval(interval);
+  // Fetches the newest page and reports how it went; it never throws.
+  const loadMessages = useCallback(async (): Promise<'ok' | 'failed' | 'forbidden'> => {
+    if (!projectId) return 'failed';
+    try {
+      const res = await projectsApi.getProjectMessages(projectId, 0, 50);
+      if (res.data) {
+        // The backend returns newest first; the chat shows oldest first so the newest is at the bottom
+        setMessages([...res.data.content].reverse());
+      }
+      setConnectionProblem(null);
+      return 'ok';
+    } catch (err) {
+      setConnectionProblem(errorMessage(err, 'Connection lost'));
+      // 403: no longer a member of this project, so there is nothing to keep asking for
+      return (err as { status?: number })?.status === 403 ? 'forbidden' : 'failed';
+    } finally {
+      setIsLoading(false);
     }
   }, [projectId]);
 
+  // Poll every 5s; after failures wait twice as long each time (up to a minute) instead of
+  // hammering a struggling server, and do not poll while the tab is in the background.
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadMessages = async () => {
     if (!projectId) return;
-    try {
-      // Load first page for now
-      const res = await projectsApi.getProjectMessages(projectId, 0, 50);
-      if (res.success && res.data) {
-        // Reverse to show oldest first (if coming from DESC sort of backend)
-        // Backend returns DESC (newest first). We want to display oldest at top?
-        // Typically chat is stored newest at bottom.
-        // So valid sort is DESC.
-        // We receive [Newest, ..., Oldest]
-        // We want to render [Oldest, ..., Newest] so that Newest is at bottom.
-        const sorted = [...res.data.content].reverse();
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let delay = POLL_INTERVAL_MS;
 
-        // Simple deduplication or overwrite
-        setMessages(sorted);
-        setIsLoading(false);
+    const tick = async () => {
+      if (document.visibilityState === 'visible') {
+        const outcome = await loadMessages();
+        if (cancelled || outcome === 'forbidden') return;
+        delay = outcome === 'ok' ? POLL_INTERVAL_MS : Math.min(delay * 2, MAX_BACKOFF_MS);
       }
-    } catch (err) {
-      console.error('Failed to load messages', err);
-      setIsLoading(false);
-    }
-  };
+      timer = setTimeout(tick, delay);
+    };
+    tick();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [projectId, loadMessages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!newMessage.trim() || !projectId || isSending) return;
+    const content = newMessage.trim();
+    if (!content || !projectId || isSending) return;
 
     try {
       setIsSending(true);
-      const res = await projectsApi.sendProjectMessage(projectId, newMessage);
-      if (res.success && res.data) {
-        setMessages([...messages, res.data]);
-        setNewMessage('');
+      const res = await projectsApi.sendProjectMessage(projectId, content);
+      const sent = res.data;
+      if (sent) {
+        // Functional update and an id check: a poll may have delivered this message already
+        setMessages((prev) =>
+          prev.some((m) => m.id === sent.id) ? prev : [...prev, sent]
+        );
       }
+      setNewMessage('');
     } catch (err) {
-      console.error('Failed to send message', err);
+      // The text stays in the box so nothing the user typed is lost
+      toast.error(errorMessage(err, 'Could not send your message'));
     } finally {
       setIsSending(false);
     }
   };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // Need a way to identify current user for alignment.
-  // Ideally we decode JWT or fetch profile.
-  // For V1, we just render left/right based on senderId match?
-  // We don't have current userId easily here without context or decoding token.
-  // Let's assume all messages on left for now, or maybe check a 'me' endpoint.
-  // Or just left-align everyone for "Msg Board" style.
-
-  // Actually, let's assume valid "Message Board" style where alignment matters less
-  // or we can try to fetch "me" once.
 
   return (
     <div className="flex flex-col h-[calc(100vh-280px)] min-h-[500px] border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden dark:bg-brand-dark-lighter dark:border-gray-700">
@@ -132,6 +142,13 @@ const ChatTab: React.FC = () => {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {connectionProblem && (
+        <div className="flex items-center gap-2 border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+          <WifiOff className="h-4 w-4" />
+          {connectionProblem}. Retrying...
+        </div>
+      )}
 
       <div className="p-4 bg-white border-t border-gray-200 dark:bg-brand-dark-lighter dark:border-gray-700">
         <form onSubmit={handleSendMessage} className="flex gap-2">

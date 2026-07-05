@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/ui/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -7,10 +7,14 @@ import { validateLogin } from '../utils/validation';
 import { LoginCredentials } from '../services/api/auth';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { errorMessage } from '../utils/errors';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
+  // Auth is resolved before any route renders, so this is the state on arrival: someone who
+  // is already signed in has no use for the login form (a fresh login still shows its message)
+  const [alreadySignedIn] = useState(isAuthenticated);
   const [credentials, setCredentials] = useState<LoginCredentials>({
     username: '',
     password: '',
@@ -39,13 +43,14 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Trim spaces here - 2 lines
-    const trimmedCredentials = {
+    // Only the username is trimmed: the password must be sent exactly as typed,
+    // since registration stores it untrimmed
+    const submittedCredentials = {
       username: credentials.username.trim(),
-      password: credentials.password.trim(),
+      password: credentials.password,
     };
 
-    const validation = validateLogin(trimmedCredentials);
+    const validation = validateLogin(submittedCredentials);
     if (!validation.valid) {
       setErrors(validation.errors);
       return;
@@ -56,18 +61,21 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(trimmedCredentials);
+      await login(submittedCredentials);
       setFormSuccess('Login successful! Redirecting...');
       setTimeout(() => {
         navigate('/explore');
       }, 1500);
-    } catch (error: any) {
-      setFormError(error.message || 'Login failed. Please try again.');
-      console.error('Login error:', error);
+    } catch (error) {
+      setFormError(errorMessage(error, 'Login failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (alreadySignedIn) {
+    return <Navigate to="/explore" replace />;
+  }
 
   return (
     <AuthLayout

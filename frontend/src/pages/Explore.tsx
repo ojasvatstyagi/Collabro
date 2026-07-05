@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   PlusCircle,
@@ -10,6 +10,8 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import { errorMessage } from '../utils/errors';
 import { cn } from '../utils/cn';
 import { getLevelColor, formatDate } from '../utils/helper';
 import { commonTechnologies, categories, levels } from '../utils/lists';
@@ -34,6 +36,10 @@ const Explore: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [detailsProject, setDetailsProject] = useState<Project | null>(null);
+  const latestRequest = useRef(0);
+  const previousFilters = useRef('');
 
   // Check for success message from navigation state
   useEffect(() => {
@@ -46,30 +52,41 @@ const Explore: React.FC = () => {
     }
   }, [location.state]);
 
-  // Load initial data
+  // Typing searches after a short pause, not on every keystroke
   useEffect(() => {
-    loadProjects();
-  }, []);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // Load projects when filters or page change
-  useEffect(() => {
-    loadProjects();
-  }, [
-    searchQuery,
+  // One effect loads the list for the current filters and page. Changing a filter goes back to the first page
+  // (that page change re-runs this effect, so it loads once, not twice).
+  const filtersKey = [
+    debouncedSearch,
     selectedLevel,
     selectedTechnology,
     selectedCategory,
     sortBy,
-    page,
-  ]);
+  ].join('|');
+  useEffect(() => {
+    const filtersChanged = previousFilters.current !== filtersKey;
+    previousFilters.current = filtersKey;
+    if (filtersChanged && page !== 0) {
+      setPage(0);
+      return;
+    }
+    loadProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey, page]);
 
   const loadProjects = async () => {
+    // Ignore a response that arrives after a newer request was made
+    const requestId = ++latestRequest.current;
     try {
       setIsLoading(true);
       setError(null);
 
       const filters: ProjectFilters = {
-        search: searchQuery || undefined,
+        search: debouncedSearch || undefined,
         level: selectedLevel !== 'all' ? selectedLevel : undefined,
         technology:
           selectedTechnology !== 'all' ? selectedTechnology : undefined,
@@ -80,15 +97,16 @@ const Explore: React.FC = () => {
       };
 
       const response = await projectsApi.getProjects(filters);
-      if (response.success && response.data) {
+      if (requestId !== latestRequest.current) return;
+      if (response.data) {
         setProjects(response.data.content);
         setTotalPages(response.data.totalPages);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load projects');
-      console.error('Error loading projects:', err);
+    } catch (err) {
+      if (requestId !== latestRequest.current) return;
+      setError(errorMessage(err, 'Failed to load projects'));
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequest.current) setIsLoading(false);
     }
   };
 
@@ -98,8 +116,8 @@ const Explore: React.FC = () => {
       setSuccessMessage('Join request sent successfully!');
       // Refresh projects to update applicant count
       loadProjects();
-    } catch (err: any) {
-      setError(err.message || 'Failed to send join request');
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to send join request'));
     }
   };
 
@@ -392,13 +410,7 @@ const Explore: React.FC = () => {
                         <Button
                           variant="outline"
                           className="flex-1 sm:flex-none"
-                          onClick={() => {
-                            if (project.createdBy?.email) {
-                              window.location.href = `mailto:${project.createdBy.email}?subject=Project Interest: ${project.title}`;
-                            } else {
-                              navigate(`/project/${project.id}`);
-                            }
-                          }}
+                          onClick={() => setDetailsProject(project)}
                         >
                           Learn More
                         </Button>
@@ -436,6 +448,65 @@ const Explore: React.FC = () => {
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={detailsProject !== null}
+        onClose={() => setDetailsProject(null)}
+        title={detailsProject?.title ?? ''}
+      >
+        {detailsProject && (
+          <div className="space-y-4 text-sm text-gray-700 dark:text-gray-200">
+            <p className="whitespace-pre-wrap">{detailsProject.description}</p>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+              <dt className="text-gray-500">Posted by</dt>
+              <dd>@{detailsProject.createdBy?.username ?? 'unknown'}</dd>
+              <dt className="text-gray-500">Level</dt>
+              <dd>{detailsProject.level}</dd>
+              <dt className="text-gray-500">Duration</dt>
+              <dd>{detailsProject.duration || 'Not specified'}</dd>
+              <dt className="text-gray-500">Team size</dt>
+              <dd>{detailsProject.teamSize}</dd>
+              <dt className="text-gray-500">Category</dt>
+              <dd>{detailsProject.category || 'Not specified'}</dd>
+              <dt className="text-gray-500">Work style</dt>
+              <dd>
+                {detailsProject.isRemote ? 'Remote' : 'In person'}
+                {detailsProject.isOpenSource ? ', open source' : ''}
+              </dd>
+              {detailsProject.budget && (
+                <>
+                  <dt className="text-gray-500">Budget</dt>
+                  <dd>{detailsProject.budget}</dd>
+                </>
+              )}
+              {detailsProject.contactMethod && (
+                <>
+                  <dt className="text-gray-500">Preferred contact</dt>
+                  <dd>{detailsProject.contactMethod}</dd>
+                </>
+              )}
+            </dl>
+            {detailsProject.additionalInfo && (
+              <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300">
+                {detailsProject.additionalInfo}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDetailsProject(null)}>
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  handleJoinProject(detailsProject.id);
+                  setDetailsProject(null);
+                }}
+              >
+                Join Project
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </DashboardLayout>
   );
 };

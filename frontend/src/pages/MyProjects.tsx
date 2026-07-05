@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import { cn } from '../utils/cn';
 
 import { projectsApi, Project } from '../services/api/projects';
+import { errorMessage } from '../utils/errors';
 
 const ProjectCard: React.FC<{ project: Project }> = ({ project }) => {
   const navigate = useNavigate();
@@ -147,20 +148,10 @@ const MyProjects: React.FC = () => {
         projectsApi.getJoinedProjects(),
       ]);
 
-      let allProjects: Project[] = [];
-      if (userProjectsRes.success && userProjectsRes.data) {
-        allProjects = [...allProjects, ...userProjectsRes.data];
-      }
-      if (joinedProjectsRes.success && joinedProjectsRes.data) {
-        // Mark joined projects distinct if needed, but for now just merging or we can split state
-        // Let's split state to be cleaner
-      }
-
-      // Actually let's use separate state for joined projects
       setProjects(userProjectsRes.data || []);
       setJoinedProjects(joinedProjectsRes.data || []);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while loading projects');
+    } catch (err) {
+      setError(errorMessage(err, 'An error occurred while loading projects'));
     } finally {
       setIsLoading(false);
     }

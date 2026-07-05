@@ -80,37 +80,29 @@ class AuthApi extends BaseApi {
     return this.post<{ message: string }>('/auth/forgot-password', request);
   }
 
-  // Verify OTP -> POST /api/auth/verify-otp?email=...&otp=...
-  // (Your backend expects RequestParam, so we send params in the URL)
+  // Verify OTP -> POST /api/auth/verify-otp  { email, otp }
+  // Sent in the body, never the URL, so the code stays out of logs and browser history
   async verifyOtp(
     request: VerifyOtpRequest
   ): Promise<ApiResponse<{ verified: boolean }>> {
-    const url = `/auth/verify-otp?email=${encodeURIComponent(
-      request.email
-    )}&otp=${encodeURIComponent(request.otp)}`;
-    return this.post<{ verified: boolean }>(url, {}); // empty body
+    return this.post<{ verified: boolean }>('/auth/verify-otp', request);
   }
 
-  // Reset password -> POST /api/auth/reset-password?email=...&otp=...&newPassword=...
+  // Reset password -> POST /api/auth/reset-password  { email, otp, newPassword }
   async resetPassword(
     request: ResetPasswordRequest
   ): Promise<ApiResponse<{ message: string }>> {
-    const url = `/auth/reset-password?email=${encodeURIComponent(
-      request.email
-    )}&otp=${encodeURIComponent(request.otp)}&newPassword=${encodeURIComponent(
-      request.newPassword
-    )}`;
-    return this.post<{ message: string }>(url, {}); // empty body
+    return this.post<{ message: string }>('/auth/reset-password', request);
   }
 
-  // Verify registration OTP -> POST /api/auth/verify-registration-otp?email=...&otp=...
+  // Verify registration OTP -> POST /api/auth/verify-registration-otp  { email, otp }
   async verifyRegistrationOtp(
     request: VerifyOtpRequest
   ): Promise<ApiResponse<{ message: string }>> {
-    const url = `/auth/verify-registration-otp?email=${encodeURIComponent(
-      request.email
-    )}&otp=${encodeURIComponent(request.otp)}`;
-    return this.post<{ message: string }>(url, {});
+    return this.post<{ message: string }>(
+      '/auth/verify-registration-otp',
+      request
+    );
   }
 
   // Change password -> PUT /api/auth/change-password
@@ -122,12 +114,12 @@ class AuthApi extends BaseApi {
 
   // Logout user -> POST /api/auth/logout
   async logout(): Promise<ApiResponse<{ message: string }>> {
-    const response = await this.post<{ message: string }>('/auth/logout', {});
-
-    // Clear access token
-    tokenService.clearAccessToken();
-
-    return response;
+    try {
+      return await this.post<{ message: string }>('/auth/logout', {});
+    } finally {
+      // Forget the token even if the server call failed, or a reload would log the user back in
+      tokenService.clearAccessToken();
+    }
   }
 
   // Refresh token -> POST /api/auth/refresh (handled automatically by interceptor)

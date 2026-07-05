@@ -22,7 +22,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -56,8 +56,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   }, [setIsCollapsed]);
 
   // Sign out handler
-  const handleSignOut = () => {
-    navigate("/");
+  const handleSignOut = async () => {
+    // Ends the server session, clears the stored token and the user, then leaves the app
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   // Profile navigation handler

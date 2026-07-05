@@ -5,14 +5,32 @@ import Input from '../components/ui/Input';
 import Toggle from '../components/ui/Toggle';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { profileApi, ProfileData } from '../services/api/profile';
+import { authApi } from '../services/api/auth';
+import { toast } from 'react-hot-toast';
+import { errorMessage } from '../utils/errors';
 import { useNavigate } from 'react-router-dom';
 import { themeColors } from '../utils/helper';
 
 const SettingsPage = () => {
   const { themeColor, setThemeColor, theme } = useTheme();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [passwordForm, setPasswordForm] = useState({
+    current: '',
+    next: '',
+    confirm: '',
+  });
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>(
+    {}
+  );
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Settings State
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -21,7 +39,6 @@ const SettingsPage = () => {
 
   const [openForTeamInvites, setOpenForTeamInvites] = useState(false);
   const [preferredTeamSize, setPreferredTeamSize] = useState('No preference');
-  const [projectInterests, setProjectInterests] = useState<string[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,16 +66,15 @@ const SettingsPage = () => {
         if (p.openForTeamInvites !== undefined)
           setOpenForTeamInvites(p.openForTeamInvites);
         if (p.preferredTeamSize) setPreferredTeamSize(p.preferredTeamSize);
-        if (p.projectInterests) setProjectInterests(p.projectInterests);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      toast.error(errorMessage(error, 'Could not load your settings'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateBackend = async (updates: any) => {
+  const updateBackend = async (updates: Record<string, unknown>) => {
     if (!profileData) return;
 
     const payload = {
@@ -76,23 +92,66 @@ const SettingsPage = () => {
       const res = await profileApi.updateProfile(payload);
       if (res.data) setProfileData(res.data);
     } catch (err) {
-      console.error('Failed to update settings', err);
+      toast.error(errorMessage(err, 'Could not save your settings'));
+      // The toggles update optimistically, so put them back to what the server has
+      await loadSettings();
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors: Record<string, string> = {};
+    if (!passwordForm.current) errors.current = 'Enter your current password';
+    if (passwordForm.next.length < 6)
+      errors.next = 'Use at least 6 characters';
+    else if (passwordForm.next === passwordForm.current)
+      errors.next = 'Choose a password different from the current one';
+    if (passwordForm.confirm !== passwordForm.next)
+      errors.confirm = 'The passwords do not match';
+    setPasswordErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setIsChangingPassword(true);
     try {
-      await profileApi.deleteAccount();
-      // Clear storage and redirect
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      navigate('/login');
+      await authApi.changePassword({
+        currentPassword: passwordForm.current,
+        newPassword: passwordForm.next,
+      });
+      setPasswordForm({ current: '', next: '', confirm: '' });
+      toast.success('Password changed. Your other sessions were signed out.');
     } catch (error) {
-      console.error('Failed to delete account:', error);
-      alert('Failed to delete account. Please try again.');
-      setShowDeleteConfirm(false);
+      // A wrong current password comes back as a 400 with its own message
+      setPasswordErrors({
+        current: errorMessage(error, 'Could not change your password'),
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const closeDeleteConfirm = () => {
+    setShowDeleteConfirm(false);
+    setDeletePassword('');
+    setDeleteError(null);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError('Enter your password to confirm');
+      return;
+    }
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await profileApi.deleteAccount(deletePassword);
+      // The account is gone: end the session (token and user state) and leave
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      setDeleteError(errorMessage(error, 'Could not delete your account'));
+      setIsDeleting(false);
     }
   };
 
@@ -106,6 +165,16 @@ const SettingsPage = () => {
       .getElementById(id)
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Settings">
+        <p className="p-8 text-gray-600 dark:text-gray-300">
+          Loading settings...
+        </p>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Settings">
@@ -168,6 +237,50 @@ const SettingsPage = () => {
               <Input label="Email" value={profileData?.email || ''} disabled />
             </div>
 
+            <form
+              onSubmit={handleChangePassword}
+              className="mt-8 space-y-4 rounded-xl border border-gray-200 p-4 dark:border-gray-700"
+            >
+              <p className="font-medium text-gray-900 dark:text-gray-100">
+                Change password
+              </p>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Input
+                  label="Current password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={passwordForm.current}
+                  error={passwordErrors.current}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, current: e.target.value })
+                  }
+                />
+                <Input
+                  label="New password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={passwordForm.next}
+                  error={passwordErrors.next}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, next: e.target.value })
+                  }
+                />
+                <Input
+                  label="Confirm new password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={passwordForm.confirm}
+                  error={passwordErrors.confirm}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, confirm: e.target.value })
+                  }
+                />
+              </div>
+              <Button type="submit" disabled={isChangingPassword}>
+                {isChangingPassword ? 'Changing...' : 'Change password'}
+              </Button>
+            </form>
+
             <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-900/10">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -179,21 +292,33 @@ const SettingsPage = () => {
                   </p>
                 </div>
                 {showDeleteConfirm ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-transparent dark:text-gray-300"
-                      onClick={() => setShowDeleteConfirm(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary" // Assuming primary is available, or use a custom red style
-                      className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
-                      onClick={handleDeleteAccount}
-                    >
-                      Confirm Delete
-                    </Button>
+                  <div className="flex w-full flex-col gap-2 sm:w-80">
+                    <Input
+                      label="Enter your password to confirm"
+                      type="password"
+                      autoComplete="current-password"
+                      value={deletePassword}
+                      error={deleteError ?? undefined}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-transparent dark:text-gray-300"
+                        onClick={closeDeleteConfirm}
+                        disabled={isDeleting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="primary"
+                        className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+                        onClick={handleDeleteAccount}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <Button
@@ -216,6 +341,11 @@ const SettingsPage = () => {
             <h2 className="mb-6 flex items-center gap-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
               <Bell className="h-5 w-5 text-brand-orange" />
               Notifications
+              {isSaving && (
+                <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
+                  Saving...
+                </span>
+              )}
             </h2>
 
             {[

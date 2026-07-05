@@ -5,9 +5,11 @@ import Input from "./Input";
 import { cn } from "../../utils/cn";
 import { SocialLink } from "../../services/api/profile";
 
+type SocialPlatform = SocialLink["platform"];
+
 interface SocialLinksManagerProps {
     socialLinks: SocialLink[];
-    onAddLink: (platform: string, url: string) => Promise<void>;
+    onAddLink: (platform: SocialPlatform, url: string) => Promise<void>;
     onRemoveLink: (linkId: string) => void;
     isEditing?: boolean;
     className?: string;
@@ -21,11 +23,11 @@ const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
     className,
 }) => {
     const [newUrl, setNewUrl] = useState("");
-    const [selectedPlatform, setSelectedPlatform] = useState<string>("GITHUB");
+    const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>("GITHUB");
     const [isAdding, setIsAdding] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    const platforms = ["GITHUB", "LINKEDIN", "TWITTER", "WEBSITE", "OTHER"];
+    const platforms: SocialPlatform[] = ["GITHUB", "LINKEDIN", "TWITTER", "WEBSITE", "OTHER"];
 
     const handleAddLink = async () => {
         if (newUrl.trim()) {
@@ -74,7 +76,7 @@ const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Platform</label>
                         <select
                             value={selectedPlatform}
-                            onChange={(e) => setSelectedPlatform(e.target.value)}
+                            onChange={(e) => setSelectedPlatform(e.target.value as SocialPlatform)}
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-orange focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         >
                             {platforms.map(p => (
@@ -83,7 +85,7 @@ const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
                         </select>
                     </div>
                     <Input
-                        label="URL API"
+                        label="URL"
                         value={newUrl}
                         onChange={(e) => setNewUrl(e.target.value)}
                         placeholder="https://..."

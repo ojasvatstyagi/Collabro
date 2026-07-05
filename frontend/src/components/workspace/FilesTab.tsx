@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FileText, Upload, Download, Trash2, File } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import Button from '../ui/Button';
+import { toast } from 'react-hot-toast';
 import { projectsApi, ProjectFile } from '../../services/api/projects';
+import { errorMessage } from '../../utils/errors';
+import { saveBlob } from '../../utils/download';
 
 const FilesTab: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -11,13 +14,7 @@ const FilesTab: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (projectId) {
-      loadFiles();
-    }
-  }, [projectId]);
-
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     if (!projectId) return;
     try {
       setIsLoading(true);
@@ -26,11 +23,15 @@ const FilesTab: React.FC = () => {
         setFiles(res.data);
       }
     } catch (err) {
-      console.error('Failed to load files', err);
+      toast.error(errorMessage(err, 'Could not load the project files'));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !projectId) return;
@@ -43,8 +44,7 @@ const FilesTab: React.FC = () => {
         setFiles([res.data, ...files]);
       }
     } catch (err) {
-      console.error('Failed to upload file', err);
-      alert('Failed to upload file');
+      toast.error(errorMessage(err, 'Could not upload the file'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -57,14 +57,18 @@ const FilesTab: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this file?')) return;
     try {
       await projectsApi.deleteFile(fileId);
-      setFiles(files.filter((f) => f.id !== fileId));
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
     } catch (err) {
-      console.error('Failed to delete file', err);
+      toast.error(errorMessage(err, 'Could not delete the file'));
     }
   };
 
-  const handleDownload = (fileId: string, _: string) => {
-    window.open(projectsApi.getDownloadUrl(fileId), '_blank');
+  const handleDownload = async (fileId: string, fileName: string) => {
+    try {
+      saveBlob(await projectsApi.downloadFile(fileId), fileName);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not download the file'));
+    }
   };
 
   const formatFileSize = (bytes: number) => {

@@ -1,328 +1,191 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
-  Clock,
-  Users,
-  FolderKanban,
-  MessageSquare,
-  Award,
-  GitBranch,
-  Calendar,
-  Filter,
-  Search,
-  Bell,
-  Menu,
-  ChevronDown,
-  ExternalLink,
-  Star,
-  CheckCircle2,
   AlertCircle,
-  UserPlus,
+  CheckCircle2,
+  Clock,
   FileText,
-  Settings,
-} from "lucide-react";
-import Sidebar from "../components/ui/SideBar";
-import Button from "../components/ui/Button";
-import ThemeToggle from "../components/ui/ThemeToggle";
-import { cn } from "../utils/cn";
+  FolderKanban,
+  GitBranch,
+  ListChecks,
+  Send,
+  UserPlus,
+  XCircle,
+} from 'lucide-react';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import Button from '../components/ui/Button';
+import { cn } from '../utils/cn';
+import {
+  historyApi,
+  type HistoryFilters,
+  type HistoryItem,
+  type HistoryStats,
+  type HistoryStatus,
+  type HistoryTimeframe,
+  type HistoryType,
+} from '../services/api/history';
 
-interface HistoryItem {
-  id: string;
-  type: "project" | "collaboration" | "achievement" | "request" | "system";
-  title: string;
-  description: string;
-  timestamp: string;
-  status?: "completed" | "ongoing" | "pending" | "cancelled";
-  participants?: string[];
-  projectName?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  metadata?: {
-    duration?: string;
-    teamSize?: number;
-    technologies?: string[];
-    rating?: number;
-  };
-}
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 300;
 
-const mockHistoryData: HistoryItem[] = [
-  {
-    id: "1",
-    type: "project",
-    title: "Completed E-commerce Platform",
-    description: "Successfully delivered a full-stack e-commerce solution with real-time inventory management",
-    timestamp: "2024-01-15T10:30:00Z",
-    status: "completed",
-    participants: ["sarah_dev", "mike_frontend", "alex_backend"],
-    projectName: "Modern E-commerce Platform",
-    icon: CheckCircle2,
-    color: "text-green-500",
-    metadata: {
-      duration: "3 months",
-      teamSize: 4,
-      technologies: ["React", "Node.js", "PostgreSQL"],
-      rating: 4.8,
-    },
-  },
-  {
-    id: "2",
-    type: "collaboration",
-    title: "Joined AI Analytics Team",
-    description: "Started collaboration on AI-powered analytics dashboard project",
-    timestamp: "2024-01-10T14:20:00Z",
-    status: "ongoing",
-    participants: ["data_scientist_emma", "ml_engineer_raj"],
-    projectName: "AI Analytics Dashboard",
-    icon: UserPlus,
-    color: "text-blue-500",
-    metadata: {
-      teamSize: 5,
-      technologies: ["Python", "TensorFlow", "React"],
-    },
-  },
-  {
-    id: "3",
-    type: "achievement",
-    title: "Earned Team Player Badge",
-    description: "Recognized for outstanding collaboration across multiple projects",
-    timestamp: "2024-01-08T09:15:00Z",
-    status: "completed",
-    icon: Award,
-    color: "text-yellow-500",
-  },
-  {
-    id: "4",
-    type: "request",
-    title: "Project Request Approved",
-    description: "Your request to join Mobile Fitness App project was approved",
-    timestamp: "2024-01-05T16:45:00Z",
-    status: "completed",
-    participants: ["fitness_dev_lisa"],
-    projectName: "Mobile Fitness App",
-    icon: MessageSquare,
-    color: "text-green-500",
-    metadata: {
-      teamSize: 3,
-      technologies: ["React Native", "Firebase"],
-    },
-  },
-  {
-    id: "5",
-    type: "project",
-    title: "Started Project Management System",
-    description: "Initiated development of collaborative project management platform",
-    timestamp: "2024-01-03T11:00:00Z",
-    status: "ongoing",
-    participants: ["pm_david", "ux_designer_anna"],
-    projectName: "Project Management System",
-    icon: FolderKanban,
-    color: "text-blue-500",
-    metadata: {
-      teamSize: 6,
-      technologies: ["Vue.js", "Express", "MongoDB"],
-    },
-  },
-  {
-    id: "6",
-    type: "system",
-    title: "Profile Updated",
-    description: "Updated skills and education information",
-    timestamp: "2024-01-01T08:30:00Z",
-    status: "completed",
-    icon: Settings,
-    color: "text-gray-500",
-  },
-  {
-    id: "7",
-    type: "collaboration",
-    title: "Left Chat Application Team",
-    description: "Completed contribution to real-time chat application project",
-    timestamp: "2023-12-28T13:20:00Z",
-    status: "completed",
-    participants: ["chat_dev_tom", "ui_specialist_jane"],
-    projectName: "Real-time Chat Application",
-    icon: Users,
-    color: "text-gray-500",
-    metadata: {
-      duration: "2 months",
-      teamSize: 3,
-      technologies: ["React", "Socket.io", "WebRTC"],
-      rating: 4.6,
-    },
-  },
-  {
-    id: "8",
-    type: "request",
-    title: "Request Declined",
-    description: "Your request to join Blockchain Wallet project was declined",
-    timestamp: "2023-12-25T10:15:00Z",
-    status: "cancelled",
-    projectName: "Blockchain Wallet",
-    icon: AlertCircle,
-    color: "text-red-500",
-  },
+const typeOptions: Array<{ value: HistoryType | 'all'; label: string }> = [
+  { value: 'all', label: 'All Activities' },
+  { value: 'project', label: 'Projects' },
+  { value: 'collaboration', label: 'Collaborations' },
+  { value: 'request', label: 'Requests' },
+  { value: 'task', label: 'Tasks' },
+  { value: 'file', label: 'Files' },
 ];
 
-const filterOptions = [
-  { value: "all", label: "All Activities" },
-  { value: "project", label: "Projects" },
-  { value: "collaboration", label: "Collaborations" },
-  { value: "achievement", label: "Achievements" },
-  { value: "request", label: "Requests" },
-  { value: "system", label: "System" },
+const timeframeOptions: Array<{ value: HistoryTimeframe | 'all'; label: string }> = [
+  { value: 'all', label: 'All Time' },
+  { value: 'week', label: 'Past Week' },
+  { value: 'month', label: 'Past Month' },
+  { value: 'quarter', label: 'Past 3 Months' },
+  { value: 'year', label: 'Past Year' },
 ];
 
-const timeRangeOptions = [
-  { value: "all", label: "All Time" },
-  { value: "week", label: "This Week" },
-  { value: "month", label: "This Month" },
-  { value: "quarter", label: "This Quarter" },
-  { value: "year", label: "This Year" },
-];
+const statusConfig: Record<HistoryStatus, { label: string; className: string }> = {
+  completed: {
+    label: 'Completed',
+    className: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+  },
+  approved: {
+    label: 'Approved',
+    className: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+  },
+  ongoing: {
+    label: 'Ongoing',
+    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  },
+  pending: {
+    label: 'Pending',
+    className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+  },
+  on_hold: {
+    label: 'On hold',
+    className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  },
+  rejected: {
+    label: 'Rejected',
+    className: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  },
+};
+
+type IconComponent = React.ComponentType<{ className?: string }>;
+
+// Icon and colour per item: status wins for the outcome of a request or task, otherwise the type decides
+const getIconAndColor = (item: HistoryItem): { icon: IconComponent; color: string } => {
+  if (item.status === 'rejected' || item.status === 'cancelled') {
+    return { icon: XCircle, color: 'text-red-500' };
+  }
+  switch (item.type) {
+    case 'project':
+      return item.status === 'completed'
+        ? { icon: CheckCircle2, color: 'text-green-500' }
+        : { icon: FolderKanban, color: 'text-brand-orange' };
+    case 'collaboration':
+      return { icon: UserPlus, color: 'text-blue-500' };
+    case 'request':
+      return item.status === 'approved'
+        ? { icon: CheckCircle2, color: 'text-green-500' }
+        : { icon: Send, color: 'text-yellow-500' };
+    case 'task':
+      return item.status === 'completed'
+        ? { icon: ListChecks, color: 'text-green-500' }
+        : { icon: ListChecks, color: 'text-purple-500' };
+    case 'file':
+      return { icon: FileText, color: 'text-gray-500 dark:text-gray-400' };
+  }
+};
+
+// Timestamps carry no timezone; new Date() reads them as local time
+const dayKey = (timestamp: string): string => new Date(timestamp).toDateString();
+
+const formatGroupDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+const formatTime = (timestamp: string): string =>
+  new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+const errorMessage = (err: unknown, fallback: string): string =>
+  typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string'
+    ? err.message
+    : fallback;
+
+const selectClass =
+  'rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100';
 
 const HistoryCard: React.FC<{ item: HistoryItem }> = ({ item }) => {
-  const formatDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 24) {
-      return `${diffInHours}h ago`;
-    } else if (diffInHours < 168) {
-      return `${Math.floor(diffInHours / 24)}d ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  };
-
-  const getStatusBadge = (status?: string) => {
-    if (!status) return null;
-    
-    const statusConfig = {
-      completed: { color: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400", label: "Completed" },
-      ongoing: { color: "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400", label: "Ongoing" },
-      pending: { color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400", label: "Pending" },
-      cancelled: { color: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400", label: "Cancelled" },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig];
-    if (!config) return null;
-
-    return (
-      <span className={cn("rounded-full px-2 py-1 text-xs font-medium", config.color)}>
-        {config.label}
-      </span>
-    );
-  };
+  const { icon: Icon, color } = getIconAndColor(item);
+  const status = item.status ? statusConfig[item.status] : undefined;
 
   return (
-    <div className="group rounded-lg bg-white p-4 md:p-6 shadow-sm border border-gray-200 transition-all hover:shadow-md dark:bg-brand-dark-lighter dark:border-gray-600 dark:shadow-lg">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all hover:shadow-md md:p-6 dark:border-gray-600 dark:bg-brand-dark-lighter dark:shadow-lg">
       <div className="flex items-start gap-4">
-        {/* Icon */}
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700", item.color)}>
-          <item.icon className="h-5 w-5" />
+        <div
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700',
+            color
+          )}
+        >
+          <Icon className="h-5 w-5" />
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-medium text-brand-dark dark:text-gray-100">
-                  {item.title}
-                </h3>
-                {getStatusBadge(item.status)}
-              </div>
-              <p className="text-sm text-brand-dark/60 dark:text-gray-300 mb-2">
-                {item.description}
-              </p>
-              
-              {/* Project name */}
-              {item.projectName && (
-                <div className="flex items-center gap-1 mb-2">
-                  <FolderKanban className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium text-brand-orange dark:text-brand-orange">
-                    {item.projectName}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <h3 className="font-medium text-brand-dark dark:text-gray-100">{item.title}</h3>
+                {status && (
+                  <span
+                    className={cn('rounded-full px-2 py-1 text-xs font-medium', status.className)}
+                  >
+                    {status.label}
                   </span>
-                </div>
+                )}
+              </div>
+              {item.description && (
+                <p className="mb-2 break-words text-sm text-brand-dark/60 dark:text-gray-300">
+                  {item.description}
+                </p>
               )}
-
-              {/* Participants */}
-              {item.participants && item.participants.length > 0 && (
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <div className="flex flex-wrap gap-1">
-                    {item.participants.slice(0, 3).map((participant, index) => (
-                      <span
-                        key={index}
-                        className="text-xs bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-300"
-                      >
-                        {participant}
-                      </span>
-                    ))}
-                    {item.participants.length > 3 && (
-                      <span className="text-xs text-gray-500">
-                        +{item.participants.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Metadata */}
-              {item.metadata && (
-                <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
-                  {item.metadata.duration && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {item.metadata.duration}
-                    </div>
-                  )}
-                  {item.metadata.teamSize && (
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {item.metadata.teamSize} members
-                    </div>
-                  )}
-                  {item.metadata.rating && (
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      {item.metadata.rating}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Technologies */}
-              {item.metadata?.technologies && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {item.metadata.technologies.map((tech, index) => (
-                    <span
-                      key={index}
-                      className="text-xs bg-brand-orange/10 text-brand-orange px-2 py-1 rounded dark:bg-brand-orange/20"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Timestamp and Actions */}
-            <div className="flex flex-col items-end gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {formatDate(item.timestamp)}
-              </span>
-              {item.projectName && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  rightIcon={<ExternalLink className="h-3 w-3" />}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <Link
+                  to={`/project/${item.projectId}`}
+                  className="flex items-center gap-1 text-sm font-medium text-brand-orange hover:underline"
                 >
-                  View
-                </Button>
-              )}
+                  <FolderKanban className="h-4 w-4 text-gray-400" />
+                  {item.projectName}
+                </Link>
+                {item.relatedUsername && (
+                  <span className="text-sm text-brand-dark/60 dark:text-gray-300">
+                    with @{item.relatedUsername}
+                  </span>
+                )}
+              </div>
             </div>
+            <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+              {formatTime(item.timestamp)}
+            </span>
           </div>
         </div>
       </div>
@@ -330,231 +193,324 @@ const HistoryCard: React.FC<{ item: HistoryItem }> = ({ item }) => {
   );
 };
 
+const StatCard: React.FC<{
+  label: string;
+  value: number | undefined;
+  icon: IconComponent;
+  color: string;
+}> = ({ label, value, icon: Icon, color }) => (
+  <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-600 dark:bg-brand-dark-lighter">
+    <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          'flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700',
+          color
+        )}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        {value === undefined ? (
+          <div className="h-6 w-10 animate-pulse rounded bg-gray-200 dark:bg-gray-600" />
+        ) : (
+          <div className="text-2xl font-bold text-brand-dark dark:text-gray-100">{value}</div>
+        )}
+        <div className="text-xs text-brand-dark/60 dark:text-gray-300">{label}</div>
+      </div>
+    </div>
+  </div>
+);
+
 const History: React.FC = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("all");
-  const [selectedTimeRange, setSelectedTimeRange] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [type, setType] = useState<HistoryType | 'all'>('all');
+  const [timeframe, setTimeframe] = useState<HistoryTimeframe | 'all'>('all');
 
-  // Filter history data
-  const filteredHistory = mockHistoryData.filter((item) => {
-    const matchesFilter = selectedFilter === "all" || item.type === selectedFilter;
-    const matchesSearch = searchQuery === "" || 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.projectName?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Time range filtering would be implemented here
-    return matchesFilter && matchesSearch;
-  });
+  const [items, setItems] = useState<HistoryItem[]>([]);
+  const [page, setPage] = useState(0);
+  const [isLast, setIsLast] = useState(true);
+  const [totalElements, setTotalElements] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Group by date
-  const groupedHistory = filteredHistory.reduce((groups, item) => {
-    const date = new Date(item.timestamp).toDateString();
-    if (!groups[date]) {
-      groups[date] = [];
+  const [stats, setStats] = useState<HistoryStats | null>(null);
+  const [statsFailed, setStatsFailed] = useState(false);
+
+  // Only the latest request may update the list; slower, older responses are dropped
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const buildFilters = useCallback(
+    (pageNumber: number): HistoryFilters => ({
+      type: type === 'all' ? undefined : type,
+      timeframe: timeframe === 'all' ? undefined : timeframe,
+      search: debouncedSearch || undefined,
+      page: pageNumber,
+      size: PAGE_SIZE,
+    }),
+    [type, timeframe, debouncedSearch]
+  );
+
+  const loadFirstPage = useCallback(async () => {
+    const id = ++requestId.current;
+    setIsLoading(true);
+    setIsLoadingMore(false);
+    setError(null);
+    try {
+      const response = await historyApi.getHistory(buildFilters(0));
+      if (id !== requestId.current) return;
+      const data = response.data;
+      setItems(data?.content ?? []);
+      setPage(0);
+      setIsLast(data?.last ?? true);
+      setTotalElements(data?.totalElements ?? 0);
+    } catch (err) {
+      if (id !== requestId.current) return;
+      const message = errorMessage(err, 'Failed to load history');
+      setItems([]);
+      setError(message);
+      toast.error(message);
+    } finally {
+      if (id === requestId.current) setIsLoading(false);
     }
-    groups[date].push(item);
-    return groups;
-  }, {} as Record<string, HistoryItem[]>);
+  }, [buildFilters]);
 
-  const formatGroupDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+  // Any filter change (including the debounced search) restarts from page 0
+  useEffect(() => {
+    void loadFirstPage();
+  }, [loadFirstPage]);
 
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
-    } else {
-      return date.toLocaleDateString("en-US", { 
-        weekday: "long", 
-        year: "numeric", 
-        month: "long", 
-        day: "numeric" 
+  const loadStats = useCallback(async () => {
+    setStatsFailed(false);
+    try {
+      const response = await historyApi.getStats();
+      setStats(response.data ?? null);
+    } catch (err) {
+      setStatsFailed(true);
+      toast.error(errorMessage(err, 'Failed to load history stats'));
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
+
+  const loadMore = async () => {
+    const id = ++requestId.current;
+    const nextPage = page + 1;
+    setIsLoadingMore(true);
+    try {
+      const response = await historyApi.getHistory(buildFilters(nextPage));
+      if (id !== requestId.current) return;
+      const data = response.data;
+      setItems((current) => {
+        const known = new Set(current.map((item) => item.id));
+        return [...current, ...(data?.content ?? []).filter((item) => !known.has(item.id))];
       });
+      setPage(nextPage);
+      setIsLast(data?.last ?? true);
+      setTotalElements(data?.totalElements ?? 0);
+    } catch (err) {
+      if (id !== requestId.current) return;
+      toast.error(errorMessage(err, 'Failed to load more history'));
+    } finally {
+      if (id === requestId.current) setIsLoadingMore(false);
     }
   };
 
+  const groups = useMemo(() => {
+    const byDay = new Map<string, HistoryItem[]>();
+    const sorted = [...items].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    for (const item of sorted) {
+      const key = dayKey(item.timestamp);
+      const group = byDay.get(key);
+      if (group) group.push(item);
+      else byDay.set(key, [item]);
+    }
+    return Array.from(byDay.entries());
+  }, [items]);
+
+  const hasFilters = type !== 'all' || timeframe !== 'all' || searchQuery.trim() !== '';
+
+  const clearFilters = () => {
+    setType('all');
+    setTimeframe('all');
+    setSearchQuery('');
+  };
+
+  const statCards: Array<{ label: string; key: keyof HistoryStats; icon: IconComponent; color: string }> = [
+    { label: 'Total activities', key: 'totalActivities', icon: Clock, color: 'text-brand-orange' },
+    { label: 'Projects created', key: 'projectsCreated', icon: GitBranch, color: 'text-blue-500' },
+    { label: 'Collaborations joined', key: 'collaborationsJoined', icon: UserPlus, color: 'text-purple-500' },
+    { label: 'Tasks completed', key: 'tasksCompleted', icon: CheckCircle2, color: 'text-green-500' },
+    { label: 'This week', key: 'thisWeek', icon: Clock, color: 'text-gray-500 dark:text-gray-400' },
+    { label: 'This month', key: 'thisMonth', icon: Clock, color: 'text-gray-500 dark:text-gray-400' },
+  ];
+
   return (
-    <div className="flex h-screen bg-brand-light-dark dark:bg-brand-dark">
-      <Sidebar isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} />
-
-      <div className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 dark:border-gray-600 dark:bg-brand-dark-light">
-          <div className="flex flex-1 items-center gap-4">
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            {/* Desktop toggle button */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:block dark:text-gray-400 dark:hover:bg-brand-dark-lighter"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            <h1 className="text-xl font-semibold text-brand-dark dark:text-gray-100">
-              History
-            </h1>
-
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search activities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm text-brand-dark placeholder-gray-400 focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100 dark:placeholder-gray-500"
+    <DashboardLayout
+      title="History"
+      showSearch={true}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      searchPlaceholder="Search activities..."
+    >
+      <div className="min-h-screen bg-brand-light-dark p-4 md:p-8 dark:bg-brand-dark">
+        <div className="mx-auto max-w-4xl">
+          {/* Stats */}
+          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
+            {statCards.map((card) => (
+              <StatCard
+                key={card.key}
+                label={card.label}
+                icon={card.icon}
+                color={card.color}
+                value={statsFailed ? 0 : stats?.[card.key]}
               />
+            ))}
+          </div>
+          {statsFailed && (
+            <p className="-mt-3 mb-6 text-sm text-red-600 dark:text-red-400">
+              Could not load stats.{' '}
+              <button onClick={() => void loadStats()} className="font-medium underline">
+                Retry
+              </button>
+            </p>
+          )}
+
+          {/* Filters */}
+          <div className="mb-6 flex flex-wrap items-center gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-600 dark:bg-brand-dark-light">
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="history-type"
+                className="text-sm font-medium text-brand-dark dark:text-gray-100"
+              >
+                Type:
+              </label>
+              <select
+                id="history-type"
+                value={type}
+                onChange={(e) => setType(e.target.value as HistoryType | 'all')}
+                className={selectClass}
+              >
+                {typeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Filter Toggle */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              leftIcon={<Filter className="h-4 w-4" />}
-              rightIcon={<ChevronDown className={cn("h-4 w-4 transition-transform", showFilters && "rotate-180")} />}
-              className="hidden sm:flex"
-            >
-              Filters
-            </Button>
-
-            <ThemeToggle />
-            <button className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-brand-dark-lighter">
-              <Bell className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="border-b border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-brand-dark-light">
-            <div className="flex flex-wrap gap-4">
-              {/* Activity Type Filter */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Type:
-                </label>
-                <select
-                  value={selectedFilter}
-                  onChange={(e) => setSelectedFilter(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
-                >
-                  {filterOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="history-timeframe"
+                className="text-sm font-medium text-brand-dark dark:text-gray-100"
+              >
+                Time:
+              </label>
+              <select
+                id="history-timeframe"
+                value={timeframe}
+                onChange={(e) => setTimeframe(e.target.value as HistoryTimeframe | 'all')}
+                className={selectClass}
+              >
+                {timeframeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {hasFilters && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear Filters
+              </Button>
+            )}
+            {!isLoading && !error && (
+              <div className="ml-auto text-sm text-brand-dark/60 dark:text-gray-300">
+                {totalElements} {totalElements === 1 ? 'activity' : 'activities'}
               </div>
-
-              {/* Time Range Filter */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-brand-dark dark:text-gray-100">
-                  Time:
-                </label>
-                <select
-                  value={selectedTimeRange}
-                  onChange={(e) => setSelectedTimeRange(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-brand-dark focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:border-gray-600 dark:bg-brand-dark-lighter dark:text-gray-100"
-                >
-                  {timeRangeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Clear Filters */}
-              {(selectedFilter !== "all" || selectedTimeRange !== "all" || searchQuery) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedFilter("all");
-                    setSelectedTimeRange("all");
-                    setSearchQuery("");
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div className="container mx-auto max-w-4xl px-4 py-8 bg-brand-light-dark dark:bg-brand-dark">
-          <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold text-brand-dark dark:text-gray-100">
-              Activity History
-            </h1>
-            <div className="text-sm text-brand-dark/60 dark:text-gray-300">
-              {filteredHistory.length} {filteredHistory.length === 1 ? 'activity' : 'activities'}
-            </div>
+            )}
           </div>
 
-          {/* History Timeline */}
-          {Object.keys(groupedHistory).length === 0 ? (
+          {/* Timeline */}
+          {isLoading ? (
+            <div className="space-y-4" aria-busy="true">
+              {[0, 1, 2].map((n) => (
+                <div
+                  key={n}
+                  className="h-24 animate-pulse rounded-lg border border-gray-200 bg-white dark:border-gray-600 dark:bg-brand-dark-lighter"
+                />
+              ))}
+            </div>
+          ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock className="h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-brand-dark dark:text-gray-100 mb-2">
-                No activities found
+              <AlertCircle className="mb-4 h-12 w-12 text-red-400" />
+              <h3 className="mb-2 text-lg font-medium text-brand-dark dark:text-gray-100">
+                Could not load history
+              </h3>
+              <p className="mb-4 text-brand-dark/60 dark:text-gray-300">{error}</p>
+              <Button variant="outline" onClick={() => void loadFirstPage()}>
+                Try again
+              </Button>
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Clock className="mb-4 h-12 w-12 text-gray-400" />
+              <h3 className="mb-2 text-lg font-medium text-brand-dark dark:text-gray-100">
+                {hasFilters ? 'Nothing matches your filters' : 'No activity yet'}
               </h3>
               <p className="text-brand-dark/60 dark:text-gray-300">
-                {searchQuery || selectedFilter !== "all" 
-                  ? "Try adjusting your filters or search terms"
-                  : "Your activity history will appear here as you use the platform"
-                }
+                {hasFilters
+                  ? 'Try adjusting your filters or search terms'
+                  : 'Your activity history will appear here as you use the platform'}
               </p>
             </div>
           ) : (
             <div className="space-y-8">
-              {Object.entries(groupedHistory)
-                .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
-                .map(([date, items]) => (
-                  <div key={date} className="space-y-4">
-                    {/* Date Header */}
-                    <div className="flex items-center gap-4">
-                      <h2 className="text-lg font-semibold text-brand-dark dark:text-gray-100">
-                        {formatGroupDate(date)}
-                      </h2>
-                      <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
-                      <span className="text-sm text-brand-dark/60 dark:text-gray-300">
-                        {items.length} {items.length === 1 ? 'activity' : 'activities'}
-                      </span>
-                    </div>
-
-                    {/* Activities */}
-                    <div className="space-y-4">
-                      {items
-                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                        .map((item) => (
-                          <HistoryCard key={item.id} item={item} />
-                        ))}
-                    </div>
+              {groups.map(([day, dayItems]) => (
+                <div key={day} className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-lg font-semibold text-brand-dark dark:text-gray-100">
+                      {formatGroupDate(day)}
+                    </h2>
+                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-600" />
+                    <span className="text-sm text-brand-dark/60 dark:text-gray-300">
+                      {dayItems.length} {dayItems.length === 1 ? 'activity' : 'activities'}
+                    </span>
                   </div>
-                ))}
+                  <div className="space-y-4">
+                    {dayItems.map((item) => (
+                      <HistoryCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {!isLast && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => void loadMore()}
+                    isLoading={isLoadingMore}
+                    loadingText="Loading..."
+                  >
+                    Load more
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

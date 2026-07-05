@@ -1,4 +1,5 @@
 import { BaseApi, ApiResponse } from './base';
+import { saveBlob } from '../../utils/download';
 
 export interface Skill {
   id: string;
@@ -70,7 +71,7 @@ export interface AddSkillRequest {
 }
 
 export interface AddSocialLinkRequest {
-  platform: 'LINKEDIN' | 'GITHUB' | 'TWITTER' | 'FACEBOOK' | 'INSTAGRAM';
+  platform: SocialLink['platform'];
   url: string;
 }
 
@@ -131,34 +132,15 @@ class ProfileApi extends BaseApi {
     return this.delete<void>('/profile/picture');
   }
 
-  async deleteAccount(): Promise<ApiResponse<void>> {
-    return this.delete<void>('/profile/me');
+  // The password is re-checked by the backend before the account is deactivated
+  async deleteAccount(password: string): Promise<ApiResponse<void>> {
+    return this.delete<void>('/profile/me', { data: { password } });
   }
 
-  // Matches @GetMapping("/export") in ProfileController
+  // Matches @GetMapping("/export") in ProfileController. Throws on failure so the caller can tell the user.
   async exportProfilePdf(): Promise<void> {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/profile/export`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      if (!response.ok) throw new Error('Export failed');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'profile_export.pdf');
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-    } catch (error) {
-      console.error('PDF Export Error:', error);
-    }
+    const blob = await this.getBlob('/profile/export');
+    saveBlob(blob, 'profile_export.pdf');
   }
 }
 

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Users, Edit, Trash2 } from 'lucide-react';
 import { Project } from '../../services/api/projects';
+import type { PublicProfile } from '../../services/api/teams';
 import Button from '../ui/Button';
 
 interface OverviewTabProps {
   project: Project;
-  team: any[];
+  team: PublicProfile[];
   isOwner: boolean;
   onEditProject: () => void;
   onRemoveMember: (memberId: string) => void;
@@ -88,7 +89,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
           {team.length > 0 ? (
             <div className="space-y-3">
-              {team.map((member: any, i) => (
+              {team.map((member, i) => (
                 <div
                   key={i}
                   className="flex items-center justify-between gap-3 group"

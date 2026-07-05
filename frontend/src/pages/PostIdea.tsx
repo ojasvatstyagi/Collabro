@@ -10,12 +10,19 @@ import {
 
 // Import extracted components
 import { ProjectIdeaState } from '../components/post-idea/types';
+import { errorMessage } from '../utils/errors';
 import StepIndicator from '../components/post-idea/StepIndicator';
 import StepBasics from '../components/post-idea/StepBasics';
 import StepTech from '../components/post-idea/StepTech';
 import StepTeam from '../components/post-idea/StepTeam';
 import StepGoals from '../components/post-idea/StepGoals';
 import ProjectPreview from '../components/post-idea/ProjectPreview';
+
+const LEVEL_BY_DIFFICULTY: Record<ProjectIdeaState['difficulty'], CreateProjectRequest['level']> = {
+  beginner: 'BEGINNER',
+  intermediate: 'INTERMEDIATE',
+  advanced: 'ADVANCED',
+};
 
 const PostIdea: React.FC = () => {
   const navigate = useNavigate();
@@ -38,7 +45,10 @@ const PostIdea: React.FC = () => {
     additionalInfo: '',
   });
 
-  const handleInputChange = (field: keyof ProjectIdeaState, value: any) => {
+  const handleInputChange = <K extends keyof ProjectIdeaState>(
+    field: K,
+    value: ProjectIdeaState[K]
+  ) => {
     setProjectIdea((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field
     if (errors[field]) {
@@ -107,7 +117,7 @@ const PostIdea: React.FC = () => {
         technologies: projectIdea.techStack,
         teamSize: projectIdea.teamSize.max, // Using max as the single value
         duration: projectIdea.duration,
-        level: projectIdea.difficulty.toUpperCase() as any, // Map to enum
+        level: LEVEL_BY_DIFFICULTY[projectIdea.difficulty],
         budget: projectIdea.budget,
         isRemote: projectIdea.isRemote,
         isOpenSource: projectIdea.isOpenSource,
@@ -124,10 +134,9 @@ const PostIdea: React.FC = () => {
           message: 'Your project idea has been posted successfully!',
         },
       });
-    } catch (error: any) {
-      console.error('Error submitting project idea:', error);
+    } catch (error) {
       setErrors({
-        submit: error.message || 'Failed to create project. Please try again.',
+        submit: errorMessage(error, 'Failed to create project. Please try again.'),
       });
     } finally {
       setIsSubmitting(false);

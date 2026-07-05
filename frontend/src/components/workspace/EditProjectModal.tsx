@@ -32,7 +32,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
         description: project.description,
         category: project.category,
         technologies: project.technologies,
-        level: project.level as any,
+        level: project.level,
         duration: project.duration,
         teamSize: project.teamSize,
         budget: project.budget,
@@ -128,7 +128,10 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-orange focus:outline-none focus:ring-1 focus:ring-brand-orange dark:bg-brand-dark-lighter dark:border-gray-600 dark:text-white"
               value={formData.status || 'ACTIVE'}
               onChange={(e) =>
-                setFormData({ ...formData, status: e.target.value as any })
+                setFormData({
+                  ...formData,
+                  status: e.target.value as Project['status'],
+                })
               }
             >
               <option value="ACTIVE">Active</option>

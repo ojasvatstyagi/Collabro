@@ -6,7 +6,10 @@ import { ProjectIdeaState } from './types';
 
 interface StepBasicsProps {
   data: ProjectIdeaState;
-  onChange: (field: keyof ProjectIdeaState, value: any) => void;
+  onChange: <K extends keyof ProjectIdeaState>(
+    field: K,
+    value: ProjectIdeaState[K]
+  ) => void;
   errors: Record<string, string>;
 }
 

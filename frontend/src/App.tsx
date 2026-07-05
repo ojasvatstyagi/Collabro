@@ -20,6 +20,7 @@ import { AuthProvider } from './context/AuthContext';
 
 import { useAuth } from './context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function AppContent() {
@@ -48,6 +49,8 @@ function AppContent() {
         theme === 'dark' ? 'bg-brand-dark-light' : 'bg-brand-light-dark'
       }`}
     >
+      {/* Without this mounted, every toast.error()/toast.success() in the app is silently dropped */}
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />

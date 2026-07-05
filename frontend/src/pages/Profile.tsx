@@ -23,8 +23,10 @@ import {
   profileApi,
   ProfileData,
   ProfileStatus,
+  SocialLink,
 } from '../services/api/profile';
-import { dummyProfile, dummyProfileStatus } from '../utils/lists';
+import { toast } from 'react-hot-toast';
+import { errorMessage, parseFieldErrors } from '../utils/errors';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +37,8 @@ const Profile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Profile data state
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -59,45 +63,32 @@ const Profile: React.FC = () => {
   const loadProfileData = async () => {
     try {
       setIsLoading(true);
-      try {
-        const [profileResponse, statusResponse] = await Promise.all([
-          profileApi.getProfile(),
-          profileApi.getProfileStatus(),
-        ]);
-        const profileData = profileResponse.data;
-        const statusData = statusResponse.data;
+      setLoadError(null);
+      const [profileResponse, statusResponse] = await Promise.all([
+        profileApi.getProfile(),
+        profileApi.getProfileStatus(),
+      ]);
+      const profileData = profileResponse.data;
+      const statusData = statusResponse.data;
 
-        if (profileData && statusData) {
-          setProfile(profileData);
-          setProfileStatus(statusData);
-          setFormData({
-            firstname: profileData.firstname || '',
-            lastname: profileData.lastname || '',
-            bio: profileData.bio || '',
-            education: profileData.education || '',
-            location: profileData.location || '',
-            phone: profileData.phone || '',
-          });
-        }
-      } catch (apiError: any) {
-        console.error('API Error loading profile:', apiError);
-        console.log(
-          'Falling back to dummy data for development/demo purposes if API fails completely'
-        );
-
-        setProfile(dummyProfile);
-        setProfileStatus(dummyProfileStatus);
-        setFormData({
-          firstname: dummyProfile.firstname,
-          lastname: dummyProfile.lastname,
-          bio: dummyProfile.bio,
-          education: dummyProfile.education,
-          location: dummyProfile.location,
-          phone: dummyProfile.phone,
-        });
+      if (!profileData || !statusData) {
+        throw new Error('The server returned an empty profile');
       }
+      setProfile(profileData);
+      setProfileStatus(statusData);
+      setFormData({
+        firstname: profileData.firstname || '',
+        lastname: profileData.lastname || '',
+        bio: profileData.bio || '',
+        education: profileData.education || '',
+        location: profileData.location || '',
+        phone: profileData.phone || '',
+      });
     } catch (error) {
-      console.error('General error loading profile data:', error);
+      // Never substitute placeholder data: the user could end up saving it over their real profile
+      const message = errorMessage(error, 'Could not load your profile');
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -110,8 +101,8 @@ const Profile: React.FC = () => {
       if (statusData) {
         setProfileStatus(statusData);
       }
-    } catch (error) {
-      setProfileStatus(dummyProfileStatus);
+    } catch {
+      // Keep showing the last known completion status; the next successful save refreshes it
     }
   };
 
@@ -129,18 +120,16 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleAddSocialLink = async (platform: string, url: string) => {
-    const optimisticLink = { id: `temp-${Date.now()}`, platform, url } as any;
+  const handleAddSocialLink = async (platform: SocialLink['platform'], url: string) => {
+    const optimisticLink: SocialLink = { id: `temp-${Date.now()}`, platform, url };
     setProfile((prev) => {
       if (!prev) return null;
       return { ...prev, socialLinks: [...prev.socialLinks, optimisticLink] };
     });
 
-    const response = await profileApi.addSocialLink({
-      platform: platform as any,
-      url,
-    });
-    if (response.success && response.data) {
+    try {
+      const response = await profileApi.addSocialLink({ platform, url });
+      if (!response.data) throw new Error('The server returned no link');
       setProfile((prev) => {
         if (!prev) return null;
         return {
@@ -150,7 +139,7 @@ const Profile: React.FC = () => {
           ),
         };
       });
-    } else {
+    } catch (error) {
       setProfile((prev) => {
         if (!prev) return null;
         return {
@@ -160,6 +149,7 @@ const Profile: React.FC = () => {
           ),
         };
       });
+      toast.error(errorMessage(error, 'Could not add the link'));
     }
   };
 
@@ -174,9 +164,11 @@ const Profile: React.FC = () => {
       };
     });
 
-    const response = await profileApi.removeSocialLink(linkId);
-    if (!response.success) {
+    try {
+      await profileApi.removeSocialLink(linkId);
+    } catch (error) {
       setProfile((prev) => (prev ? { ...prev, socialLinks: prevLinks } : null));
+      toast.error(errorMessage(error, 'Could not remove the link'));
     }
   };
 
@@ -203,49 +195,14 @@ const Profile: React.FC = () => {
         setIsEditingPersonalInfo(false);
         await refreshProfileStatus();
       }
-    } catch (apiError: any) {
-      console.error('Failed to save profile:', apiError);
-
-      // Parse backend validation errors
-      if (apiError.response?.data) {
-        const errorData = apiError.response.data;
-        const backendErrors: Record<string, string> = {};
-
-        // Handle Spring Boot validation error format
-        if (errorData.errors && Array.isArray(errorData.errors)) {
-          errorData.errors.forEach((err: any) => {
-            if (err.field) {
-              backendErrors[err.field] = err.defaultMessage || err.message;
-            }
-          });
-        } else if (typeof errorData === 'string') {
-          // Handle simple string error messages
-          // Try to extract field name from message like "phone: Invalid phone number format"
-          const match = errorData.match(/^(\w+):\s*(.+)$/);
-          if (match) {
-            backendErrors[match[1]] = match[2];
-          } else {
-            // Generic error
-            backendErrors.general = errorData;
-          }
-        } else if (errorData.message) {
-          backendErrors.general = errorData.message;
-        }
-
-        if (Object.keys(backendErrors).length > 0) {
-          setErrors(backendErrors);
-        } else {
-          // Fallback error message
-          setErrors({
-            general:
-              'Failed to save profile. Please check your input and try again.',
-          });
-        }
-      } else {
-        setErrors({
-          general: 'Network error. Please check your connection and try again.',
-        });
-      }
+    } catch (error) {
+      // The backend reports validation problems as "field: message, field2: message"
+      const message = errorMessage(
+        error,
+        'Failed to save profile. Please check your input and try again.'
+      );
+      const fieldErrors = parseFieldErrors(message);
+      setErrors(Object.keys(fieldErrors).length > 0 ? fieldErrors : { general: message });
     } finally {
       setIsSaving(false);
     }
@@ -253,25 +210,18 @@ const Profile: React.FC = () => {
 
   const handleImageUpload = async (file: File | null) => {
     if (!file || !profile) return;
+    setIsUploadingImage(true);
     try {
-      setIsUploadingImage(true);
-      try {
-        const resultResponse = await profileApi.uploadProfilePicture(file);
-        const result = resultResponse.data;
-        if (result) {
-          setProfile((prev) =>
-            prev
-              ? { ...prev, profilePictureUrl: result.profilePictureUrl }
-              : null
-          );
-        }
-      } catch (apiError) {
-        const imageUrl = URL.createObjectURL(file);
+      const response = await profileApi.uploadProfilePicture(file);
+      const result = response.data;
+      if (result) {
         setProfile((prev) =>
-          prev ? { ...prev, profilePictureUrl: imageUrl } : null
+          prev ? { ...prev, profilePictureUrl: result.profilePictureUrl } : null
         );
       }
       await refreshProfileStatus();
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not upload the picture'));
     } finally {
       setIsUploadingImage(false);
     }
@@ -296,40 +246,24 @@ const Profile: React.FC = () => {
     proficiency: 'BEGINNER' | 'INTERMEDIATE' | 'EXPERT'
   ) => {
     try {
-      try {
-        const newSkillResponse = await profileApi.addSkill({
-          name: skillName,
-          proficiency,
-        });
-        const newSkill = newSkillResponse.data;
-        if (newSkill) {
-          setProfile((prev) =>
-            prev ? { ...prev, skills: [...prev.skills, newSkill] } : null
-          );
-        }
-      } catch (apiError) {
-        // Optimistic update for demo/testing if backend fails or is mocked
-        const newSkill = {
-          id: Date.now().toString(),
-          name: skillName,
-          proficiency,
-          createdAt: new Date().toISOString(),
-        };
-        setProfile((prev) =>
-          prev ? { ...prev, skills: [...prev.skills, newSkill] } : null
-        );
-      }
+      const response = await profileApi.addSkill({
+        name: skillName,
+        proficiency,
+      });
+      const newSkill = response.data;
+      if (!newSkill) throw new Error('The server returned no skill');
+      setProfile((prev) =>
+        prev ? { ...prev, skills: [...prev.skills, newSkill] } : null
+      );
       await refreshProfileStatus();
     } catch (error) {
-      console.error(error);
+      toast.error(errorMessage(error, 'Could not add the skill'));
     }
   };
 
   const handleRemoveSkill = async (skillId: string) => {
     try {
-      try {
-        await profileApi.removeSkill(skillId);
-      } catch (apiError) {}
+      await profileApi.removeSkill(skillId);
       setProfile((prev) =>
         prev
           ? { ...prev, skills: prev.skills.filter((s) => s.id !== skillId) }
@@ -337,7 +271,18 @@ const Profile: React.FC = () => {
       );
       await refreshProfileStatus();
     } catch (error) {
-      console.error(error);
+      toast.error(errorMessage(error, 'Could not remove the skill'));
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      await profileApi.exportProfilePdf();
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not export your profile'));
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -363,7 +308,7 @@ const Profile: React.FC = () => {
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-brand-dark dark:text-gray-100">
-              Error loading profile data
+              {loadError ?? 'Error loading profile data'}
             </p>
             <Button onClick={loadProfileData} className="mt-4">
               Try Again
@@ -389,12 +334,13 @@ const Profile: React.FC = () => {
             Back to Explore
           </Button>
           <Button
-            onClick={() => profileApi.exportProfilePdf()}
+            onClick={handleExportPdf}
+            disabled={isExporting}
             variant="outline"
             size="sm"
             className="hidden sm:flex"
           >
-            Export PDF
+            {isExporting ? 'Exporting...' : 'Export PDF'}
           </Button>
         </div>
       }
@@ -413,6 +359,11 @@ const Profile: React.FC = () => {
                     onImageChange={handleImageUpload}
                     className="mx-auto w-28 h-28 border-4 border-white dark:border-brand-dark-lighter shadow-md"
                   />
+                  {isUploadingImage && (
+                    <p className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+                      Uploading...
+                    </p>
+                  )}
                   {isEditingPersonalInfo && profile.profilePictureUrl && (
                     <button
                       onClick={handleDeleteProfilePicture}

@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ExternalLink,
   Search,
   Bell,
   PlusCircle,
@@ -16,6 +15,7 @@ import Button from '../components/ui/Button';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { requestsApi, JoinRequest } from '../services/api/requests';
 import { toast } from 'react-hot-toast';
+import { errorMessage } from '../utils/errors';
 
 const RequestCard: React.FC<{
   request: JoinRequest;
@@ -23,19 +23,20 @@ const RequestCard: React.FC<{
   onReject: (id: number) => void;
   isProcessing: boolean;
 }> = ({ request, onApprove, onReject, isProcessing }) => {
-  const navigate = useNavigate();
-
   return (
     <div className="rounded-lg bg-white p-4 md:p-6 shadow-sm border border-gray-200 transition-all hover:shadow-md dark:bg-brand-dark-lighter dark:border-gray-600 dark:shadow-lg">
       <div className="flex flex-col sm:flex-row items-start gap-4">
-        <img
-          src={
-            request.requester.profilePictureUrl ||
-            'https://via.placeholder.com/150'
-          }
-          alt={request.requester.username}
-          className="h-12 w-12 rounded-full object-cover flex-shrink-0"
-        />
+        {request.requester.profilePictureUrl ? (
+          <img
+            src={request.requester.profilePictureUrl}
+            alt={request.requester.username}
+            className="h-12 w-12 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-orange/10 text-lg font-bold text-brand-orange">
+            {request.requester.username.charAt(0).toUpperCase()}
+          </div>
+        )}
 
         <div className="flex-1 w-full">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
@@ -47,17 +48,6 @@ const RequestCard: React.FC<{
                 @{request.requester.username}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="group w-full sm:w-auto"
-              onClick={() => navigate(`/profile/${request.requester.id}`)}
-              rightIcon={
-                <ExternalLink className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              }
-            >
-              View Profile
-            </Button>
           </div>
 
           <div className="mt-4">
@@ -154,12 +144,7 @@ const Requests: React.FC = () => {
     'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
   >('PENDING');
 
-  // Fetch requests on mount and when filter changes
-  useEffect(() => {
-    fetchRequests();
-  }, [statusFilter]);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -172,13 +157,17 @@ const Requests: React.FC = () => {
       } else {
         setError('Failed to fetch requests');
       }
-    } catch (err: any) {
-      console.error('Error fetching requests:', err);
-      setError(err.message || 'Failed to fetch requests');
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to fetch requests'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  // Fetch requests on mount and when the filter changes
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
 
   const handleApprove = async (requestId: number) => {
     try {
@@ -198,9 +187,8 @@ const Requests: React.FC = () => {
           )
         );
       }
-    } catch (err: any) {
-      console.error('Error approving request:', err);
-      toast.error(err.message || 'Failed to approve request');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to approve request'));
     } finally {
       setProcessingId(null);
     }
@@ -222,9 +210,8 @@ const Requests: React.FC = () => {
           )
         );
       }
-    } catch (err: any) {
-      console.error('Error rejecting request:', err);
-      toast.error(err.message || 'Failed to reject request');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to reject request'));
     } finally {
       setProcessingId(null);
     }

@@ -3,7 +3,7 @@ import { Upload, Camera, X } from "lucide-react";
 import { cn } from "../../utils/cn";
 
 interface FileUploadProps {
-  user?: any;
+  user?: { firstname?: string; username?: string } | null;
   currentImage?: string;
   onImageChange: (file: File | null) => void;
   className?: string;

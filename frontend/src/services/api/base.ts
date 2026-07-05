@@ -1,4 +1,5 @@
 import axios, {
+  AxiosError,
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
@@ -20,22 +21,43 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Track if we're currently refreshing the token
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (value?: any) => void;
-  reject: (reason?: any) => void;
-}> = [];
+// Fired when the session can no longer be refreshed. AuthContext listens for it and
+// drops its user, so ProtectedRoute redirects to /login without a full page reload.
+export const SESSION_EXPIRED_EVENT = 'auth:session-expired';
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
+// Auth endpoints that must never trigger a token refresh: they are how a session is
+// obtained or ended, or they work without one. Every other call, including
+// /auth/me, is an ordinary authenticated request and refreshes an expired token.
+const NO_REFRESH_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/logout',
+  '/auth/forgot-password',
+  '/auth/verify-otp',
+  '/auth/reset-password',
+  '/auth/verify-registration-otp',
+];
+
+const skipsRefresh = (url?: string): boolean =>
+  !!url && NO_REFRESH_PATHS.some((path) => url.includes(path));
+
+// The refresh in flight, shared by every request that hits a 401 meanwhile, so only one
+// refresh happens at a time (the backend rotates the refresh token on each use).
+let refreshPromise: Promise<string> | null = null;
+
+const refreshAccessToken = async (): Promise<string> => {
+  const response = await axios.post(
+    `${API_BASE_URL}/auth/refresh`,
+    {},
+    { withCredentials: true }
+  );
+  const accessToken = response.data?.accessToken;
+  if (!accessToken) {
+    throw new Error('Refresh response did not contain an access token');
+  }
+  tokenService.setAccessToken(accessToken);
+  return accessToken;
 };
 
 // Request interceptor to add access token
@@ -60,62 +82,38 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 errors (except for auth endpoints)
     if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/')
+      error.response?.status !== 401 ||
+      !originalRequest ||
+      originalRequest._retry ||
+      skipsRefresh(originalRequest.url)
     ) {
-      if (isRefreshing) {
-        // If already refreshing, queue this request
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(() => {
-            return apiClient(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        // Try to refresh the token
-        const response = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-
-        if (response.data.accessToken) {
-          tokenService.setAccessToken(response.data.accessToken);
-          processQueue(null, response.data.accessToken);
-
-          // Retry the original request with new token
-          originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
-          return apiClient(originalRequest);
-        }
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-
-        // Refresh failed, clear token and redirect to login
-        tokenService.clearAccessToken();
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    // Each request is retried at most once, so a persistent 401 cannot loop
+    originalRequest._retry = true;
+
+    let accessToken: string;
+    try {
+      refreshPromise ??= refreshAccessToken().finally(() => {
+        refreshPromise = null;
+      });
+      accessToken = await refreshPromise;
+    } catch (refreshError) {
+      // The session is over: forget the token and let AuthContext route to /login
+      tokenService.clearAccessToken();
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+      return Promise.reject(refreshError);
+    }
+
+    originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+    return apiClient(originalRequest);
   }
 );
 
 // Generic API response interface
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -160,10 +158,36 @@ export class BaseApi {
     }
   }
 
+  // Authenticated binary download (the token and refresh logic come from the shared client,
+  // which a plain <a href> / window.open would bypass)
+  protected async getBlob(
+    endpoint: string,
+    config?: AxiosRequestConfig
+  ): Promise<Blob> {
+    try {
+      const response = await this.client.get<Blob>(endpoint, {
+        ...config,
+        responseType: 'blob',
+      });
+      return response.data;
+    } catch (error) {
+      // With responseType 'blob' even an error body arrives as a Blob; read the server's message out of it
+      const body = (error as AxiosError).response?.data;
+      if (body instanceof Blob) {
+        const message = (await body.text()).trim();
+        throw {
+          message: message || 'An error occurred',
+          status: (error as AxiosError).response?.status,
+        } satisfies ApiError;
+      }
+      throw this.handleError(error);
+    }
+  }
+
   // Generic POST request
   protected async post<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
@@ -177,7 +201,7 @@ export class BaseApi {
   // Generic PUT request
   protected async put<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
@@ -191,7 +215,7 @@ export class BaseApi {
   // Generic PATCH request
   protected async patch<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
@@ -226,33 +250,31 @@ export class BaseApi {
   }
 
   // Handle API errors
-  private handleError(error: any): ApiError {
-    if (error.response) {
-      const data = error.response.data;
-      const message =
-        typeof data === 'string' ? data : data?.message || 'An error occurred';
-
-      return {
-        message,
-        status: error.response.status,
-        errors: typeof data === 'object' ? data?.errors : undefined,
-      };
-    } else if (error.request) {
-      return {
-        message: 'Network error. Please check your connection.',
-      };
-    } else {
-      return {
-        message: error.message || 'An unexpected error occurred',
-      };
+  private handleError(error: unknown): ApiError {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        const data: unknown = error.response.data;
+        const body =
+          typeof data === 'object' && data !== null
+            ? (data as { message?: string; errors?: Record<string, string> })
+            : undefined;
+        return {
+          message:
+            typeof data === 'string' ? data : body?.message || 'An error occurred',
+          status: error.response.status,
+          errors: body?.errors,
+        };
+      }
+      if (error.request) {
+        return { message: 'Network error. Please check your connection.' };
+      }
     }
-  }
-
-  // Simulate API delay for development
-  protected async simulateDelay(ms: number = 500): Promise<void> {
-    if (import.meta.env.DEV) {
-      await new Promise((resolve) => setTimeout(resolve, ms));
-    }
+    return {
+      message:
+        error instanceof Error && error.message
+          ? error.message
+          : 'An unexpected error occurred',
+    };
   }
 }
 

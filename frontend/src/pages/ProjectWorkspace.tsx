@@ -4,8 +4,11 @@ import {
   CheckSquare,
   Eye,
   FileText,
+  LogOut,
   MessageSquare,
+  Trash2,
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
@@ -28,33 +31,32 @@ import ChatTab from '../components/workspace/ChatTab';
 // Import Edit Modals
 import EditProjectModal from '../components/workspace/EditProjectModal';
 import EditTaskModal from '../components/workspace/EditTaskModal';
-import { useAuth } from '../context/AuthContext'; // Assuming context exists to check owner
+import { useAuth } from '../context/AuthContext';
+import { errorMessage } from '../utils/errors';
+import type { PublicProfile } from '../services/api/teams';
+
+type WorkspaceTab = 'overview' | 'tasks' | 'files' | 'chat';
+
+const WORKSPACE_TABS: { id: WorkspaceTab; label: string; icon: React.ElementType }[] = [
+  { id: 'overview', label: 'Overview', icon: Eye },
+  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+  { id: 'files', label: 'Files', icon: FileText },
+  { id: 'chat', label: 'Chat', icon: MessageSquare },
+];
 
 const ProjectWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
-  // const { user } = useAuth(); // We need to know who is logged in to check ownership
-  // For now, let's assume valid user if logged in, but we need to check ID against project.createdBy
-  // We can fetch 'me' or rely on stored user.
-  // Let's assume we can get current user either from context or local storage.
-  // Since I don't see AuthContext imported before, I'll try to find where user is.
-  // Actually, projectsApi.createProject uses 'profileService.getCurrentUserProfile()' in backend.
-  // Frontend might have user in context.
-  // Let's look at DashboardLayout or similar to see how user is retrieved.
-  // Or just pass `isOwner` based on some logic.
-  // For V1, let's assume we can't easily check 'isOwner' without context.
-  // I will check if 'user' object is available in localStorage or context.
+  const { user } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [team, setTeam] = useState<any[]>([]); // Placeholder type for now
+  const [team, setTeam] = useState<PublicProfile[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'tasks' | 'files' | 'chat'
-  >('overview');
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('overview');
   const [selectedTaskStatus, setSelectedTaskStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -63,6 +65,10 @@ const ProjectWorkspace: React.FC = () => {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [pendingProjectAction, setPendingProjectAction] = useState<
+    'delete' | 'leave' | null
+  >(null);
+  const [isProjectActionRunning, setIsProjectActionRunning] = useState(false);
 
   const [newTaskData, setNewTaskData] = useState<CreateTaskRequest>({
     title: '',
@@ -73,20 +79,6 @@ const ProjectWorkspace: React.FC = () => {
     assigneeId: '',
   });
   const [newTaskTagInput, setNewTaskTagInput] = useState('');
-
-  // Hacky way to get current user ID for ownership check if context missing
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Try to get user from localStorage which is common pattern
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const u = JSON.parse(userStr);
-        setCurrentUserId(u.id); // Check if structure matches
-      } catch (e) {}
-    }
-  }, []);
 
   useEffect(() => {
     if (projectId) {
@@ -119,9 +111,8 @@ const ProjectWorkspace: React.FC = () => {
       if (teamRes.success && teamRes.data) {
         setTeam(teamRes.data);
       }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      setError(errorMessage(err, 'An error occurred'));
     } finally {
       setIsLoading(false);
     }
@@ -142,10 +133,10 @@ const ProjectWorkspace: React.FC = () => {
 
     try {
       await projectsApi.removeTeamMember(projectId, memberId);
-      setTeam(team.filter((m) => m.id !== memberId));
+      setTeam((prev) => prev.filter((m) => m.id !== memberId));
+      toast.success('Member removed');
     } catch (err) {
-      console.error('Failed to remove member', err);
-      alert('Failed to remove member');
+      toast.error(errorMessage(err, 'Could not remove the member'));
     }
   };
 
@@ -159,7 +150,11 @@ const ProjectWorkspace: React.FC = () => {
   };
 
   const handleCreateTask = async () => {
-    if (!projectId || !newTaskData.title) return;
+    if (!projectId) return;
+    if (!newTaskData.title.trim()) {
+      toast.error('Give the task a title');
+      return;
+    }
 
     try {
       const payload: CreateTaskRequest = {
@@ -170,8 +165,8 @@ const ProjectWorkspace: React.FC = () => {
       };
 
       const res = await projectsApi.createTask(projectId, payload);
-      if (res.success && res.data) {
-        setTasks([...tasks, res.data]);
+      if (res.data) {
+        setTasks((prev) => [...prev, res.data!]);
         setIsTaskModalOpen(false);
         setNewTaskData({
           // Reset form
@@ -184,32 +179,51 @@ const ProjectWorkspace: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Failed to create task', err);
+      // The modal stays open with what was typed
+      toast.error(errorMessage(err, 'Could not create the task'));
     }
   };
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
       const res = await projectsApi.updateTask(taskId, {
-        status: newStatus as any,
+        status: newStatus as Task['status'],
       });
-      if (res.success && res.data) {
-        setTasks(tasks.map((t) => (t.id === taskId ? res.data! : t)));
+      if (res.data) {
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? res.data! : t)));
       }
     } catch (err) {
-      console.error('Failed to update task', err);
+      toast.error(errorMessage(err, 'Could not update the task'));
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
     try {
-      const res = await projectsApi.deleteTask(taskId);
-      if (res.success) {
-        setTasks(tasks.filter((t) => t.id !== taskId));
-      }
+      await projectsApi.deleteTask(taskId);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
     } catch (err) {
-      console.error('Failed to delete task', err);
+      toast.error(errorMessage(err, 'Could not delete the task'));
+    }
+  };
+
+  // Owners delete the project; everyone else leaves its team. Both end on the projects list.
+  const handleProjectAction = async () => {
+    if (!projectId || !pendingProjectAction) return;
+    setIsProjectActionRunning(true);
+    try {
+      if (pendingProjectAction === 'delete') {
+        await projectsApi.deleteProject(projectId);
+        toast.success('Project deleted');
+      } else {
+        await projectsApi.leaveProject(projectId);
+        toast.success('You left the project');
+      }
+      navigate('/projects', { replace: true });
+    } catch (err) {
+      toast.error(errorMessage(err, 'That did not work'));
+      setIsProjectActionRunning(false);
+      setPendingProjectAction(null);
     }
   };
 
@@ -243,42 +257,45 @@ const ProjectWorkspace: React.FC = () => {
     );
   }
 
-  // Helper to check ownership. Note: CreatedBy.id vs CurrentUser.id
-  // We assume 'createdBy' has 'id' field in Project interface.
-  // And we try to match with 'currentUserId'.
-  // If currentUserId is null (not found), we default false.
-  // NOTE: project.createdBy.id is the profile ID? Or User ID?
-  // API returns createdBy as ProfileDto usually.
-  // Let's assume currentUserId is also Profile ID or we have to map.
-  // Ideally backend handles permission check, frontend just hides UI.
-  // If IDs mismatch, backend will throw 403/400.
-  // Let's try to match loosely or just show buttons for now if we can't be sure.
-  const isOwner = currentUserId
-    ? project.createdBy.id === currentUserId
-    : false;
-  // Actually usually ID from login is User ID, but project linked to Profile.
-  // Profile usually linked to User relative 1:1.
-  // Let's blindly trust if we can match, else show buttons and let backend reject.
-  // Actually safer to show buttons and let API fail if unauthorized than hide for valid owner due to ID mismatch.
-  // But strictly, let's enable `isOwner` logic later or assume true for dev/demo if needed.
-  // I'll leave `isOwner` true for now to allow testing or implementation verification easily,
-  // or I can check `project.createdBy.id` against some stored value.
-  // For this tasks, I will enable it always to verify UI then user can Restrict.
-
-  // better: const isOwner = true; // For testing
+  // project.createdBy.id is a profile id while the logged-in user's id is a user id, so they
+  // cannot be compared; usernames are unique, so compare those. This only decides which
+  // controls are shown: the backend enforces ownership on every owner-only action.
+  const isOwner = !!user && project.createdBy.username === user.username;
 
   return (
     <DashboardLayout
       title={project.title}
       actions={
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/projects')}
-          leftIcon={<ArrowLeft className="h-4 w-4" />}
-        >
-          Back to Projects
-        </Button>
+        <div className="flex items-center gap-2">
+          {isOwner ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800"
+              onClick={() => setPendingProjectAction('delete')}
+              leftIcon={<Trash2 className="h-4 w-4" />}
+            >
+              Delete project
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPendingProjectAction('leave')}
+              leftIcon={<LogOut className="h-4 w-4" />}
+            >
+              Leave project
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/projects')}
+            leftIcon={<ArrowLeft className="h-4 w-4" />}
+          >
+            Back to Projects
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-col min-h-[calc(100vh-64px)]">
@@ -286,15 +303,10 @@ const ProjectWorkspace: React.FC = () => {
         <div className="sticky top-4 z-20 mx-auto mt-4 w-full max-w-5xl px-4">
           <div className="rounded-2xl bg-white/80 backdrop-blur shadow-lg ring-1 ring-gray-200 dark:bg-brand-dark/80 dark:ring-gray-700">
             <nav className="flex items-center gap-8 px-6 overflow-x-auto no-scrollbar">
-              {[
-                { id: 'overview', label: 'Overview', icon: Eye },
-                { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-                { id: 'files', label: 'Files', icon: FileText },
-                { id: 'chat', label: 'Chat', icon: MessageSquare },
-              ].map((tab) => (
+              {WORKSPACE_TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={cn(
                     'relative flex items-center gap-2 py-4 text-sm font-medium transition-all',
                     activeTab === tab.id
@@ -316,7 +328,7 @@ const ProjectWorkspace: React.FC = () => {
             <OverviewTab
               project={project}
               team={team}
-              isOwner={true} // Hardcode for now or fix ID logic
+              isOwner={isOwner}
               onEditProject={handleEditProject}
               onRemoveMember={handleRemoveMember}
             />
@@ -416,7 +428,7 @@ const ProjectWorkspace: React.FC = () => {
                 }
               >
                 <option value="">Unassigned</option>
-                {team.map((member: any) => (
+                {team.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.firstname} {member.lastname} ({member.username})
                   </option>
@@ -463,6 +475,54 @@ const ProjectWorkspace: React.FC = () => {
           onUpdate={handleProjectUpdate}
         />
       )}
+
+      {/* Delete / leave confirmation */}
+      <Modal
+        isOpen={pendingProjectAction !== null}
+        onClose={() => !isProjectActionRunning && setPendingProjectAction(null)}
+        title={
+          pendingProjectAction === 'delete' ? 'Delete project?' : 'Leave project?'
+        }
+      >
+        <div className="space-y-4 text-sm text-gray-700 dark:text-gray-200">
+          {pendingProjectAction === 'delete' ? (
+            <p>
+              <strong>{project.title}</strong> will be permanently deleted with
+              its tasks, files, chat and team. This cannot be undone.
+            </p>
+          ) : (
+            <p>
+              You will leave <strong>{project.title}</strong> and lose access to
+              its tasks, files and chat. Your tasks there become unassigned. You
+              can ask to join again later.
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              disabled={isProjectActionRunning}
+              onClick={() => setPendingProjectAction(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={isProjectActionRunning}
+              className={
+                pendingProjectAction === 'delete'
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : undefined
+              }
+              onClick={handleProjectAction}
+            >
+              {isProjectActionRunning
+                ? 'Working...'
+                : pendingProjectAction === 'delete'
+                  ? 'Delete project'
+                  : 'Leave project'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Edit Task Modal */}
       {editingTask && (
