@@ -33,10 +33,11 @@
 
 The current implementation covers:
 
-1.  **User Identity**: Secure authentication, profile building, and portfolio management.
-2.  **Project Marketplace**: Users can post project ideas, recruit members, and browse opportunities.
-3.  **Team Formation**: Automated and manual team creation with role-based member management.
-4.  **Collaboration Tools**: Task assignment, progress tracking, and peer reviews.
+1.  **User Identity**: Secure authentication, profile building, and a skills portfolio.
+2.  **Project Marketplace**: Users post project ideas, browse them with filters, and send join requests.
+3.  **Teams**: A project's team is created automatically when its owner approves the first join request. Members can leave; owners can remove members or delete the project.
+4.  **Collaboration Tools**: Tasks with assignees and deadlines, per-project chat, and file sharing, all limited to the project's team.
+5.  **Activity**: A timeline of your projects, requests, collaborations, tasks and uploads (computed from existing data), and badges that unlock as you take part.
 
 ---
 
@@ -67,10 +68,12 @@ Collabro employs a robust **Stateless Authentication** system designed for secur
 
 #### Token Strategy
 
-| Token Type        | Lifespan   | Storage                     | Purpose             |
-| ----------------- | ---------- | --------------------------- | ------------------- |
-| **Access Token**  | 15 minutes | Memory + localStorage       | API authentication  |
-| **Refresh Token** | 7 days     | HTTP-only cookie + Database | Renew access tokens |
+| Token Type        | Lifespan   | Storage                                   | Purpose                                  |
+| ----------------- | ---------- | ----------------------------------------- | ---------------------------------------- |
+| **Access Token**  | 15 minutes | Memory + localStorage (browser)           | API authentication (`Bearer` header)     |
+| **Refresh Token** | 7 days     | HTTP-only cookie; SHA-256 hash in the DB  | Obtain a new access token (single use)   |
+
+Both are signed JWTs carrying a `type` claim, so a refresh token is rejected when presented as an access token.
 
 #### Authentication Flow
 
@@ -98,10 +101,11 @@ sequenceDiagram
     BE-->>FE: 401 Unauthorized
     FE->>FE: Detect 401, trigger refresh
     FE->>BE: POST /api/auth/refresh (cookie auto-sent)
-    BE->>DB: Validate refresh token
+    BE->>DB: Look up hash of the refresh token
     DB-->>BE: Token valid
-    BE->>BE: Generate new access token
-    BE-->>FE: New access token
+    BE->>BE: Issue new access token + new refresh token
+    BE->>DB: Replace stored hash (old one kept briefly)
+    BE-->>FE: New access token + new refresh cookie
     FE->>FE: Update stored token
     FE->>BE: Retry original request
     BE-->>FE: Success response
@@ -109,10 +113,12 @@ sequenceDiagram
 
 #### Security Features
 
-- **HTTP-Only Cookies**: Refresh tokens are inaccessible to client-side JavaScript, preventing XSS attacks.
-- **Automatic Rotation**: New refresh tokens can be issued on use (configurable) to detect theft.
-- **Database Revocation**: Admins can revoke sessions by deleting the refresh token from the database.
-- **Race Condition Handling**: Frontend request queueing ensures multiple concurrent requests don't trigger multiple refreshes.
+- **HTTP-only refresh cookie**: unreachable from JavaScript. `Secure` and `SameSite` come from configuration.
+- **Refresh token rotation**: every refresh swaps in a new token. Replaying an already-used token (outside a 10-second grace window for concurrent tabs) ends the session.
+- **Hashed at rest**: only a SHA-256 hash of the refresh token is stored.
+- **One-time codes**: 6-digit OTPs expire after 10 minutes, are burned after 5 wrong guesses, are limited to one per minute per address, and cannot be used for a different purpose than they were issued for.
+- **Sessions end on password change**: resetting or changing a password signs the user out everywhere else.
+- **Single refresh in flight**: the frontend shares one refresh between concurrent requests and never retries a request twice.
 
 ---
 
@@ -130,10 +136,8 @@ erDiagram
 
     Profiles ||--|{ SocialLinks : "owns"
     Profiles ||--|{ Skills : "possesses"
-    Profiles ||--|{ Posts : "authors"
     Profiles ||--|{ Projects : "creates"
     Profiles ||--|{ Tasks : "assigned to"
-    Profiles ||--|{ Notifications : "receives"
     Profiles ||--|{ ChatMessages : "sends"
     Profiles ||--|{ ProjectFiles : "uploads"
     Profiles }o--|| Teams : "creates"
@@ -142,25 +146,13 @@ erDiagram
 
     Projects ||--|{ Tasks : "contains"
     Projects ||--o| Teams : "managed by"
-    Projects ||--o| Posts : "promoted via"
-    Projects ||--|{ Reviews : "receives"
     Projects ||--|{ CollaborationRequests : "receives"
     Projects ||--|{ ChatMessages : "has chat"
     Projects ||--|{ ProjectFiles : "contains"
 
-    Teams ||--o| Posts : "recruits via"
-
-    Posts ||--|{ CollaborationRequests : "triggers"
-
     CollaborationRequests }|--|| Profiles : "requested by"
 
     Skills }o--|| SkillDefinitions : "defined by"
-
-    Reviews }o--|| Profiles : "written by"
-    Reviews }o--|| Profiles : "targets"
-    Reviews }o--|| Projects : "for project"
-
-    ChatMessages }|--|{ Profiles : "read by"
 
     Users {
         UUID id PK
@@ -190,7 +182,6 @@ erDiagram
         UUID id PK
         UUID profile_id FK "createdBy"
         long team_id FK
-        UUID post_id FK
         string title
         string description
         string status
@@ -225,17 +216,6 @@ erDiagram
         datetime updatedAt
     }
 
-    Posts {
-        UUID id PK
-        UUID profile_id FK "author"
-        UUID project_id FK
-        long team_id FK
-        string postType
-        string title
-        string status
-        datetime createdAt
-    }
-
     CollaborationRequests {
         long id PK
         UUID project_id FK
@@ -247,33 +227,11 @@ erDiagram
         datetime updatedAt
     }
 
-    Reviews {
-        UUID id PK
-        UUID reviewer_id FK
-        UUID reviewed_id FK
-        UUID project_id FK
-        int rating
-        string comment
-        datetime createdAt
-        datetime updatedAt
-    }
-
     RefreshTokens {
         long id PK
         UUID user_id FK
         string token UK
         datetime expiryDate
-        datetime createdAt
-    }
-
-    Notifications {
-        UUID id PK
-        UUID recipient_id FK
-        string type
-        boolean isRead
-        UUID relatedEntityId
-        string relatedEntityType
-        string payload
         datetime createdAt
     }
 
@@ -329,30 +287,34 @@ erDiagram
 
 ### 🔐 Authentication & Security
 
-- **Secure Registration/Login** with JWT (JSON Web Tokens).
-- **Email Verification** using OTP.
-- **Role-Based Access Control** (User/Admin).
-- **Password Management** (hashing, reset flows).
+- **Registration and login** with short-lived JWT access tokens and rotating refresh tokens.
+- **Email verification** and **password reset** using one-time codes.
+- **Change password** and **delete account** (both re-check the current password).
+- **Role-based access**: `ROLE_USER` and a reserved `ROLE_ADMIN` (no admin features yet).
 
 ### 👤 Profile Management
 
-- **Skill Matrix**: Add skills with proficiency levels.
-- **Social Integration**: Link GitHub, LinkedIn, and Portfolio.
-- **Profile Strength**: Real-time calculation of profile completeness.
-- **Avatar Management**: Upload and manage profile pictures.
+- **Skills** with proficiency levels, **social links** (http/https only), **profile completeness**.
+- **Profile picture** upload (PNG, JPEG, GIF, WebP up to 5 MB, verified by content, not just extension).
+- **PDF export** of a completed profile.
+- **Settings**: notification and team preferences, change password, delete account.
 
-### 🚀 Project & Team Collaboration
+### 🚀 Projects, Teams & Collaboration
 
-- **Project Creation**: Detailed project specs including tech stack and expected duration.
-- **Team Assembly**: Create teams, invite members, and manage rosters.
-- **Task Board**: Assign tasks to specific team members with deadlines.
-- **Reviews**: Peer review system to build reputation.
+- **Projects**: detailed specs, edit, delete (owner), filter/sort/search when browsing.
+- **Join requests**: apply with a message; the owner approves or rejects; you can re-apply after a rejection or after leaving.
+- **Teams**: created on the first approval. **My Teams** lists teams you own or belong to; members can leave, owners can remove members.
+- **Tasks, chat and files**: visible and editable only by the owner and team members; files are served as downloads.
+
+### 📈 Activity & Achievements
+
+- **History**: a filterable timeline of your projects, requests, collaborations, completed tasks and uploads.
+- **Achievements**: 14 badges (projects, collaborations, leadership, skills, activity) with progress, points, levels and ranks, computed from your activity.
 
 ### 🤝 Networking
 
-- **Collaboration Requests**: Apply to join projects or teams.
-- **Smart Matching**: (Upcoming) Algorithm to recommend projects based on skills.
-- **Matchmaking & search**: Find developers and projects based on filters.
+- **Profile search** (public, contact details never included) by skill, minimum proficiency, location and education.
+- **Suggestions**: people with similar skills, and people with skills you lack.
 
 ---
 
@@ -404,28 +366,28 @@ cd Collabro
 
 ### 2. Backend Setup
 
-Navigate to the backend directory and configure the database.
-
 ```bash
 cd backend
+cp .env.example .env     # then fill it in (it is gitignored)
 ```
 
-**Configure Database:**
-Update `src/main/resources/application.properties` with your MySQL credentials:
+`.env` is loaded automatically. It needs the database and mail credentials and a JWT secret (at least 32 characters, e.g. `openssl rand -hex 32`). The application refuses to start without `JWT_SECRET`. Uploaded files go to `UPLOAD_DIR` (default `./uploads`).
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/collabro_db
-spring.datasource.username=root
-spring.datasource.password=yourpassword
-```
-
-**Run the Application:**
+**Run the application** (development profile: `ddl-auto=update`, SQL logging on):
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-The server will start on `http://localhost:8080`.
+The server starts on `http://localhost:8080` (API docs at `/swagger-ui.html` in development).
+
+**Run the tests** (they use an in-memory H2 database and need no credentials):
+
+```bash
+./mvnw test
+```
+
+**Production**: set `SPRING_PROFILES_ACTIVE=prod` and provide every variable in `application-prod.properties` (database, mail, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `UPLOAD_DIR`). That profile validates the schema instead of changing it, hides SQL and the API docs, and sets the refresh cookie `Secure`. The schema must already exist; there is no migration tool yet.
 
 ### 3. Frontend Setup
 
@@ -447,7 +409,9 @@ npm install
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`.
+The application will be available at `http://localhost:5173` (it proxies `/api` to the backend on port 8080).
+
+**Checks:** `npm test` (unit tests), `npm run lint`, and `npm run build` (type-checks, then builds).
 
 ---
 
