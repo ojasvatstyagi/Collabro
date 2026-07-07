@@ -85,4 +85,11 @@ class ConfigFilesTest {
         assertEquals("false", shared.getProperty("spring.jpa.show-sql"));
         assertNull(shared.getProperty("spring.devtools.restart.enabled"));
     }
+
+    @Test
+    void theEnvFileIsLoadedByTheFrameworkNotByAThirdPartyLibrary() throws IOException {
+        // spring-dotenv 2.x silently did nothing on Spring Boot 3, so .env was never read
+        assertEquals("optional:file:./.env[.properties]", load("application.properties").getProperty("spring.config.import"));
+        assertFalse(Files.readString(Path.of("pom.xml")).contains("spring-dotenv"));
+    }
 }
