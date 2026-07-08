@@ -64,6 +64,11 @@ class PasswordServiceTest {
         return token;
     }
 
+    private void newestResetToken(PasswordToken token) {
+        when(tokenRepo.findFirstByEmailAndTokenTypeOrderByIdDesc(EMAIL, TokenType.PASSWORD_RESET))
+                .thenReturn(Optional.of(token));
+    }
+
     private void latestResetToken(PasswordToken token) {
         when(tokenRepo.findFirstByEmailAndTokenTypeAndUsedFalseOrderByIdDesc(EMAIL, TokenType.PASSWORD_RESET))
                 .thenReturn(Optional.of(token));
@@ -104,7 +109,7 @@ class PasswordServiceTest {
         PasswordToken recent = activeToken("111111", TokenType.PASSWORD_RESET);
         recent.setCreatedAt(LocalDateTime.now().minusSeconds(10));
         when(userRepo.findByEmail(EMAIL)).thenReturn(Optional.of(new User()));
-        latestResetToken(recent);
+        newestResetToken(recent);
 
         passwordService.generateResetOtp(EMAIL);
 
@@ -118,7 +123,7 @@ class PasswordServiceTest {
         PasswordToken old = activeToken("111111", TokenType.PASSWORD_RESET);
         old.setCreatedAt(LocalDateTime.now().minusMinutes(2));
         when(userRepo.findByEmail(EMAIL)).thenReturn(Optional.of(new User()));
-        latestResetToken(old);
+        newestResetToken(old);
 
         passwordService.generateResetOtp(EMAIL);
 
@@ -280,5 +285,21 @@ class PasswordServiceTest {
         verify(userRepo, never()).save(any(User.class));
         verify(tokenRepo, never()).findFirstByEmailAndTokenTypeAndUsedFalseOrderByIdDesc(eq(EMAIL),
                 eq(TokenType.PASSWORD_RESET));
+    }
+
+    @Test
+    void generateResetOtp_AfterACodeWasBurnedByWrongGuesses_StillWaitsOutTheCooldown() {
+        PasswordToken burned = activeToken("111111", TokenType.PASSWORD_RESET);
+        burned.setCreatedAt(LocalDateTime.now().minusSeconds(5));
+        burned.setAttempts(PasswordService.MAX_ATTEMPTS);
+        burned.setUsed(true);
+        when(userRepo.findByEmail(EMAIL)).thenReturn(Optional.of(new User()));
+        newestResetToken(burned);
+
+        passwordService.generateResetOtp(EMAIL);
+
+        // Otherwise guessing a code to death would hand out the next one, with five fresh guesses, at once
+        verify(tokenRepo, never()).save(any(PasswordToken.class));
+        verify(emailService, never()).sendOtpEmail(any(), any());
     }
 }

@@ -105,10 +105,14 @@ public class PasswordService {
         return true;
     }
 
-    /** Creates a fresh code and burns older ones. Empty if a code was issued too recently. */
+    /**
+     * Creates a fresh code and burns older ones. Empty if a code was issued too recently. The cooldown counts the
+     * newest code even if it has been used up or burned by wrong guesses; otherwise guessing a code to death
+     * would let the next one be requested immediately, for unlimited attempts.
+     */
     private Optional<String> issueOtp(String email, TokenType type) {
         LocalDateTime now = LocalDateTime.now();
-        Optional<PasswordToken> latest = tokenRepo.findFirstByEmailAndTokenTypeAndUsedFalseOrderByIdDesc(email, type);
+        Optional<PasswordToken> latest = tokenRepo.findFirstByEmailAndTokenTypeOrderByIdDesc(email, type);
         if (latest.isPresent() && latest.get().getCreatedAt() != null
                 && latest.get().getCreatedAt().plus(RESEND_COOLDOWN).isAfter(now)) {
             return Optional.empty();

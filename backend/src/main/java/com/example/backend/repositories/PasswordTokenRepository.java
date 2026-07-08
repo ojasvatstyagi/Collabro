@@ -13,6 +13,9 @@ import java.util.Optional;
 @Repository
 public interface PasswordTokenRepository extends JpaRepository<PasswordToken, Long> {
 
+    /** The newest token of the given type, used or not: what the resend cooldown is measured from. */
+    Optional<PasswordToken> findFirstByEmailAndTokenTypeOrderByIdDesc(String email, TokenType tokenType);
+
     /** The newest still-unused token of the given type: the only one a guess may be checked against. */
     Optional<PasswordToken> findFirstByEmailAndTokenTypeAndUsedFalseOrderByIdDesc(String email, TokenType tokenType);
 
