@@ -158,4 +158,32 @@ class ProjectFileServiceTest {
 
         verify(projectFileRepository, never()).delete(any(ProjectFile.class));
     }
+
+    @Test
+    void uploadFile_StoresAndReturnsTheSanitisedNameNotTheClientsRawOne() {
+        MockMultipartFile upload = new MockMultipartFile("file", "../../etc/evil<script>.txt", "text/plain", "data".getBytes());
+        when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
+        when(profileService.getCurrentUserProfile()).thenReturn(uploader);
+        when(fileStorageService.storeFile(any(), anyString())).thenReturn("project-files/x/stored.txt");
+        when(projectFileRepository.save(any(ProjectFile.class))).thenAnswer(inv -> {
+            ProjectFile saved = inv.getArgument(0);
+            saved.setId(UUID.randomUUID());
+            return saved;
+        });
+
+        var dto = projectFileService.uploadFile(project.getId(), upload);
+
+        assertEquals("evil_script_.txt", dto.getFileName());
+    }
+
+    @Test
+    void uploadFile_RejectsAnEmptyFile() {
+        MockMultipartFile empty = new MockMultipartFile("file", "a.txt", "text/plain", new byte[0]);
+        when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
+        when(profileService.getCurrentUserProfile()).thenReturn(uploader);
+
+        assertThrows(com.example.backend.exceptions.BadRequestException.class,
+                () -> projectFileService.uploadFile(project.getId(), empty));
+        verify(fileStorageService, never()).storeFile(any(), anyString());
+    }
 }

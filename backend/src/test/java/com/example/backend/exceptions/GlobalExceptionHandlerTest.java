@@ -50,6 +50,11 @@ class GlobalExceptionHandlerTest {
             throw new IllegalStateException("secret internals");
         }
 
+        @GetMapping("/by-id/{id}")
+        String byId(@org.springframework.web.bind.annotation.PathVariable java.util.UUID id) {
+            return id.toString();
+        }
+
         @PostMapping(value = "/json-only", consumes = "application/json")
         String jsonOnly(@RequestBody java.util.Map<String, String> body) {
             return "ok";
@@ -118,5 +123,17 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/boom"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(content().string("An unexpected error occurred."));
+    }
+
+    @Test
+    void malformedIdInThePath_Returns400NotAServerError() throws Exception {
+        mockMvc.perform(get("/by-id/undefined"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Invalid value for 'id'"));
+    }
+
+    @Test
+    void wellFormedIdInThePath_StillWorks() throws Exception {
+        mockMvc.perform(get("/by-id/3f2b8c1e-0d3a-4b7e-9a51-2d6f4c8e1a90")).andExpect(status().isOk());
     }
 }

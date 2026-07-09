@@ -42,7 +42,8 @@ public class ProjectFileService {
         String relativePath = fileStorageService.storeFile(file, "project-files/" + projectId);
 
         ProjectFile projectFile = new ProjectFile();
-        projectFile.setFileName(file.getOriginalFilename());
+        // The name shown to users is the sanitised one, not whatever path-like string the client sent
+        projectFile.setFileName(FileStorageService.safeFileName(file.getOriginalFilename()));
         projectFile.setFileUrl(relativePath);
         projectFile.setFileType(file.getContentType());
         projectFile.setSize(file.getSize());

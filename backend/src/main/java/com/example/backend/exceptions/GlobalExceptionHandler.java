@@ -3,6 +3,7 @@ package com.example.backend.exceptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -81,6 +82,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PropertyReferenceException.class)
     public ResponseEntity<String> handleUnknownSortProperty(PropertyReferenceException ex) {
         return ResponseEntity.badRequest().body("Cannot sort or filter by '" + ex.getPropertyName() + "'");
+    }
+
+    // e.g. /api/tasks/undefined: a malformed id is the caller's mistake, not a server failure
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<String> handleBadArgumentType(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body("Invalid value for '" + ex.getName() + "'");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
