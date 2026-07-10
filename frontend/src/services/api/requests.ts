@@ -48,77 +48,36 @@ class RequestsApi extends BaseApi {
     );
   }
 
+  // The shared client already unwraps the server's { success, data, count } envelope, so `data` is the list itself
   async getReceivedRequests(
     status?: 'PENDING' | 'APPROVED' | 'REJECTED'
   ): Promise<ApiResponse<JoinRequest[]>> {
-    const params = status ? `?status=${status}` : '';
-    const response = await this.get<{ data: JoinRequest[]; count: number }>(
-      `/requests/received${params}`
-    );
-
-    // Extract data from nested response
-    return {
-      success: response.success,
-      data: response.data?.data || [],
-      message: response.message,
-    };
+    return this.get<JoinRequest[]>('/requests/received', {
+      params: status ? { status } : undefined,
+    });
   }
 
   async getSentRequests(
     status?: 'PENDING' | 'APPROVED' | 'REJECTED'
   ): Promise<ApiResponse<JoinRequest[]>> {
-    const params = status ? `?status=${status}` : '';
-    const response = await this.get<{ data: JoinRequest[]; count: number }>(
-      `/requests/sent${params}`
-    );
-
-    // Extract data from nested response
-    return {
-      success: response.success,
-      data: response.data?.data || [],
-      message: response.message,
-    };
+    return this.get<JoinRequest[]>('/requests/sent', {
+      params: status ? { status } : undefined,
+    });
   }
 
   async getRequestById(requestId: number): Promise<ApiResponse<JoinRequest>> {
-    const response = await this.get<{ data: JoinRequest }>(
-      `/requests/${requestId}`
-    );
-
-    return {
-      success: response.success,
-      data: response.data?.data,
-      message: response.message,
-    };
+    return this.get<JoinRequest>(`/requests/${requestId}`);
   }
 
   async approveRequest(requestId: number): Promise<ApiResponse<JoinRequest>> {
-    const response = await this.post<{ data: JoinRequest }>(
-      `/requests/${requestId}/approve`,
-      {}
-    );
-
-    return {
-      success: response.success,
-      data: response.data?.data,
-      message: response.message || 'Request approved successfully',
-    };
+    return this.post<JoinRequest>(`/requests/${requestId}/approve`, {});
   }
 
   async rejectRequest(
     requestId: number,
     data?: RespondToRequestData
   ): Promise<ApiResponse<JoinRequest>> {
-    const response = await this.post<{ data: JoinRequest }>(
-      `/requests/${requestId}/reject`,
-      data || {}
-    );
-
-    return {
-      success: response.success,
-      data: response.data?.data,
-      message: response.message || 'Request rejected successfully',
-    };
+    return this.post<JoinRequest>(`/requests/${requestId}/reject`, data || {});
   }
 
   async cancelRequest(
@@ -128,13 +87,7 @@ class RequestsApi extends BaseApi {
   }
 
   async getRequestStats(): Promise<ApiResponse<RequestStats>> {
-    const response = await this.get<{ data: RequestStats }>('/requests/stats');
-
-    return {
-      success: response.success,
-      data: response.data?.data,
-      message: response.message,
-    };
+    return this.get<RequestStats>('/requests/stats');
   }
 }
 
