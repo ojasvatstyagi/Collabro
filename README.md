@@ -413,6 +413,13 @@ The application will be available at `http://localhost:5173` (it proxies `/api` 
 
 **Checks:** `npm test` (unit tests), `npm run lint`, and `npm run build` (type-checks, then builds).
 
+### 4. Further reading and end-to-end tests
+
+- [`docs/CONTEXT.md`](docs/CONTEXT.md): architecture, data model, API surface, auth design and project conventions.
+- [`docs/AUDIT.md`](docs/AUDIT.md): what was found and fixed, what is still open, and the decisions behind the design.
+- [`e2e/`](e2e/README.md): a browser suite that runs the real frontend and backend (in-memory database, local mail
+  sink) and checks the main flows and the security rules: `cd e2e && npm install && npm test`.
+
 ---
 
 ## 🌟 Future Roadmap
