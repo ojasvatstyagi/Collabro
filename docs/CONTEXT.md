@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 286 tests, frontend 32 tests, e2e 150 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 302 tests, frontend 32 tests, e2e 159 checks, all passing).
 
 ## 1. What it is
 
@@ -98,6 +98,7 @@ Rules that matter:
 | `ProfileService` | Own profile, `toPublicDto` (what others may see), PDF export, `publicPictureUrl`. |
 | `FileStorageService` | All disk access. Every path is resolved inside the upload dir; names sanitised; pictures verified by magic bytes. |
 | `PasswordService` | One-time codes: 6 digits, 10 min life, 5 wrong guesses burn the code, 60 s resend cooldown (measured from the newest code **even if burned**), constant-time compare, purpose-bound, reset ends sessions. |
+| `LoginThrottle` | Failed-login limiter, in memory, sliding 15 min window: 5 per username+address, 20 per username, 30 per address. Checked **before** the password, so a locked client is refused even with the right one (no oracle); unknown usernames count the same; refused requests are not counted (no extending the lock); success clears only the username+address pair. Over the limit: `429` + `Retry-After` (`TooManyRequestsException`). |
 | `RefreshTokenService` | Single-use refresh tokens: stored as SHA-256, rotated on every use, replay of a rotated token ends the session; 10 s grace for concurrent tabs. |
 | `AccountService` | Change password (400 on wrong password, not 401, see below), delete account (password re-check, soft delete). |
 | `EmailService` | HTML mail via `JavaMailSender`; failures are logged, never thrown. |
@@ -125,7 +126,7 @@ Conventions:
 - **Never return `ProfileDto` (has e-mail, phone, settings) to anyone but its owner.** Others get `PublicProfileDto`.
   Project creators expose no e-mail.
 - Errors are plain-text bodies (`GlobalExceptionHandler`): validation `400` ("field: message, field2: message"),
-  `403` forbidden, `404`, `409` conflict, `413` upload too large, `500` generic. Malformed ids and unknown sort
+  `403` forbidden, `404`, `409` conflict, `413` upload too large, `429` too many failed logins (with `Retry-After`), `500` generic. Malformed ids and unknown sort
   fields are `400`.
 - Wrong-password style failures on authenticated endpoints are **400, never 401**: the frontend treats 401 as "session
   expired" and signs the user out.
@@ -151,6 +152,10 @@ refresh ─> new access + NEW refresh cookie (old one stays valid 10 s for concu
   fails it clears the token and dispatches `SESSION_EXPIRED_EVENT`; `AuthContext` drops the user and the route guard
   redirects. **Do not hard-redirect with `window.location`** (it loops for visitors without a session).
 - Cookie `Secure`/`SameSite` come from `jwt.cookie.*` properties (prod sets `secure=true`).
+- Login throttling keys on `request.getRemoteAddr()`. **Behind a reverse proxy every user shares the proxy's address**, so
+  the 30-per-address limit would lock everyone out together: set `server.forward-headers-strategy=native` (or
+  `framework`) in production, and only when the proxy overwrites `X-Forwarded-For` (otherwise clients can spoof it and
+  dodge the limit). The counters are per instance and reset on restart.
 
 ## 7. Frontend structure and rules
 
@@ -193,7 +198,7 @@ Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `
 |---|---|---|
 | Backend | `cd backend && mvn test` (needs JDK 21) | unit tests with Mockito, `@DataJpaTest` against H2 (specifications, soft delete, query counts), `@SpringBootTest` security-rule tests |
 | Frontend | `cd frontend && npm test`, `npm run lint`, `npm run build` | Vitest: API client refresh logic, API modules, helpers |
-| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~150 checks, ~2 min |
+| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~160 checks, ~2 min |
 
 Gotchas that cost time:
 

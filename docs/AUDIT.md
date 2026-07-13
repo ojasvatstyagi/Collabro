@@ -39,6 +39,7 @@ purpose, see section 4.
 | `isRemote` / `isOpenSource` were never saved (JSON names mismatch) | **Fixed** | `ProjectDtoJsonTest`, e2e §3 |
 | Account deletion cascaded into projects/messages; deleted users made their projects unloadable | **Fixed** (soft delete, `@NotFound(IGNORE)`) | `AccountDeletionIntegrationTest` |
 | Avatars returned as internal paths (chat, files, tasks, requests) | **Fixed** | `ChatServiceTest`, e2e §5 |
+| No brute-force protection on login | **Fixed** (2026-11-23): sliding-window limits per username+address, per username and per address; `429` + `Retry-After`; the right password is refused while locked. In memory, see section 5 for the limits. | `LoginThrottleTest`, `AuthControllerTest`, e2e §11 |
 | User enumeration at registration (duplicate username/e-mail messages) | **Open** (login timing leak fixed) | n/a |
 
 ### Medium and low
@@ -98,30 +99,30 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 
 ## 5. Open items, roughly by importance
 
-1. **No brute-force protection on login** (only one-time codes are limited). Add per-user/IP throttling.
-2. **Run the app once against a real MySQL.** Only H2 (MySQL mode) has been exercised. On an existing database: the new
+1. **Run the app once against a real MySQL.** Only H2 (MySQL mode) has been exercised. On an existing database: the new
    unique key on `requests(project_id, profile_id)` will not apply if duplicates exist (Hibernate only logs it), and
    `profiles.user_id` stays `NOT NULL` there (only new schemas get the relaxed column), which does not matter for
    behaviour but differs from the entity.
-3. **Schema migrations** (Flyway/Liquibase) before a real production deployment.
-4. **Registration enumeration**, and **no way to resend a registration code** (and e-mail failures are invisible).
-5. **Pagination** of the remaining list endpoints, and measuring N+1 on them.
-6. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
+2. **Schema migrations** (Flyway/Liquibase) before a real production deployment.
+3. **Registration enumeration**, and **no way to resend a registration code** (and e-mail failures are invisible).
+4. **Pagination** of the remaining list endpoints, and measuring N+1 on them.
+5. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
    backend accepts the owner).
-7. **New profiles are named "New User"** (a placeholder because the columns are `NOT NULL`), shown everywhere until
+6. **New profiles are named "New User"** (a placeholder because the columns are `NOT NULL`), shown everywhere until
    the user edits their profile. Showing the username instead would be better.
-8. **No public profile page** (the "View profile" link on requests was removed because the route never existed).
-9. 401/403 body escaping (section 1, last row).
-10. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
-11. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
-12. Swagger UI is public in the dev profile.
+7. **No public profile page** (the "View profile" link on requests was removed because the route never existed).
+8. 401/403 body escaping (section 1, last row).
+9. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
+10. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
+11. Swagger UI is public in the dev profile.
+12. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
 
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 286 tests
+cd backend  && mvn test                          # 302 tests
 cd frontend && npm test && npm run lint && npm run build
-cd e2e      && npm install && npm test           # ~150 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
+cd e2e      && npm install && npm test           # ~160 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
 ```
 
 When fixing a bug, add a test that fails on the old code (revert the fix, watch it fail, restore). Several of the

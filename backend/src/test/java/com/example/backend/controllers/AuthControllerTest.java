@@ -69,6 +69,8 @@ class AuthControllerTest {
     private com.example.backend.services.AccountService accountService;
     @Mock
     private org.modelmapper.ModelMapper modelMapper;
+    @Mock
+    private com.example.backend.services.LoginThrottle loginThrottle;
 
     @InjectMocks
     private AuthController authController;
@@ -215,6 +217,57 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("Invalid credentials"));
 
         verifyNoInteractions(refreshTokenService);
+    }
+
+    @Test
+    void login_WhenThrottled_Returns429WithRetryAfterAndNeverChecksThePassword() throws Exception {
+        doThrow(new com.example.backend.exceptions.TooManyRequestsException("Too many failed login attempts. Try again later.", 120))
+                .when(loginThrottle).checkAllowed(any(), any());
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Retry-After", "120"));
+
+        verifyNoInteractions(userService, passwordEncoder, refreshTokenService);
+    }
+
+    @Test
+    void login_WithWrongPassword_RecordsAFailureAndUnknownUserIsRecordedToo() throws Exception {
+        when(userService.findUserByUsername(loginRequest.getUsername())).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(any(), any())).thenReturn(false);
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isUnauthorized());
+        verify(loginThrottle).recordFailure(eq(loginRequest.getUsername()), any());
+
+        when(userService.findUserByUsername(loginRequest.getUsername())).thenReturn(Optional.empty());
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isUnauthorized());
+        verify(loginThrottle, times(2)).recordFailure(eq(loginRequest.getUsername()), any());
+    }
+
+    @Test
+    void login_WithValidCredentials_ClearsTheFailureCountForThatClient() throws Exception {
+        when(userService.findUserByUsername(loginRequest.getUsername())).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches(any(), any())).thenReturn(true);
+        when(jwtTokenProvider.generateAccessToken(any())).thenReturn("access");
+        when(refreshTokenService.issue(testUser)).thenReturn("refresh");
+        when(modelMapper.map(any(User.class), eq(com.example.backend.dto.UserDto.class)))
+                .thenReturn(new com.example.backend.dto.UserDto());
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk());
+
+        verify(loginThrottle).recordSuccess(eq(loginRequest.getUsername()), any());
+        verify(loginThrottle, never()).recordFailure(any(), any());
     }
 
     @Test

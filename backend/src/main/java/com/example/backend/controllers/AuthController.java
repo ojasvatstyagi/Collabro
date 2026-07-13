@@ -4,6 +4,7 @@ import com.example.backend.dto.*;
 import com.example.backend.models.User;
 import com.example.backend.security.JwtTokenProvider;
 import com.example.backend.services.AccountService;
+import com.example.backend.services.LoginThrottle;
 import com.example.backend.services.PasswordService;
 import com.example.backend.services.ProfileService;
 import com.example.backend.services.RefreshTokenService;
@@ -41,6 +42,7 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
     private final PasswordService passwordService;
     private final AccountService accountService;
+    private final LoginThrottle loginThrottle;
     private final ModelMapper modelMapper;
 
     // Checked against when the username is unknown, so a missing user costs the same time as a wrong password
@@ -90,16 +92,22 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request,
             HttpServletResponse response) {
         log.info("Attempting login for user: {}", loginRequest.getUsername());
+        // Before any password check, so a locked-out client learns nothing about whether the password was right
+        String clientAddress = request.getRemoteAddr();
+        loginThrottle.checkAllowed(loginRequest.getUsername(), clientAddress);
         Optional<User> userOpt = userService.findUserByUsername(loginRequest.getUsername());
         if (userOpt.isEmpty()) {
             passwordEncoder.matches(loginRequest.getPassword(), dummyHash());
+            loginThrottle.recordFailure(loginRequest.getUsername(), clientAddress);
             log.warn("Invalid credentials for user: {}", loginRequest.getUsername());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MESSAGE_KEY, "Invalid credentials"));
         }
         if (!passwordEncoder.matches(loginRequest.getPassword(), userOpt.get().getPassword())) {
+            loginThrottle.recordFailure(loginRequest.getUsername(), clientAddress);
             log.warn("Invalid credentials for user: {}", loginRequest.getUsername());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MESSAGE_KEY, "Invalid credentials"));
         }
+        loginThrottle.recordSuccess(loginRequest.getUsername(), clientAddress);
         User user = userOpt.get();
         if (!user.isVerified()) {
             log.warn("Email not verified for user: {}", loginRequest.getUsername());

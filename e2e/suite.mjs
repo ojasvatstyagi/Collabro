@@ -124,6 +124,7 @@ export async function runSuite(cfg) {
     bob: { username: 'bob_e2e', email: 'bob@e2e.test', password: 'Passw0rd!two' },
     carol: { username: 'carol_e2e', email: 'carol@e2e.test', password: 'Passw0rd!three' },
     dave: { username: 'dave_e2e', email: 'dave@e2e.test', password: 'Passw0rd!four' },
+    frank: { username: 'frank_e2e', email: 'frank@e2e.test', password: 'Passw0rd!six' },
   };
 
   const browser = await puppeteer.launch({ executablePath: cfg.chromePath, headless: 'new', args: ['--no-sandbox'] });
@@ -591,6 +592,37 @@ export async function runSuite(cfg) {
       check('form-encoded body -> 415', r.status === 415, String(r.status));
       const g = await fetch(API + '/auth/login');
       check('GET on login -> 405', g.status === 405, String(g.status));
+    });
+
+    // ---------------------------------------------------------------- 11
+    section = '11 Login throttling';
+    await step('repeated wrong passwords lock the client out, even for the right password', async () => {
+      await registerApi(users.frank);
+      const statuses = [];
+      for (let i = 0; i < 5; i++) statuses.push((await loginApi(users.frank, 'wrong-' + i)).status);
+      check('the first five wrong passwords are ordinary 401s', statuses.every((s) => s === 401), statuses.join(','));
+      const sixth = await api('POST', '/auth/login', { json: { username: users.frank.username, password: 'wrong-6' } });
+      check('the sixth attempt is refused with 429', sixth.status === 429, String(sixth.status));
+      const wait = Number(sixth.headers.get('retry-after'));
+      check('...with a Retry-After of up to 15 minutes', wait > 0 && wait <= 901, String(wait));
+      const right = await api('POST', '/auth/login', { json: { username: users.frank.username, password: users.frank.password } });
+      check('the CORRECT password is refused too, so the lock is not a password oracle', right.status === 429 && !right.setCookie && !right.body?.accessToken, String(right.status));
+      check('the refusal says the same thing for right and wrong passwords', right.text === sixth.text, right.text + ' | ' + sixth.text);
+    });
+    await step('the login form shows the lock-out instead of a generic failure', async () => {
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.frank);
+      check('the form explains that there were too many attempts', await waitText(p, 'Too many failed login attempts', 5000));
+      check('and the user is still on /login', new URL(p.url()).pathname === '/login', p.url());
+      await c.close();
+    });
+    await step('other accounts are unaffected, and a made-up username is throttled the same way', async () => {
+      const alice = await loginApi(users.alice);
+      check('another account signs in normally from the same address', alice.status === 200, String(alice.status));
+      const ghost = [];
+      for (let i = 0; i < 5; i++) ghost.push((await api('POST', '/auth/login', { json: { username: 'ghost_e2e', password: 'x' + i } })).status);
+      const lockedGhost = await api('POST', '/auth/login', { json: { username: 'ghost_e2e', password: 'x6' } });
+      check('five failures for an unknown username, then 429: no way to tell it does not exist', ghost.every((s) => s === 401) && lockedGhost.status === 429, ghost.join(',') + ' ' + lockedGhost.status);
     });
   } finally {
     await browser.close();

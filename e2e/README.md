@@ -35,6 +35,7 @@ It takes about two minutes. One check waits 11.5 s on purpose: refresh-token rep
 | 8 | Rejection and deletion (UI) | re-apply after rejection, owner-only delete, stored files removed from disk |
 | 9 | One-time codes | guess limit, burned codes, resend cooldown cannot be bypassed, no user enumeration, reset ends old sessions |
 | 10 | Tokens | refresh rotation, replay detection, refresh token is not a Bearer token, logout revokes, 415/405 instead of 500 |
+| 11 | Login throttling | 5 wrong passwords then 429 with Retry-After, the right password is refused too, the form says so, other accounts unaffected, unknown usernames throttled identically |
 
 ## Files
 
