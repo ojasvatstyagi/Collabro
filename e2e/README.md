@@ -21,6 +21,21 @@ npm test           # starts everything, runs ~150 checks, stops everything. Exit
 It takes about two minutes. One check waits 11.5 s on purpose: refresh-token replay is only rejected after the
 10-second grace window for concurrent tabs.
 
+## Running against MySQL instead of H2
+
+`E2E_DB_URL`, `E2E_DB_USERNAME` and `E2E_DB_PASSWORD` point the backend at another database. **Use a throwaway server,
+never your real one**: the app creates and alters tables (`ddl-auto=update`) and the suite registers users. A second
+`mysqld` on another port with its own data directory is enough (the 2026-11 MySQL run used one):
+
+```bash
+mysqld --no-defaults --initialize-insecure --datadir=/path/data --basedir=$(brew --prefix mysql)
+mysqld --no-defaults --datadir=/path/data --basedir=$(brew --prefix mysql) --port=3307 --mysqlx=OFF \
+       --bind-address=127.0.0.1 --socket=/tmp/throwaway.sock      # keep the socket path short (limit ~100 chars)
+mysql --no-defaults -h127.0.0.1 -P3307 -uroot -e "create database collabro_throwaway character set utf8mb4;
+  create user 'collabro'@'%' identified by 'throwaway-pw'; grant all on collabro_throwaway.* to 'collabro'@'%';"
+E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collabro E2E_DB_PASSWORD=throwaway-pw npm test
+```
+
 ## What it covers
 
 | # | Area | What is checked |

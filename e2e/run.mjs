@@ -6,7 +6,8 @@
  *   npm install        (once, in this folder)
  *   npm test
  *
- * Environment: MVN (default "mvn"), MVN_ARGS (e.g. "-o" for offline), CHROME_PATH, E2E_SMTP_PORT.
+ * Environment: MVN (default "mvn"), MVN_ARGS (e.g. "-o" for offline), CHROME_PATH, E2E_SMTP_PORT,
+ * E2E_DB_URL / E2E_DB_USERNAME / E2E_DB_PASSWORD (run against a THROWAWAY MySQL instead of H2).
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -86,7 +87,8 @@ async function main() {
     cwd: path.join(root, 'backend'),
     env: {
       ...process.env,
-      DB_URL: 'jdbc:h2:mem:e2e;MODE=MySQL;DB_CLOSE_DELAY=-1', DB_USERNAME: 'sa', DB_PASSWORD: '',
+      DB_URL: process.env.E2E_DB_URL || 'jdbc:h2:mem:e2e;MODE=MySQL;DB_CLOSE_DELAY=-1',
+      DB_USERNAME: process.env.E2E_DB_USERNAME || 'sa', DB_PASSWORD: process.env.E2E_DB_PASSWORD ?? '',
       MAIL_HOST: '127.0.0.1', MAIL_PORT: String(SMTP_PORT), MAIL_USERNAME: 'e2e', MAIL_PASSWORD: 'e2e',
       JWT_SECRET: 'e2e-only-secret-key-for-local-testing-0123456789abcdef', UPLOAD_DIR: uploadsDir,
     },

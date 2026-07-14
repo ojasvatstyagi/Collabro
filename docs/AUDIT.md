@@ -95,14 +95,18 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 - **Chat polls** (5 s, backoff); WebSockets are on the roadmap, not built.
 - **The access token lives in `localStorage`** (readable by injected script). Accepted design; the refresh token is
   HttpOnly. There is no CSP.
-- **H2 for tests and e2e, not MySQL**, so the owner's database is never touched.
+- **H2 for tests and the default e2e run, not MySQL**, so the owner's database is never touched. MySQL runs use a
+  throwaway server (`e2e/README.md`).
 
 ## 5. Open items, roughly by importance
 
-1. **Run the app once against a real MySQL.** Only H2 (MySQL mode) has been exercised. On an existing database: the new
-   unique key on `requests(project_id, profile_id)` will not apply if duplicates exist (Hibernate only logs it), and
-   `profiles.user_id` stays `NOT NULL` there (only new schemas get the relaxed column), which does not matter for
-   behaviour but differs from the entity.
+1. **MySQL: mostly verified, two gaps** (2026-11-23, MySQL 26.10 on a throwaway server). The full e2e suite (159/159)
+   passes against MySQL, and the app boots with the **prod profile** (`ddl-auto=validate`) against the schema
+   Hibernate created, so entities and tables agree; the unique key `uk_request_project_profile` and the nullable
+   `profiles.user_id` are present on a fresh schema. Not covered: (a) **upgrading an existing database**: the unique key
+   on `requests(project_id, profile_id)` will not apply if duplicate rows exist (Hibernate only logs it), and an old
+   `profiles.user_id` stays `NOT NULL` there; (b) **case-sensitive table names**: the test server ran on macOS
+   (`lower_case_table_names=2`), Linux production defaults to `0`, so a table-name case mismatch would only show there.
 2. **Schema migrations** (Flyway/Liquibase) before a real production deployment.
 3. **Registration enumeration**, and **no way to resend a registration code** (and e-mail failures are invisible).
 4. **Pagination** of the remaining list endpoints, and measuring N+1 on them.
