@@ -88,8 +88,8 @@ Unit tests were all green when these were found, which is why the e2e suite exis
   Partial update was not added because `teamSize` and the flags are primitives.
 - **Wrong password on an authenticated endpoint is 400**, because the frontend signs the user out on 401.
 - **`ROLE_ADMIN` and `@EnableMethodSecurity` are reserved**: seeded but not used.
-- **No Flyway.** The prod profile validates the schema; writing a baseline migration that could not be tested on MySQL
-  was judged worse than none.
+- **Flyway runs in prod only** (2026-11-23). Dev and tests keep Hibernate-built schemas so day-to-day work needs no
+  migration for every experiment; `MigrationsTest` is what stops the two from drifting apart.
 - **List endpoints are not paginated** (requests, my projects, tasks, files): changing the response shape would break
   the frontend. Only the project browse, chat, history and public search are paged.
 - **Chat polls** (5 s, backoff); WebSockets are on the roadmap, not built.
@@ -107,7 +107,18 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    on `requests(project_id, profile_id)` will not apply if duplicate rows exist (Hibernate only logs it), and an old
    `profiles.user_id` stays `NOT NULL` there; (b) **case-sensitive table names**: the test server ran on macOS
    (`lower_case_table_names=2`), Linux production defaults to `0`, so a table-name case mismatch would only show there.
-2. **Schema migrations** (Flyway/Liquibase) before a real production deployment.
+2. **First deploy of Flyway onto an existing database** (the baseline is *assumed*, not checked). Flyway marks a
+   pre-existing schema as V1 without comparing it; Hibernate's `validate` then catches missing columns and wrong types,
+   but **not** the two differences listed under item 1 (unique key, nullability). Before the first prod start against an
+   old database, run:
+   ```sql
+   select project_id, profile_id, count(*) from requests group by 1,2 having count(*) > 1;  -- must return nothing
+   show index from requests;                      -- uk_request_project_profile must exist, else:
+   --   alter table requests add unique key uk_request_project_profile (project_id, profile_id);
+   alter table profiles modify user_id binary(16) null;                                      -- harmless if already null
+   ```
+   Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
+   both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
 3. **Registration enumeration**, and **no way to resend a registration code** (and e-mail failures are invisible).
 4. **Pagination** of the remaining list endpoints, and measuring N+1 on them.
 5. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
@@ -124,7 +135,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 302 tests
+cd backend  && mvn test                          # 305 tests
 cd frontend && npm test && npm run lint && npm run build
 cd e2e      && npm install && npm test           # ~160 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
 ```

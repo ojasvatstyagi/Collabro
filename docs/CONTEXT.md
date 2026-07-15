@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 302 tests, frontend 32 tests, e2e 159 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 305 tests, frontend 32 tests, e2e 159 checks, all passing).
 
 ## 1. What it is
 
@@ -187,6 +187,14 @@ Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `
   `UPLOAD_DIR`.
 - Profiles: `dev` is the default (`ddl-auto=update`, SQL logging); `prod` (`SPRING_PROFILES_ACTIVE=prod`) uses
   `validate`, no SQL logging, no API docs, secure cookie, and every value must come from the environment.
+- **Schema migrations (Flyway, prod only).** `backend/src/main/resources/db/migration/V<n>__name.sql`. Dev keeps
+  `ddl-auto=update` and Flyway off; tests use H2 built from the entities; **prod** runs Flyway and then Hibernate only
+  `validate`s. Changing an entity (new column, table, index) therefore needs a new migration, and
+  `MigrationsTest` fails the build if the migrations and the entities disagree on tables/columns. Rules: never edit an
+  applied migration (add `V2__...`); number without gaps; use plain `CREATE TABLE` / `ALTER TABLE x ADD COLUMN`
+  (what the test understands, extend it for anything else). `V1__baseline.sql` is the schema Hibernate builds on MySQL,
+  and was checked identical to it. `baseline-on-migrate=true, baseline-version=1` means a database that already has
+  tables but no `flyway_schema_history` is **marked** as V1 without running it.
 - `ConfigFilesTest` fails the build if a literal secret is committed or a prod safety setting is weakened.
 - **`src/test/resources/application.properties` completely replaces the main one in tests** (H2, dummy mail host, fake
   JWT secret). Anything that must hold in production cannot be configured only in properties if a test needs it
