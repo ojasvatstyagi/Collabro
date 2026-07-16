@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useSearchParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { authApi } from "../services/api/auth";
 import { errorMessage } from "../utils/errors";
 import { Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
@@ -8,6 +9,8 @@ import Input from "../components/ui/Input";
 
 // Simple Card components if not available locally, but assuming they might exist.
 // If not, standard HTML/Tailwind works. using Tailwind classes for "Wow" factor.
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function VerifyRegistration() {
     const [searchParams] = useSearchParams();
@@ -19,6 +22,9 @@ export default function VerifyRegistration() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [resending, setResending] = useState(false);
+    // Seconds until another code may be requested; the server enforces the same minute
+    const [cooldown, setCooldown] = useState(0);
 
     useEffect(() => {
         const emailParam = searchParams.get("email");
@@ -27,8 +33,35 @@ export default function VerifyRegistration() {
             setEmail(emailParam);
         } else if (stateEmail) {
             setEmail(stateEmail);
+            // Arriving from the form means a code was only just sent
+            setCooldown(RESEND_COOLDOWN_SECONDS);
         }
     }, [searchParams, location]);
+
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [cooldown]);
+
+    const handleResend = async () => {
+        if (!email) {
+            setError("Enter your email address first.");
+            return;
+        }
+        setResending(true);
+        setError(null);
+        try {
+            await authApi.resendRegistrationOtp({ email });
+            // The same message for every address, so it is never a hint that one is (un)registered
+            toast.success("If that address has a pending registration, a new code is on its way.");
+            setCooldown(RESEND_COOLDOWN_SECONDS);
+        } catch (err) {
+            toast.error(errorMessage(err, "Could not resend the code. Please try again."));
+        } finally {
+            setResending(false);
+        }
+    };
 
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -123,6 +156,25 @@ export default function VerifyRegistration() {
                                 </span>
                             )}
                         </Button>
+                        <div className="text-center text-sm text-muted-foreground space-y-1">
+                            <button
+                                type="button"
+                                onClick={handleResend}
+                                disabled={resending || cooldown > 0}
+                                className="text-brand-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                            >
+                                {resending
+                                    ? "Sending..."
+                                    : cooldown > 0
+                                        ? `Resend code in ${cooldown}s`
+                                        : "Resend code"}
+                            </button>
+                            <p>
+                                No code? If you already have an account, try{" "}
+                                <Link to="/login" className="text-brand-primary hover:underline">logging in</Link> or{" "}
+                                <Link to="/forgot-password" className="text-brand-primary hover:underline">resetting your password</Link>.
+                            </p>
+                        </div>
                     </form>
                 )}
             </div>

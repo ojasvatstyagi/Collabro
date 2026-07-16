@@ -105,6 +105,17 @@ class AuthApi extends BaseApi {
     );
   }
 
+  // Resend the registration code -> POST /api/auth/resend-registration-otp  { email }
+  // The answer is the same for every address (nothing reveals whether one is registered).
+  async resendRegistrationOtp(
+    request: ForgotPasswordRequest
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.post<{ message: string }>(
+      '/auth/resend-registration-otp',
+      request
+    );
+  }
+
   // Change password -> PUT /api/auth/change-password
   async changePassword(
     request: ChangePasswordRequest

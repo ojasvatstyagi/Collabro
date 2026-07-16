@@ -143,6 +143,49 @@ class PasswordServiceTest {
         verify(emailService).sendRegistrationOtpEmail(EMAIL, "123456");
     }
 
+    // ---- resending the registration code ----
+
+    @Test
+    void resendRegistrationOtp_ForAnUnverifiedUser_SendsANewCode() {
+        User user = new User();
+        user.setVerified(false);
+        when(userRepo.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        randomOtpIs123456();
+
+        passwordService.resendRegistrationOtp(EMAIL);
+
+        verify(emailService).sendRegistrationOtpEmail(EMAIL, "123456");
+    }
+
+    @Test
+    void resendRegistrationOtp_ForAVerifiedOrUnknownAddress_SendsNothing() {
+        User verified = new User();
+        verified.setVerified(true);
+        when(userRepo.findByEmail(EMAIL)).thenReturn(Optional.of(verified));
+        passwordService.resendRegistrationOtp(EMAIL);
+
+        when(userRepo.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+        passwordService.resendRegistrationOtp("nobody@example.com");
+
+        verifyNoInteractions(emailService);
+        verify(tokenRepo, never()).save(any());
+    }
+
+    @Test
+    void resendRegistrationOtp_WithinTheCooldown_SendsNothing() {
+        User user = new User();
+        user.setVerified(false);
+        when(userRepo.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        PasswordToken recent = activeToken("654321", TokenType.EMAIL_VERIFICATION);
+        recent.setCreatedAt(LocalDateTime.now().minusSeconds(10));
+        when(tokenRepo.findFirstByEmailAndTokenTypeOrderByIdDesc(EMAIL, TokenType.EMAIL_VERIFICATION))
+                .thenReturn(Optional.of(recent));
+
+        passwordService.resendRegistrationOtp(EMAIL);
+
+        verifyNoInteractions(emailService);
+    }
+
     // ---- guessing limits ----
 
     @Test

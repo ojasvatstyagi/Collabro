@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,12 +30,14 @@ public class EmailService {
     }
 
     // OTP Email
+    @Async
     public void sendOtpEmail(@NonNull String to, @NonNull String otp) {
         String subject = "Your Password Reset OTP";
         String html = EmailTemplates.otpTemplate(otp);
         sendHtmlEmail(to, subject, html);
     }
 
+    @Async
     public void sendRegistrationOtpEmail(@NonNull String to, @NonNull String otp) {
         String subject = "Verify Your Email Address";
         String html = EmailTemplates.registrationOtpTemplate(otp);
@@ -42,6 +45,7 @@ public class EmailService {
     }
 
     // Password Reset Success Email
+    @Async
     public void sendPasswordResetSuccessEmail(@NonNull String to) {
         String subject = "Password Reset Successful";
         String html = EmailTemplates.passwordResetSuccessTemplate();

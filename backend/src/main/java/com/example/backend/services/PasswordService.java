@@ -55,6 +55,20 @@ public class PasswordService {
                 .ifPresent(otp -> emailService.sendRegistrationOtpEmail(email, otp));
     }
 
+    /**
+     * Sends a new registration code if the address belongs to a user who has not verified it yet. Does nothing
+     * otherwise (unknown address, already verified, or asked again within the cooldown), so callers answer
+     * identically in every case.
+     */
+    @Transactional
+    public void resendRegistrationOtp(@NonNull String email) {
+        Optional<User> user = userRepo.findByEmail(email);
+        if (user.isEmpty() || user.get().isVerified()) {
+            return;
+        }
+        generateEmailVerificationOtp(email);
+    }
+
     @Transactional
     public boolean verifyRegistrationOtp(@NonNull String email, @NonNull String otp) {
         Optional<PasswordToken> token = checkOtp(email, otp, TokenType.EMAIL_VERIFICATION);

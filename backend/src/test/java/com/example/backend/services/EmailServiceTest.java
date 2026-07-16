@@ -62,4 +62,16 @@ class EmailServiceTest {
         // Assert
         verify(mailSender).send(Objects.requireNonNull(mimeMessage));
     }
+
+    @org.junit.jupiter.api.Test
+    void everyPublicSenderRunsOffTheRequestThread() {
+        // Otherwise how long SMTP takes would show in the response time of register / forgot-password and give away
+        // whether an address is known
+        for (String name : new String[] { "sendOtpEmail", "sendRegistrationOtpEmail", "sendPasswordResetSuccessEmail" }) {
+            java.lang.reflect.Method method = java.util.Arrays.stream(EmailService.class.getDeclaredMethods())
+                    .filter(m -> m.getName().equals(name)).findFirst().orElseThrow();
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    method.isAnnotationPresent(org.springframework.scheduling.annotation.Async.class), name + " must be @Async");
+        }
+    }
 }

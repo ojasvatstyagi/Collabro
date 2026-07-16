@@ -40,7 +40,7 @@ purpose, see section 4.
 | Account deletion cascaded into projects/messages; deleted users made their projects unloadable | **Fixed** (soft delete, `@NotFound(IGNORE)`) | `AccountDeletionIntegrationTest` |
 | Avatars returned as internal paths (chat, files, tasks, requests) | **Fixed** | `ChatServiceTest`, e2e §5 |
 | No brute-force protection on login | **Fixed** (2026-11-23): sliding-window limits per username+address, per username and per address; `429` + `Retry-After`; the right password is refused while locked. In memory, see section 5 for the limits. | `LoginThrottleTest`, `AuthControllerTest`, e2e §11 |
-| User enumeration at registration (duplicate username/e-mail messages) | **Open** (login timing leak fixed) | n/a |
+| User enumeration at registration (duplicate e-mail message), plus account pre-hijacking and no way to resend a code | **Fixed** (2026-11-23): a known address is answered like a new one; a pending registration's credentials are replaced by the latest registrant; `resend-registration-otp`; password always hashed and mail async so timing is level. Usernames stay visible on purpose (they are public). | `AuthControllerTest`, `PasswordServiceTest`, `EmailServiceTest`, `auth.test.ts`, e2e §12 |
 
 ### Medium and low
 
@@ -56,7 +56,7 @@ purpose, see section 4.
 | `Requests` page never listed anything (response unwrapped twice) | **Fixed** (`requests.test.ts`), see E1 |
 | ~39 `any` types, unused code, mock-only pages and API modules | **Fixed** (ESLint clean, build type-checks) |
 | Dead entities `Post`/`Review`/`Notification`, unused Mongo dependency, unused e-mails/DTOs | **Removed** |
-| E-mail send failures are only logged (registration "succeeds" with no code sent) | **Open** |
+| E-mail send failures are only logged (registration "succeeds" with no code sent) | **Open**, and now also asynchronous. Mitigated by the Resend button; a failing SMTP server is only visible in the log. |
 | 401/403 JSON bodies are built by string concatenation (unescaped message) in `CustomAuthenticationEntryPoint` / `CustomAccessDeniedHandler` | **Open** |
 
 ## 2. Features that were mock-only and are now real
@@ -80,6 +80,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 
 ## 4. Decisions (do not undo without a reason)
 
+- **Registering with an already-verified address sends the owner nothing** (no "someone tried to register" notice): it would let strangers send mail to anyone. The verify page tells people without a code to log in or reset their password instead.
 - **Teams are derived, not an entity of their own**: a team is a project's member group. No invite codes or roles.
 - **History and Achievements are computed on read.** Nothing is stored, so they cannot disagree with the data, but
   there is also no "date earned" and no history of deleted things. A persisted log would only record from then on.
@@ -119,7 +120,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    ```
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
-3. **Registration enumeration**, and **no way to resend a registration code** (and e-mail failures are invisible).
+3. **Unverified accounts are never cleaned up**: each holds its username (and e-mail) forever, so a script can squat names. A scheduled purge of accounts unverified after N days would fix it; and e-mail send failures are only in the log.
 4. **Pagination** of the remaining list endpoints, and measuring N+1 on them.
 5. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
    backend accepts the owner).
@@ -135,9 +136,9 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 305 tests
+cd backend  && mvn test                          # 314 tests
 cd frontend && npm test && npm run lint && npm run build
-cd e2e      && npm install && npm test           # ~160 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
+cd e2e      && npm install && npm test           # ~180 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
 ```
 
 When fixing a bug, add a test that fails on the old code (revert the fix, watch it fail, restore). Several of the

@@ -69,15 +69,37 @@ public class AuthController {
     @PostMapping("/register")
     @Operation(summary = "Register User", description = "Registers a new user and sends OTP for email verification")
     public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        if (userService.findUserByUsername(registerRequest.getUsername()).isPresent())
+        Optional<User> byUsername = userService.findUserByUsername(registerRequest.getUsername());
+        Optional<User> byEmail = userService.findUserByEmail(registerRequest.getEmail());
+        // Always hashed, whatever happens next, so a taken address costs the same time as a free one
+        String encodedPassword = passwordEncoder.encode(registerRequest.getPassword());
+
+        // A username is public (profiles, search), so saying it is taken is fine; an e-mail address is not, so
+        // nothing below depends on whether the address is known. The one exception is a pending registration of the
+        // same address, which is the same person coming back.
+        boolean sameAccount = byUsername.isPresent() && byEmail.isPresent()
+                && byUsername.get().getId().equals(byEmail.get().getId()) && !byEmail.get().isVerified();
+        if (byUsername.isPresent() && !sameAccount)
             return ResponseEntity.badRequest().body(Map.of(MESSAGE_KEY, "Username already exists"));
 
-        if (userService.findUserByEmail(registerRequest.getEmail()).isPresent())
-            return ResponseEntity.badRequest().body(Map.of(MESSAGE_KEY, "Email already exists"));
+        if (byEmail.isPresent()) {
+            User existing = byEmail.get();
+            if (!existing.isVerified()) {
+                // Unverified: the latest registrant wins, so nobody can park someone else's address with a
+                // password of their own and have it activated when the real owner verifies. The code goes to the
+                // address's owner either way.
+                existing.setUsername(registerRequest.getUsername());
+                existing.setPassword(encodedPassword);
+                userService.updateUser(existing);
+                passwordService.generateEmailVerificationOtp(Objects.requireNonNull(registerRequest.getEmail()));
+            }
+            // Verified: an account exists, nothing is created and nothing is sent, but the answer is the same
+            log.info("Registration for an address that is already known");
+            return registrationAccepted();
+        }
 
         log.info("Registering user: {}", registerRequest.getUsername());
-        // Encode password and saveProfile user
-        registerRequest.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        registerRequest.setPassword(encodedPassword);
         User savedUser = userService.saveUser(registerRequest);
         // Generate email verification OTP
         passwordService.generateEmailVerificationOtp(Objects.requireNonNull(registerRequest.getEmail()));
@@ -85,7 +107,19 @@ public class AuthController {
         // Create and saveProfile empty profile for the user
         profileService.saveProfile(profileService.createEmptyProfile(savedUser));
         log.info("User registered successfully: {}", savedUser.getId());
+        return registrationAccepted();
+    }
+
+    private ResponseEntity<Map<String, String>> registrationAccepted() {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(MESSAGE_KEY, "Registration successful"));
+    }
+
+    // Same request shape as forgot-password (just an e-mail address); the answer never says whether a code was sent
+    @PostMapping("/resend-registration-otp")
+    @Operation(summary = "Resend Registration OTP", description = "Sends a new verification code if the address has a pending registration")
+    public ResponseEntity<Map<String, String>> resendRegistrationOtp(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordService.resendRegistrationOtp(Objects.requireNonNull(request.getEmail()));
+        return ResponseEntity.ok(Map.of(MESSAGE_KEY, "If that address has a pending registration, a new code was sent"));
     }
 
     @PostMapping("/login")

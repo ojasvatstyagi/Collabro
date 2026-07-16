@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 305 tests, frontend 32 tests, e2e 159 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 314 tests, frontend 33 tests, e2e 178 checks, all passing).
 
 ## 1. What it is
 
@@ -101,7 +101,7 @@ Rules that matter:
 | `LoginThrottle` | Failed-login limiter, in memory, sliding 15 min window: 5 per username+address, 20 per username, 30 per address. Checked **before** the password, so a locked client is refused even with the right one (no oracle); unknown usernames count the same; refused requests are not counted (no extending the lock); success clears only the username+address pair. Over the limit: `429` + `Retry-After` (`TooManyRequestsException`). |
 | `RefreshTokenService` | Single-use refresh tokens: stored as SHA-256, rotated on every use, replay of a rotated token ends the session; 10 s grace for concurrent tabs. |
 | `AccountService` | Change password (400 on wrong password, not 401, see below), delete account (password re-check, soft delete). |
-| `EmailService` | HTML mail via `JavaMailSender`; failures are logged, never thrown. |
+| `EmailService` | HTML mail via `JavaMailSender`. The public senders are `@Async` (`@EnableAsync` in `AppConfig`), so SMTP latency never shows in a response time; failures are logged, never thrown. Tests that expect a mail must allow for it to arrive a moment later. |
 
 ## 5. API surface
 
@@ -111,7 +111,7 @@ Base path `/api`. Everything requires a Bearer access token **except**: `/api/au
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST register, login, refresh, logout, forgot-password, verify-otp, reset-password, verify-registration-otp`; `GET me`; `PUT change-password` |
+| Auth | `POST register, resend-registration-otp, login, refresh, logout, forgot-password, verify-otp, reset-password, verify-registration-otp`; `GET me`; `PUT change-password` |
 | Profile | `GET/PUT/DELETE /profile/me` (DELETE needs `{password}`), `GET /profile/status`, `GET /profile/export` (PDF), skills (`/profile/skills[/{id}]`, `/search`), social links (`/profile/social-links[/{id}]`), picture (`/profile/picture`) |
 | Projects | `GET/POST /projects`, `GET/PUT/DELETE /projects/{id}`, `GET /projects/me`, `/joined`, `/user/{profileId}`, `POST /{id}/join`, `POST /{id}/leave`, `GET /{id}/team`, `DELETE /{id}/team/{memberProfileId}` |
 | Tasks | `GET/POST /projects/{id}/tasks`, `PATCH/DELETE /tasks/{id}` |
@@ -152,6 +152,12 @@ refresh ─> new access + NEW refresh cookie (old one stays valid 10 s for concu
   fails it clears the token and dispatches `SESSION_EXPIRED_EVENT`; `AuthContext` drops the user and the route guard
   redirects. **Do not hard-redirect with `window.location`** (it loops for visitors without a session).
 - Cookie `Secure`/`SameSite` come from `jwt.cookie.*` properties (prod sets `secure=true`).
+- **Registration does not reveal which e-mail addresses are registered** (`AuthController.register`): a taken
+  *username* is reported (`400`, usernames are public); everything else answers `201 "Registration successful"`. A
+  *verified* address creates nothing and mails nothing; an *unverified* one has its username and password **replaced**
+  by the new request and gets a code (otherwise someone could park a victim's address with their own password and have
+  it activated when the owner verifies). The password is hashed in every branch and mail is async, so timing is level
+  too. `resend-registration-otp` answers the same for every address. Do not add "address already used" responses.
 - Login throttling keys on `request.getRemoteAddr()`. **Behind a reverse proxy every user shares the proxy's address**, so
   the 30-per-address limit would lock everyone out together: set `server.forward-headers-strategy=native` (or
   `framework`) in production, and only when the proxy overwrites `X-Forwarded-For` (otherwise clients can spoof it and
@@ -206,7 +212,7 @@ Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `
 |---|---|---|
 | Backend | `cd backend && mvn test` (needs JDK 21) | unit tests with Mockito, `@DataJpaTest` against H2 (specifications, soft delete, query counts), `@SpringBootTest` security-rule tests |
 | Frontend | `cd frontend && npm test`, `npm run lint`, `npm run build` | Vitest: API client refresh logic, API modules, helpers |
-| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~160 checks, ~2 min |
+| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~180 checks, ~2 min |
 
 Gotchas that cost time:
 

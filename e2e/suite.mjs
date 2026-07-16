@@ -125,6 +125,9 @@ export async function runSuite(cfg) {
     carol: { username: 'carol_e2e', email: 'carol@e2e.test', password: 'Passw0rd!three' },
     dave: { username: 'dave_e2e', email: 'dave@e2e.test', password: 'Passw0rd!four' },
     frank: { username: 'frank_e2e', email: 'frank@e2e.test', password: 'Passw0rd!six' },
+    gina: { username: 'gina_e2e', email: 'gina@e2e.test', password: 'Passw0rd!seven' },
+    hank: { username: 'hank_e2e', email: 'hank@e2e.test', password: 'Passw0rd!eight' },
+    ivy: { username: 'ivy_e2e', email: 'ivy@e2e.test', password: 'Passw0rd!nine' },
   };
 
   const browser = await puppeteer.launch({ executablePath: cfg.chromePath, headless: 'new', args: ['--no-sandbox'] });
@@ -553,7 +556,12 @@ export async function runSuite(cfg) {
       check('new password works', (await loginApi(eve)).status === 200);
       const old = await api('POST', '/auth/refresh', { cookie: s1.cookie });
       check("the old session's refresh token is dead after a reset", old.status === 401, String(old.status));
-      const mailBody = mails().filter((m) => m.to.includes(eve.email)).pop();
+      // e-mail is sent off the request thread, so give it a moment to arrive
+      let mailBody;
+      for (let i = 0; i < 20 && !/Reset Successful|updated successfully/i.test(mailBody?.body || ''); i++) {
+        await sleep(250);
+        mailBody = mails().filter((m) => m.to.includes(eve.email)).pop();
+      }
       check('a "password reset successful" notice was e-mailed', /Reset Successful|updated successfully/i.test(mailBody?.body || ''));
     });
 
@@ -623,6 +631,66 @@ export async function runSuite(cfg) {
       for (let i = 0; i < 5; i++) ghost.push((await api('POST', '/auth/login', { json: { username: 'ghost_e2e', password: 'x' + i } })).status);
       const lockedGhost = await api('POST', '/auth/login', { json: { username: 'ghost_e2e', password: 'x6' } });
       check('five failures for an unknown username, then 429: no way to tell it does not exist', ghost.every((s) => s === 401) && lockedGhost.status === 429, ghost.join(',') + ' ' + lockedGhost.status);
+    });
+
+    // ---------------------------------------------------------------- 12
+    section = '12 Registration does not reveal which addresses are registered';
+    const countMails = (email) => mails().filter((m) => m.to.includes(email)).length;
+    const registerReq = (u, over = {}) => api('POST', '/auth/register', { json: { username: u.username, email: u.email, password: u.password, ...over } });
+    await step('an address that already has an account is answered exactly like a new one', async () => {
+      await registerApi(users.gina);
+      const t0 = Date.now();
+      const fresh = await registerReq({ username: 'fresh_e2e', email: 'fresh@e2e.test', password: 'Passw0rd!fresh' });
+      const known = await registerReq(users.gina, { username: 'gina_other_e2e', password: 'Passw0rd!attacker' });
+      check('both are 201', fresh.status === 201 && known.status === 201, `${fresh.status} / ${known.status}`);
+      check('with the same body, so nothing says the address is taken', fresh.text === known.text, fresh.text + ' | ' + known.text);
+      const before = countMails(users.gina.email);
+      await sleep(1500);
+      check('the owner of a registered address is not mailed by strangers', countMails(users.gina.email) === before);
+      check('no account was created under the new username', (await loginApi({ username: 'gina_other_e2e' }, 'Passw0rd!attacker')).status === 401);
+      check("the real account's password is unchanged", (await loginApi(users.gina)).status === 200);
+      const fastEnough = Date.now() - t0 < 10000;
+      check('a taken username is still reported (usernames are public)', (await registerReq({ username: users.gina.username, email: 'x@e2e.test', password: 'Passw0rd!x' })).status === 400 && fastEnough);
+      const takenWithKnownAddress = await registerReq(users.gina, { password: 'Passw0rd!y' });
+      const takenWithFreshAddress = await registerReq(users.gina, { email: 'y@e2e.test', password: 'Passw0rd!y' });
+      check('...with the same answer whether or not the address is registered', takenWithKnownAddress.status === 400 && takenWithKnownAddress.text === takenWithFreshAddress.text, takenWithKnownAddress.text + ' | ' + takenWithFreshAddress.text);
+    });
+    await step('a pending registration cannot be parked by someone else (latest registrant wins)', async () => {
+      const t0 = Date.now();
+      const first = await registerReq(users.hank);
+      check('the first registration is accepted', first.status === 201);
+      const code = await otpFor(users.hank.email, t0);
+      const second = await registerReq(users.hank, { username: 'hank_second_e2e', password: 'Passw0rd!second' });
+      check('registering the same address again is accepted', second.status === 201, String(second.status));
+      const v = await api('POST', '/auth/verify-registration-otp', { json: { email: users.hank.email, otp: code } });
+      check('the code the address owner received verifies the account', v.status === 200, String(v.status));
+      check('the LATEST registrant credentials work', (await loginApi({ username: 'hank_second_e2e' }, 'Passw0rd!second')).status === 200);
+      check('the earlier credentials do not', (await loginApi(users.hank)).status === 401);
+    });
+    await step('resending the registration code answers the same for everyone', async () => {
+      await registerReq(users.ivy);
+      await sleep(800);
+      const answers = [];
+      const counts = {};
+      for (const email of [users.ivy.email, users.hank.email, 'nobody-at-all@e2e.test']) {
+        counts[email] = countMails(email);
+        const r = await api('POST', '/auth/resend-registration-otp', { json: { email } });
+        answers.push(r.status + ' ' + r.text);
+      }
+      await sleep(1500);
+      check('pending, verified and unknown addresses get the identical answer', new Set(answers).size === 1 && answers[0].startsWith('200'), answers.join(' | '));
+      check('nothing is mailed to a verified or unknown address', countMails(users.hank.email) === counts[users.hank.email] && countMails('nobody-at-all@e2e.test') === counts['nobody-at-all@e2e.test']);
+      check('a pending address is not mailed again within the cooldown', countMails(users.ivy.email) === counts[users.ivy.email]);
+      check('a malformed address -> 400', (await api('POST', '/auth/resend-registration-otp', { json: { email: 'nope' } })).status === 400);
+    });
+    await step('the verify page offers to resend the code', async () => {
+      const { c, p } = await newCtx();
+      await p.goto(BASE + '/verify-registration?email=' + encodeURIComponent(users.ivy.email), { waitUntil: 'networkidle0' });
+      check('"Resend code" is available', await waitText(p, 'Resend code', 5000));
+      await clickButton(p, 'Resend code');
+      check('the same neutral confirmation is shown', await waitText(p, 'a new code is on its way', 5000));
+      check('a hint points people with an existing account to login / reset', await waitText(p, 'resetting your password', 2000));
+      await c.close();
     });
   } finally {
     await browser.close();

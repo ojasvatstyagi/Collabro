@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -142,18 +144,104 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("Username already exists"));
     }
 
-    @Test
-    void register_WithExistingEmail_ShouldReturnBadRequest() throws Exception {
-        // Arrange
-        when(userService.findUserByUsername(anyString())).thenReturn(Optional.empty());
-        when(userService.findUserByEmail(anyString())).thenReturn(Optional.of(testUser));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/auth/register")
+    private String register() throws Exception {
+        return mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Email already exists"));
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    @Test
+    void register_WithAnAddressThatAlreadyHasAVerifiedAccount_AnswersLikeANewRegistrationAndChangesNothing() throws Exception {
+        when(userService.findUserByEmail(anyString())).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        String known = register();
+
+        // the same request for an address nobody has used
+        when(userService.findUserByEmail(anyString())).thenReturn(Optional.empty());
+        when(userService.saveUser(any(RegisterRequest.class))).thenReturn(testUser);
+        String unknown = register();
+
+        assertEquals(unknown, known, "the answer must not reveal whether the address is registered");
+        verify(userService, times(1)).saveUser(any(RegisterRequest.class)); // only for the unknown address
+        verify(userService, never()).updateUser(any());
+        verify(passwordService, times(1)).generateEmailVerificationOtp(anyString()); // nothing mailed to the owner
+        verify(passwordEncoder, times(2)).encode("password"); // hashed in both cases, so the timing matches
+    }
+
+    @Test
+    void register_WithAnAddressWhosePendingRegistrationIsUnverified_ReplacesTheCredentialsAndSendsANewCode() throws Exception {
+        testUser.setVerified(false);
+        when(userService.findUserByEmail("new@example.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.encode("password")).thenReturn("newHash");
+
+        String body = register();
+
+        // Otherwise someone could park an address with their own password and have it activated by the real owner
+        assertEquals("newuser", testUser.getUsername());
+        assertEquals("newHash", testUser.getPassword());
+        verify(userService).updateUser(testUser);
+        verify(passwordService).generateEmailVerificationOtp("new@example.com");
+        verify(userService, never()).saveUser(any());
+        assertTrue(body.contains("Registration successful"));
+    }
+
+    @Test
+    void register_WithATakenUsername_IsRefusedWhateverTheAddressIs() throws Exception {
+        User other = new User();
+        other.setId(UUID.randomUUID());
+        other.setUsername("newuser");
+        other.setVerified(true);
+        when(userService.findUserByUsername("newuser")).thenReturn(Optional.of(other));
+
+        // address unknown, address verified, address pending for someone else: always the same refusal
+        for (Optional<User> byEmail : List.of(Optional.<User>empty(), Optional.of(testUser))) {
+            when(userService.findUserByEmail(anyString())).thenReturn(byEmail);
+            mockMvc.perform(post("/api/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(registerRequest)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Username already exists"));
+        }
+        verify(userService, never()).updateUser(any());
+        verify(userService, never()).saveUser(any());
+        verifyNoInteractions(passwordService);
+    }
+
+    @Test
+    void register_AgainWithTheSameUsernameAndAddressWhilePending_IsTheSamePersonComingBack() throws Exception {
+        testUser.setVerified(false);
+        testUser.setUsername("newuser");
+        when(userService.findUserByUsername("newuser")).thenReturn(Optional.of(testUser));
+        when(userService.findUserByEmail("new@example.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.encode("password")).thenReturn("newHash");
+
+        register();
+
+        verify(passwordService).generateEmailVerificationOtp("new@example.com");
+        assertEquals("newHash", testUser.getPassword());
+    }
+
+    @Test
+    void resendRegistrationOtp_AnswersTheSameForEveryAddress() throws Exception {
+        for (String email : List.of("pending@example.com", "unknown@example.com")) {
+            mockMvc.perform(post("/api/auth/resend-registration-otp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"email\":\"" + email + "\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("If that address has a pending registration, a new code was sent"));
+            verify(passwordService).resendRegistrationOtp(email);
+        }
+    }
+
+    @Test
+    void resendRegistrationOtp_RejectsAMalformedAddress() throws Exception {
+        mockMvc.perform(post("/api/auth/resend-registration-otp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"not-an-email\"}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(passwordService);
     }
 
     @Test
