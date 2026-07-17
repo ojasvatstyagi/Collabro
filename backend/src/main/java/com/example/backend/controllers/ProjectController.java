@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import com.example.backend.utils.ListPaging;
 import com.example.backend.dto.ProjectDto;
 import com.example.backend.dto.TaskDto;
 import com.example.backend.exceptions.BadRequestException;
@@ -66,20 +67,24 @@ public class ProjectController {
 
     @GetMapping("/me")
     @Operation(summary = "Get current user's projects", description = "Retrieve projects created by the authenticated user")
-    public ResponseEntity<List<ProjectDto>> getMyProjects() {
-        return ResponseEntity.ok(projectService.getMyProjects());
+    public ResponseEntity<List<ProjectDto>> getMyProjects(@RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return ListPaging.respond(projectService.getMyProjects(ListPaging.of(page, size, ListPaging.newestFirst("createdAt"))));
     }
 
     @GetMapping("/joined")
     @Operation(summary = "Get joined projects", description = "Retrieve projects where the current user is a team member")
-    public ResponseEntity<List<ProjectDto>> getJoinedProjects() {
-        return ResponseEntity.ok(projectService.getJoinedProjects());
+    public ResponseEntity<List<ProjectDto>> getJoinedProjects(@RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return ListPaging.respond(projectService.getJoinedProjects(ListPaging.of(page, size, ListPaging.newestFirst("createdAt"))));
     }
 
     @GetMapping("/user/{profileId}")
     @Operation(summary = "Get user's projects", description = "Retrieve projects created by a specific user (profile ID)")
-    public ResponseEntity<List<ProjectDto>> getUserProjects(@PathVariable UUID profileId) {
-        return ResponseEntity.ok(projectService.getProjectsByProfileId(profileId));
+    public ResponseEntity<List<ProjectDto>> getUserProjects(@PathVariable UUID profileId,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return ListPaging.respond(projectService.getProjectsByProfileId(profileId,
+                ListPaging.of(page, size, ListPaging.newestFirst("createdAt"))));
     }
 
     @PostMapping
@@ -99,8 +104,9 @@ public class ProjectController {
 
     @GetMapping("/{id}/tasks")
     @Operation(summary = "Get project tasks", description = "Retrieve tasks for a specific project")
-    public ResponseEntity<List<TaskDto>> getProjectTasks(@PathVariable UUID id) {
-        return ResponseEntity.ok(taskService.getTasksByProject(id));
+    public ResponseEntity<List<TaskDto>> getProjectTasks(@PathVariable UUID id,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return ListPaging.respond(taskService.getTasksByProject(id, ListPaging.of(page, size, ListPaging.newestFirst("createdAt"))));
     }
 
     @PostMapping("/{id}/tasks")

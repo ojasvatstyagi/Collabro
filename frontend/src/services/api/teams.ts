@@ -46,7 +46,7 @@ export interface TeamSummary {
 class TeamsApi extends BaseApi {
   /** Teams the current user owns or belongs to, newest first. */
   async getMyTeams(): Promise<ApiResponse<TeamSummary[]>> {
-    return this.get<TeamSummary[]>('/teams/me');
+    return this.getAll<TeamSummary>('/teams/me');
   }
 }
 

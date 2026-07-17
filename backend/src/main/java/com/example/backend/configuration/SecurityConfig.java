@@ -49,6 +49,7 @@ public class SecurityConfig {
                     config.setAllowedOriginPatterns(allowedOrigins);
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
                     config.setAllowedHeaders(List.of("*"));
+                    config.setExposedHeaders(List.of("X-Total-Count", "X-Page", "X-Page-Size", "Retry-After"));
                     config.setAllowCredentials(true);
                     return config;
                 }))

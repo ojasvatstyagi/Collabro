@@ -30,7 +30,7 @@ describe('requestsApi unwraps the { success, data, count } envelope exactly once
 
     expect(response.data).toEqual([joinRequest]);
     expect(calls[0].url).toBe('/requests/received');
-    expect(calls[0].params).toEqual({ status: 'PENDING' });
+    expect(calls[0].params).toMatchObject({ status: 'PENDING' });
   });
 
   it('omits the status parameter when asking for everything', async () => {
@@ -39,7 +39,7 @@ describe('requestsApi unwraps the { success, data, count } envelope exactly once
     const response = await requestsApi.getReceivedRequests();
 
     expect(response.data).toEqual([]);
-    expect(calls[0].params).toBeUndefined();
+    expect(calls[0].params).not.toHaveProperty('status');
   });
 
   it('getSentRequests returns the list itself', async () => {

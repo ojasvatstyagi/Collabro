@@ -82,27 +82,21 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProjectDto> getMyProjects() {
+    public Page<ProjectDto> getMyProjects(Pageable pageable) {
         Profile currentProfile = profileService.getCurrentUserProfile();
-        return getProjectsByProfileId(currentProfile.getId());
+        return getProjectsByProfileId(currentProfile.getId(), pageable);
     }
 
     @Transactional(readOnly = true)
-    public List<ProjectDto> getProjectsByProfileId(UUID profileId) {
-        return projectRepository.findByCreatedBy_Id(profileId).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<ProjectDto> getProjectsByProfileId(UUID profileId, Pageable pageable) {
+        return projectRepository.findByCreatedBy_Id(profileId, pageable).map(this::convertToDto);
     }
 
     @Transactional(readOnly = true)
-    public List<ProjectDto> getJoinedProjects() {
+    public Page<ProjectDto> getJoinedProjects(Pageable pageable) {
         Profile currentProfile = profileService.getCurrentUserProfile();
-        return projectRepository.findByTeam_Members_Id(currentProfile.getId()).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return projectRepository.findByTeam_Members_Id(currentProfile.getId(), pageable).map(this::convertToDto);
     }
-
-
 
     @Transactional
     public ProjectDto updateProject(UUID projectId, ProjectDto projectDto) {

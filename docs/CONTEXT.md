@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 314 tests, frontend 33 tests, e2e 178 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 334 tests, frontend 40 tests, e2e 192 checks, all passing).
 
 ## 1. What it is
 
@@ -132,6 +132,14 @@ Conventions:
   expired" and signs the user out.
 - Boolean DTO fields that must serialise as `isX` use `@JsonProperty("isX")` on a field named `x` (Lombok/Jackson
   would otherwise publish `x`): `ProjectDto`, `UserDto`, `ProfileDto`, `AchievementDto`.
+- **List endpoints that return a plain array are paged too** (requests received/sent, projects `me`/`joined`/`user/{id}`,
+  tasks, files, teams `me`; `utils/ListPaging`): optional `?page=&size=`, size clamped to 100, newest first (id as
+  tie-break). With **no** parameters the first **200** rows come back (never "everything"). The body stays an array; the
+  position is in `X-Total-Count`, `X-Page`, `X-Page-Size` (exposed in the CORS config; the requests envelope also has
+  `total`). The frontend's `BaseApi.getAll` walks the pages (100 each) so pages still receive a full array. Paging
+  happens in the database: **never put a collection (e.g. `requester.skills`) in the `@EntityGraph` of a paged query**
+  (Hibernate then pages in memory); collections are loaded with `@BatchSize` instead (`Profile.skills`,
+  `Project.technologies`, `SkillDefinition`). `ListPagingRepositoryTest` guards both and counts queries.
 - Page size is capped at 50 by `PagingConfig` (code, not properties: the test config replaces `application.properties`).
   Sort fields for projects are whitelisted in `ProjectController`.
 - Avatars in any DTO must go through `ProfileService.publicPictureUrl(...)` (the stored value is an internal path).
@@ -212,7 +220,7 @@ Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `
 |---|---|---|
 | Backend | `cd backend && mvn test` (needs JDK 21) | unit tests with Mockito, `@DataJpaTest` against H2 (specifications, soft delete, query counts), `@SpringBootTest` security-rule tests |
 | Frontend | `cd frontend && npm test`, `npm run lint`, `npm run build` | Vitest: API client refresh logic, API modules, helpers |
-| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~180 checks, ~2 min |
+| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~190 checks, ~2 min |
 
 Gotchas that cost time:
 

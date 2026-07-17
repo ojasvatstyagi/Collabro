@@ -1,5 +1,8 @@
 package com.example.backend.services;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.PageImpl;
 import com.example.backend.dto.PublicProfileDto;
 import com.example.backend.dto.TeamSummaryDto;
 import com.example.backend.enums.TeamStatus;
@@ -54,14 +57,20 @@ class TeamServiceTest {
         return team;
     }
 
+    private static final Pageable PAGE = PageRequest.of(0, 20);
+
+    private void myTeamsAre(Team... teams) {
+        when(teamRepository.pageActiveTeamsOf(me.getId(), TeamStatus.ACTIVE, PAGE))
+                .thenReturn(new PageImpl<>(List.of(teams), PAGE, teams.length));
+    }
+
     @Test
     void getMyTeams_DescribesMyRoleAndCountsTheOwner() {
         Profile owner = profile("owner");
         Project joined = project(owner, me, profile("third"));
-        Team team = teamOf(joined, LocalDateTime.now());
-        when(teamRepository.findActiveTeamsOf(me.getId(), TeamStatus.ACTIVE)).thenReturn(List.of(team));
+        myTeamsAre(teamOf(joined, LocalDateTime.now()));
 
-        List<TeamSummaryDto> teams = teamService.getMyTeams();
+        List<TeamSummaryDto> teams = teamService.getMyTeams(PAGE).getContent();
 
         assertEquals(1, teams.size());
         TeamSummaryDto dto = teams.get(0);
@@ -76,30 +85,24 @@ class TeamServiceTest {
     @Test
     void getMyTeams_MarksTeamsIOwnAsOwner() {
         Project mine = project(me, profile("alice"));
-        when(teamRepository.findActiveTeamsOf(me.getId(), TeamStatus.ACTIVE))
-                .thenReturn(List.of(teamOf(mine, LocalDateTime.now())));
+        myTeamsAre(teamOf(mine, LocalDateTime.now()));
 
-        assertEquals("OWNER", teamService.getMyTeams().get(0).getRole());
+        assertEquals("OWNER", teamService.getMyTeams(PAGE).getContent().get(0).getRole());
     }
 
     @Test
-    void getMyTeams_ListsNewestFirstAndSkipsTeamsWithoutAProject() {
-        Project older = project(me, profile("a"));
-        older.setTitle("Older");
-        Project newer = project(me, profile("b"));
-        newer.setTitle("Newer");
-        Team orphan = new Team();
-        orphan.setStatus(TeamStatus.ACTIVE);
-        when(teamRepository.findActiveTeamsOf(me.getId(), TeamStatus.ACTIVE)).thenReturn(List.of(
-                teamOf(older, LocalDateTime.now().minusDays(5)), orphan, teamOf(newer, LocalDateTime.now())));
+    void getMyTeams_KeepsTheTotalSoTheCallerCanTellThereAreMorePages() {
+        Project mine = project(me, profile("alice"));
+        when(teamRepository.pageActiveTeamsOf(me.getId(), TeamStatus.ACTIVE, PAGE))
+                .thenReturn(new PageImpl<>(List.of(teamOf(mine, LocalDateTime.now())), PAGE, 45));
 
-        List<String> names = teamService.getMyTeams().stream().map(TeamSummaryDto::getName).toList();
-
-        assertEquals(List.of("Newer Team", "Older Team"), names);
+        assertEquals(45, teamService.getMyTeams(PAGE).getTotalElements());
     }
 
     @Test
-    void getMyTeams_WithNoTeams_ReturnsAnEmptyList() {
-        assertTrue(teamService.getMyTeams().isEmpty());
+    void getMyTeams_WithNoTeams_ReturnsAnEmptyPage() {
+        myTeamsAre();
+
+        assertTrue(teamService.getMyTeams(PAGE).isEmpty());
     }
 }

@@ -34,6 +34,7 @@ public class Project {
     private String description;
 
     @ElementCollection
+    @org.hibernate.annotations.BatchSize(size = 50)
     @CollectionTable(name = "project_technologies", joinColumns = @JoinColumn(name = "project_id"))
     @Column(name = "technology")
     private List<String> technologies;

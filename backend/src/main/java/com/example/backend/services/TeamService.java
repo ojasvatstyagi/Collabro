@@ -1,5 +1,7 @@
 package com.example.backend.services;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.example.backend.dto.PublicProfileDto;
 import com.example.backend.dto.TeamSummaryDto;
 import com.example.backend.enums.TeamStatus;
@@ -26,13 +28,9 @@ public class TeamService {
     private final ProfileService profileService;
 
     @Transactional(readOnly = true)
-    public List<TeamSummaryDto> getMyTeams() {
+    public Page<TeamSummaryDto> getMyTeams(Pageable pageable) {
         Profile me = profileService.getCurrentUserProfile();
-        return teamRepository.findActiveTeamsOf(me.getId(), TeamStatus.ACTIVE).stream()
-                .filter(team -> team.getProject() != null)
-                .map(team -> toDto(team, me))
-                .sorted(Comparator.comparing(TeamSummaryDto::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .toList();
+        return teamRepository.pageActiveTeamsOf(me.getId(), TeamStatus.ACTIVE, pageable).map(team -> toDto(team, me));
     }
 
     private TeamSummaryDto toDto(Team team, Profile me) {

@@ -10,6 +10,8 @@ import com.example.backend.services.RequestService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import com.example.backend.utils.ListPaging;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,31 +48,37 @@ public class RequestController {
     @GetMapping("/received")
     @Operation(summary = "Get all requests received for current user's projects", description = "Get all requests received for current user's projects")
     public ResponseEntity<Map<String, Object>> getReceivedRequests(
-            @RequestParam(required = false) RequestStatus status) {
-        
-        List<CollaborationRequestDTO> requests = requestService.getReceivedRequests(status);
-        
+            @RequestParam(required = false) RequestStatus status,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+
+        Page<CollaborationRequestDTO> requests = requestService.getReceivedRequests(status,
+                ListPaging.of(page, size, ListPaging.newestFirst("createdAt")));
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", requests);
-        response.put("count", requests.size());
-        
-        return ResponseEntity.ok(response);
+        response.put("data", requests.getContent());
+        response.put("count", requests.getNumberOfElements());
+        response.put("total", requests.getTotalElements());
+
+        return ResponseEntity.ok().headers(ListPaging.headers(requests)).body(response);
     }
 
     @GetMapping("/sent")
     @Operation(summary = "Get all requests sent by current user", description = "Get all requests sent by current user")
     public ResponseEntity<Map<String, Object>> getSentRequests(
-            @RequestParam(required = false) RequestStatus status) {
-        
-        List<CollaborationRequestDTO> requests = requestService.getSentRequests(status);
-        
+            @RequestParam(required = false) RequestStatus status,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+
+        Page<CollaborationRequestDTO> requests = requestService.getSentRequests(status,
+                ListPaging.of(page, size, ListPaging.newestFirst("createdAt")));
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("data", requests);
-        response.put("count", requests.size());
-        
-        return ResponseEntity.ok(response);
+        response.put("data", requests.getContent());
+        response.put("count", requests.getNumberOfElements());
+        response.put("total", requests.getTotalElements());
+
+        return ResponseEntity.ok().headers(ListPaging.headers(requests)).body(response);
     }
 
     @GetMapping("/{requestId}")

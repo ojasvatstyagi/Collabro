@@ -111,6 +111,7 @@ public class Profile {
     private List<SocialLink> socialLinks = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 50)
     @Builder.Default
     private List<Skill> skills = new ArrayList<>();
 

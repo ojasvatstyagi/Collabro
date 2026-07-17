@@ -15,6 +15,8 @@ import com.example.backend.repositories.RequestRepository;
 import com.example.backend.repositories.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,35 +73,21 @@ public class RequestService {
     }
 
     @Transactional(readOnly = true)
-    public List<CollaborationRequestDTO> getReceivedRequests(RequestStatus status) {
+    public Page<CollaborationRequestDTO> getReceivedRequests(RequestStatus status, Pageable pageable) {
         Profile currentUser = profileService.getCurrentUserProfile();
-        
-        List<CollaborationRequest> requests;
-        if (status != null) {
-            requests = requestRepository.findByProjectOwnerAndStatus(currentUser, status);
-        } else {
-            requests = requestRepository.findByProjectOwner(currentUser);
-        }
-        
-        return requests.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        Page<CollaborationRequest> requests = status != null
+                ? requestRepository.findByProjectOwnerAndStatus(currentUser, status, pageable)
+                : requestRepository.findByProjectOwner(currentUser, pageable);
+        return requests.map(this::mapToDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<CollaborationRequestDTO> getSentRequests(RequestStatus status) {
+    public Page<CollaborationRequestDTO> getSentRequests(RequestStatus status, Pageable pageable) {
         Profile currentUser = profileService.getCurrentUserProfile();
-        
-        List<CollaborationRequest> requests;
-        if (status != null) {
-            requests = requestRepository.findByRequesterAndStatus(currentUser, status);
-        } else {
-            requests = requestRepository.findByRequester(currentUser);
-        }
-        
-        return requests.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        Page<CollaborationRequest> requests = status != null
+                ? requestRepository.findByRequesterAndStatus(currentUser, status, pageable)
+                : requestRepository.findByRequester(currentUser, pageable);
+        return requests.map(this::mapToDTO);
     }
 
     @Transactional(readOnly = true)

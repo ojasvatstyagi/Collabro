@@ -52,7 +52,7 @@ class RequestsApi extends BaseApi {
   async getReceivedRequests(
     status?: 'PENDING' | 'APPROVED' | 'REJECTED'
   ): Promise<ApiResponse<JoinRequest[]>> {
-    return this.get<JoinRequest[]>('/requests/received', {
+    return this.getAll<JoinRequest>('/requests/received', {
       params: status ? { status } : undefined,
     });
   }
@@ -60,7 +60,7 @@ class RequestsApi extends BaseApi {
   async getSentRequests(
     status?: 'PENDING' | 'APPROVED' | 'REJECTED'
   ): Promise<ApiResponse<JoinRequest[]>> {
-    return this.get<JoinRequest[]>('/requests/sent', {
+    return this.getAll<JoinRequest>('/requests/sent', {
       params: status ? { status } : undefined,
     });
   }

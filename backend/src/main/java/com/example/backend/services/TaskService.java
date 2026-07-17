@@ -1,5 +1,7 @@
 package com.example.backend.services;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.example.backend.dto.TaskDto; // Need to create this
 import com.example.backend.enums.TaskPriority;
 import com.example.backend.enums.TaskStatus;
@@ -91,13 +93,11 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<TaskDto> getTasksByProject(UUID projectId) {
+    public Page<TaskDto> getTasksByProject(UUID projectId, Pageable pageable) {
         Project project = projectRepository.findById(Objects.requireNonNull(projectId))
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         projectAccessService.requireMember(project);
-        return taskRepository.findByProjectId(projectId).stream()
-                .map(this::convertToDto)
-                .toList();
+        return taskRepository.findByProjectId(projectId, pageable).map(this::convertToDto);
     }
 
     private Profile resolveAssignee(Project project, UUID assigneeId) {

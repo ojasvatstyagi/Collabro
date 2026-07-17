@@ -122,12 +122,12 @@ class ProjectsApi extends BaseApi {
   // Get user's projects
   async getUserProjects(userId?: string): Promise<ApiResponse<Project[]>> {
     const endpoint = userId ? `/projects/user/${userId}` : '/projects/me';
-    return this.get<Project[]>(endpoint);
+    return this.getAll<Project>(endpoint);
   }
 
   // Get joined projects
   async getJoinedProjects(): Promise<ApiResponse<Project[]>> {
-    return this.get<Project[]>('/projects/joined');
+    return this.getAll<Project>('/projects/joined');
   }
 
   // Create new project
@@ -172,7 +172,7 @@ class ProjectsApi extends BaseApi {
 
   // Get project tasks
   async getProjectTasks(projectId: string): Promise<ApiResponse<Task[]>> {
-    return this.get<Task[]>(`/projects/${projectId}/tasks`);
+    return this.getAll<Task>(`/projects/${projectId}/tasks`);
   }
 
   // Create task
@@ -244,7 +244,7 @@ class ProjectsApi extends BaseApi {
   async getProjectFiles(
     projectId: string
   ): Promise<ApiResponse<ProjectFile[]>> {
-    return this.get<ProjectFile[]>(`/projects/${projectId}/files`);
+    return this.getAll<ProjectFile>(`/projects/${projectId}/files`);
   }
 
   async deleteFile(fileId: string): Promise<ApiResponse<void>> {

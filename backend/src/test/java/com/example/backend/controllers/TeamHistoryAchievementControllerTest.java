@@ -57,10 +57,10 @@ class TeamHistoryAchievementControllerTest {
 
     @Test
     void myTeams_ReturnsTheTeamsWithoutAnyContactDetails() throws Exception {
-        when(teamService.getMyTeams()).thenReturn(List.of(TeamSummaryDto.builder()
+        when(teamService.getMyTeams(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(TeamSummaryDto.builder()
                 .id(7L).name("Collabro Team").role("OWNER").memberCount(2)
                 .owner(PublicProfileDto.builder().username("me").build())
-                .members(List.of(PublicProfileDto.builder().username("alice").build())).build()));
+                .members(List.of(PublicProfileDto.builder().username("alice").build())).build())));
 
         mockMvc.perform(get("/api/teams/me"))
                 .andExpect(status().isOk())

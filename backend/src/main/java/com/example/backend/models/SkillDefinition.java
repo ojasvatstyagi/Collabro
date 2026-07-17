@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+@org.hibernate.annotations.BatchSize(size = 50)
 @Table(name = "skill_definitions", indexes = {
         @Index(name = "idx_skill_def_name", columnList = "name"),
         @Index(name = "idx_skill_def_normalized", columnList = "normalized_name", unique = true)

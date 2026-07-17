@@ -48,7 +48,8 @@ purpose, see section 4.
 |---|---|
 | Missing validation on project/task/chat/social-link input | **Fixed** (`ProjectControllerTest`, `ChatControllerTest`, `SocialLinkControllerTest`) |
 | Re-request impossible after rejection or leaving; no uniqueness on (project, requester) | **Fixed** (unique key + replace finished request) |
-| N+1 on request lists | **Fixed** (`@EntityGraph`, `RequestRepositoryQueryCountTest`). Other lists were not measured. |
+| N+1 on request lists | **Fixed** (`@EntityGraph`, `RequestRepositoryQueryCountTest`). |
+| N+1 on the other lists (project `technologies`, request requesters' skills, project creators) and every list unbounded | **Fixed** (2026-11-23): measured 28 queries for a page of 25 against 6 for a page of 3; now constant. Lists are paged in the database with a 200-row ceiling (see CONTEXT.md section 5). | `ListPagingRepositoryTest`, `ListEndpointsPagingTest`, `paging.test.ts`, e2e §13 |
 | Frontend interceptor: hung queued requests, retry loops, hard redirect | **Fixed** (`base.test.ts`) |
 | Workspace actions failed silently; chat polling hammered a failing server; downloads sent no auth | **Fixed** |
 | Class-level `@CrossOrigin("*")` bypassed the CORS allow-list | **Fixed** |
@@ -91,8 +92,10 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 - **`ROLE_ADMIN` and `@EnableMethodSecurity` are reserved**: seeded but not used.
 - **Flyway runs in prod only** (2026-11-23). Dev and tests keep Hibernate-built schemas so day-to-day work needs no
   migration for every experiment; `MigrationsTest` is what stops the two from drifting apart.
-- **List endpoints are not paginated** (requests, my projects, tasks, files): changing the response shape would break
-  the frontend. Only the project browse, chat, history and public search are paged.
+- **List endpoints keep returning arrays** (changing the shape would break the frontend). They are paged through
+  optional `page`/`size` parameters and headers instead, and the frontend fetches every page, so the UI still shows
+  everything. The gain is bounded work per request, not less data in the browser: a user with thousands of rows would
+  still load them all (add real paging to that page's UI if it ever happens).
 - **Chat polls** (5 s, backoff); WebSockets are on the roadmap, not built.
 - **The access token lives in `localStorage`** (readable by injected script). Accepted design; the refresh token is
   HttpOnly. There is no CSP.
@@ -121,7 +124,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
 3. **Unverified accounts are never cleaned up**: each holds its username (and e-mail) forever, so a script can squat names. A scheduled purge of accounts unverified after N days would fix it; and e-mail send failures are only in the log.
-4. **Pagination** of the remaining list endpoints, and measuring N+1 on them.
+4. **History and Achievements read everything on every request**: they are computed from full scans of the user's projects, requests and tasks (`HistoryService`, `AchievementService`), and only the *output* of history is paged. Fine for normal accounts; the cost grows with the account's activity.  Also unpaged: `matching/similar` and `/complementary` (limited by their queries), the project team (bounded by team size) and a user's own skills/social links.
 5. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
    backend accepts the owner).
 6. **New profiles are named "New User"** (a placeholder because the columns are `NOT NULL`), shown everywhere until
@@ -136,9 +139,9 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 314 tests
+cd backend  && mvn test                          # 334 tests
 cd frontend && npm test && npm run lint && npm run build
-cd e2e      && npm install && npm test           # ~180 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
+cd e2e      && npm install && npm test           # ~190 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
 ```
 
 When fixing a bug, add a test that fails on the old code (revert the fix, watch it fail, restore). Several of the

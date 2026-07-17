@@ -52,6 +52,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 | 10 | Tokens | refresh rotation, replay detection, refresh token is not a Bearer token, logout revokes, 415/405 instead of 500 |
 | 11 | Login throttling | 5 wrong passwords then 429 with Retry-After, the right password is refused too, the form says so, other accounts unaffected, unknown usernames throttled identically |
 | 12 | Registration enumeration | a registered address is answered like a new one (same body, no mail, no account), a pending registration cannot be parked by someone else, resend answers the same for every address, the verify page's resend button |
+| 13 | Paged lists | 105 projects: the 200-row ceiling, page/size clamping, newest first, no row twice, totals in headers (exposed through CORS), and the Projects page showing all of them by walking two pages |
 
 ## Files
 

@@ -128,6 +128,7 @@ export async function runSuite(cfg) {
     gina: { username: 'gina_e2e', email: 'gina@e2e.test', password: 'Passw0rd!seven' },
     hank: { username: 'hank_e2e', email: 'hank@e2e.test', password: 'Passw0rd!eight' },
     ivy: { username: 'ivy_e2e', email: 'ivy@e2e.test', password: 'Passw0rd!nine' },
+    judy: { username: 'judy_e2e', email: 'judy@e2e.test', password: 'Passw0rd!ten' },
   };
 
   const browser = await puppeteer.launch({ executablePath: cfg.chromePath, headless: 'new', args: ['--no-sandbox'] });
@@ -690,6 +691,62 @@ export async function runSuite(cfg) {
       await clickButton(p, 'Resend code');
       check('the same neutral confirmation is shown', await waitText(p, 'a new code is on its way', 5000));
       check('a hint points people with an existing account to login / reset', await waitText(p, 'resetting your password', 2000));
+      await c.close();
+    });
+
+    // ---------------------------------------------------------------- 13
+    section = '13 List endpoints are paged';
+    let judy;
+    const PROJECTS = 105; // more than one page of 100
+    await step('105 projects: lists are capped, paged, ordered newest first, and report the total', async () => {
+      await registerApi(users.judy);
+      judy = await loginApi(users.judy);
+      const make = (i) => api('POST', '/projects', { token: judy.token, json: { title: 'Paging Project ' + String(i).padStart(3, '0'), description: 'd', technologies: ['Java'], teamSize: 2 } });
+      for (let i = 0; i < PROJECTS; i += 15) {
+        // sequential batches of 15, in order, so "newest first" is well defined
+        for (let j = i; j < Math.min(i + 15, PROJECTS); j++) await make(j);
+      }
+      const all = await api('GET', '/projects/me', { token: judy.token });
+      check('no parameters: a plain array of all 105 (they fit under the 200 ceiling)', Array.isArray(all.body) && all.body.length === PROJECTS, String(all.body?.length));
+      check('...with the total and page size in headers', all.headers.get('x-total-count') === String(PROJECTS) && all.headers.get('x-page') === '0' && all.headers.get('x-page-size') === '200', [...all.headers.entries()].filter(([k]) => k.startsWith('x-')).join(' '));
+      check('newest first', all.body[0].title === 'Paging Project 104' && all.body.at(-1).title === 'Paging Project 000', all.body[0].title + ' / ' + all.body.at(-1).title);
+
+      const p0 = await api('GET', '/projects/me?page=0&size=10', { token: judy.token });
+      const p10 = await api('GET', '/projects/me?page=10&size=10', { token: judy.token });
+      const beyond = await api('GET', '/projects/me?page=11&size=10', { token: judy.token });
+      check('page 0 of size 10 has 10 rows and the same total', p0.body.length === 10 && p0.headers.get('x-total-count') === String(PROJECTS) && p0.headers.get('x-page-size') === '10');
+      check('the last page holds the remaining 5', p10.body.length === 5, String(p10.body.length));
+      check('past the end is an empty array, not an error', beyond.status === 200 && beyond.body.length === 0);
+      const big = await api('GET', '/projects/me?size=9999', { token: judy.token });
+      check('an oversized page is clamped to 100', big.body.length === 100 && big.headers.get('x-page-size') === '100', big.body.length + ' ' + big.headers.get('x-page-size'));
+      const neg = await api('GET', '/projects/me?page=-3&size=0', { token: judy.token });
+      check('a negative page and zero size are corrected, not a 500', neg.status === 200 && neg.headers.get('x-page') === '0' && neg.body.length === 1, neg.status + ' ' + neg.headers.get('x-page-size'));
+      const seen = new Set();
+      for (let page = 0; page < 11; page++) (await api('GET', `/projects/me?page=${page}&size=10`, { token: judy.token })).body.forEach((x) => seen.add(x.id));
+      check('walking all pages yields every project exactly once', seen.size === PROJECTS, String(seen.size));
+      check('other list endpoints answer too: tasks, files, teams, requests (empty here)', (await Promise.all([
+        api('GET', `/projects/${all.body[0].id}/tasks`, { token: judy.token }),
+        api('GET', `/projects/${all.body[0].id}/files`, { token: judy.token }),
+        api('GET', '/teams/me', { token: judy.token }),
+        api('GET', '/requests/received', { token: judy.token }),
+        api('GET', '/requests/sent', { token: judy.token }),
+        api('GET', '/projects/joined', { token: judy.token }),
+      ])).every((r) => r.status === 200 && r.headers.get('x-total-count') === '0'));
+    });
+    await step('browsers are allowed to read the paging headers (CORS)', async () => {
+      const r = await fetch(API + '/projects/me', { headers: { Authorization: 'Bearer ' + judy.token, Origin: 'http://localhost:5173' } });
+      const exposed = (r.headers.get('access-control-expose-headers') || '').toLowerCase();
+      check('X-Total-Count, X-Page and X-Page-Size are exposed', ['x-total-count', 'x-page', 'x-page-size'].every((h) => exposed.includes(h)), exposed);
+    });
+    await step('the Projects page still shows every project, fetched a page at a time', async () => {
+      const { c, p } = await newCtx();
+      const urls = [];
+      p.on('request', (req) => { if (/\/api\/projects\/me/.test(req.url())) urls.push(req.url()); });
+      await uiLogin(p, users.judy);
+      await p.goto(BASE + '/projects', { waitUntil: 'networkidle0' });
+      check('the newest project is listed', await waitText(p, 'Paging Project 104', 8000));
+      check('and the oldest, which was on the second page', await waitText(p, 'Paging Project 000', 3000));
+      check('the browser asked for pages 0 and 1 of 100', urls.some((u) => /page=0/.test(u) && /size=100/.test(u)) && urls.some((u) => /page=1/.test(u)), urls.join(' '));
       await c.close();
     });
   } finally {

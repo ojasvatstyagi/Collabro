@@ -1,5 +1,7 @@
 package com.example.backend.services;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Page;
 import com.example.backend.dto.TaskDto;
 import com.example.backend.exceptions.BadRequestException;
 import com.example.backend.exceptions.ForbiddenException;
@@ -139,25 +141,28 @@ class TaskServiceTest {
         verify(taskRepository).delete(task);
     }
 
+    private static final org.springframework.data.domain.Pageable PAGE = org.springframework.data.domain.PageRequest.of(0, 20);
+
     @Test
     void getTasksByProject_AsOutsider_ThrowsForbidden() {
         when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
         when(profileService.getCurrentUserProfile()).thenReturn(outsider);
 
-        assertThrows(ForbiddenException.class, () -> taskService.getTasksByProject(project.getId()));
+        assertThrows(ForbiddenException.class, () -> taskService.getTasksByProject(project.getId(), PAGE));
 
-        verify(taskRepository, never()).findByProjectId(any());
+        verify(taskRepository, never()).findByProjectId(any(), any());
     }
 
     @Test
     void getTasksByProject_AsOwner_ReturnsTasks() {
         when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
         when(profileService.getCurrentUserProfile()).thenReturn(owner);
-        when(taskRepository.findByProjectId(project.getId())).thenReturn(List.of(task));
+        when(taskRepository.findByProjectId(project.getId(), PAGE)).thenReturn(new PageImpl<>(List.of(task), PAGE, 41));
 
-        List<TaskDto> result = taskService.getTasksByProject(project.getId());
+        Page<TaskDto> result = taskService.getTasksByProject(project.getId(), PAGE);
 
-        assertEquals(1, result.size());
+        assertEquals(1, result.getContent().size());
+        assertEquals(41, result.getTotalElements());
     }
 
     @Test

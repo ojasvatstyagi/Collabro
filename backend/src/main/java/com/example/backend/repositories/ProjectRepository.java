@@ -11,4 +11,10 @@ import java.util.UUID;
 public interface ProjectRepository extends JpaRepository<Project, UUID>, JpaSpecificationExecutor<Project> {
     java.util.List<Project> findByCreatedBy_Id(UUID id);
     java.util.List<Project> findByTeam_Members_Id(UUID profileId);
+
+    // The creator (and the user behind it) is always shown with a project, so load it with the page
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "createdBy", "createdBy.user" })
+    org.springframework.data.domain.Page<Project> findByCreatedBy_Id(UUID id, org.springframework.data.domain.Pageable pageable);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "createdBy", "createdBy.user" })
+    org.springframework.data.domain.Page<Project> findByTeam_Members_Id(UUID profileId, org.springframework.data.domain.Pageable pageable);
 }

@@ -1,5 +1,7 @@
 package com.example.backend.services;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.example.backend.dto.ProjectFileDto;
 import com.example.backend.exceptions.ForbiddenException;
 import com.example.backend.exceptions.ResourceNotFoundException;
@@ -55,13 +57,11 @@ public class ProjectFileService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProjectFileDto> getProjectFiles(UUID projectId) {
+    public Page<ProjectFileDto> getProjectFiles(UUID projectId, Pageable pageable) {
         Project project = projectRepository.findById(Objects.requireNonNull(projectId))
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         projectAccessService.requireMember(project);
-        return projectFileRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        return projectFileRepository.findByProjectId(projectId, pageable).map(this::convertToDto);
     }
 
     @Transactional

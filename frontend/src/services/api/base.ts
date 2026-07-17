@@ -112,6 +112,10 @@ apiClient.interceptors.response.use(
   }
 );
 
+// What the server allows per page (ListPaging.MAX_SIZE), and a stop so a misbehaving server cannot loop forever
+const PAGE_SIZE = 100;
+const MAX_PAGES = 100;
+
 // Generic API response interface
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -143,6 +147,33 @@ export class BaseApi {
 
   public get baseUrl(): string {
     return API_BASE_URL;
+  }
+
+  // GET a list the server pages (page/size parameters, total in the X-Total-Count header): walks the pages and returns
+  // everything, so callers keep working with plain arrays while each request stays small for the server.
+  protected async getAll<T>(
+    endpoint: string,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResponse<T[]>> {
+    const items: T[] = [];
+    let total: number | undefined;
+    try {
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const response = await this.client.get(endpoint, {
+          ...config,
+          params: { ...config?.params, page, size: PAGE_SIZE },
+        });
+        const batch = this.handleResponse<T[]>(response).data ?? [];
+        items.push(...batch);
+        const header = Number(response.headers?.['x-total-count']);
+        total = Number.isFinite(header) ? header : total;
+        // A short page is the last one; the total (when sent) also ends the walk when the last page is exactly full
+        if (batch.length < PAGE_SIZE || (total !== undefined && items.length >= total)) break;
+      }
+      return { success: true, data: items, meta: { total: total ?? items.length } };
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Generic GET request

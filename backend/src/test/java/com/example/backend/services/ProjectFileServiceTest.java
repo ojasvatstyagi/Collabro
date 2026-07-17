@@ -64,6 +64,8 @@ class ProjectFileServiceTest {
         file.setUploadedBy(uploader);
     }
 
+    private static final org.springframework.data.domain.Pageable PAGE = org.springframework.data.domain.PageRequest.of(0, 20);
+
     // ---- upload / list ----
 
     @Test
@@ -83,16 +85,16 @@ class ProjectFileServiceTest {
         when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
         when(profileService.getCurrentUserProfile()).thenReturn(outsider);
 
-        assertThrows(ForbiddenException.class, () -> projectFileService.getProjectFiles(project.getId()));
+        assertThrows(ForbiddenException.class, () -> projectFileService.getProjectFiles(project.getId(), PAGE));
     }
 
     @Test
     void getProjectFiles_AsTeamMember_ReturnsFiles() {
         when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
         when(profileService.getCurrentUserProfile()).thenReturn(otherMember);
-        when(projectFileRepository.findByProjectIdOrderByCreatedAtDesc(project.getId())).thenReturn(List.of());
+        when(projectFileRepository.findByProjectId(project.getId(), PAGE)).thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(file), PAGE, 1));
 
-        assertTrue(projectFileService.getProjectFiles(project.getId()).isEmpty());
+        assertEquals(1, projectFileService.getProjectFiles(project.getId(), PAGE).getContent().size());
     }
 
     // ---- download ----

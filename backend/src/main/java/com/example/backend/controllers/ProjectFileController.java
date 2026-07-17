@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import com.example.backend.utils.ListPaging;
 import com.example.backend.dto.ProjectFileDto;
 import com.example.backend.models.ProjectFile;
 import com.example.backend.services.ProjectFileService;
@@ -33,8 +34,10 @@ public class ProjectFileController {
 
     @GetMapping("/projects/{projectId}/files")
     @Operation(summary = "Get project files", description = "Retrieve all files for a project")
-    public ResponseEntity<List<ProjectFileDto>> getProjectFiles(@PathVariable UUID projectId) {
-        return ResponseEntity.ok(projectFileService.getProjectFiles(projectId));
+    public ResponseEntity<List<ProjectFileDto>> getProjectFiles(@PathVariable UUID projectId,
+            @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size) {
+        return ListPaging.respond(projectFileService.getProjectFiles(projectId,
+                ListPaging.of(page, size, ListPaging.newestFirst("createdAt"))));
     }
 
     @DeleteMapping("/project-files/{fileId}")

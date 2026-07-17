@@ -11,6 +11,7 @@ import java.util.UUID;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID> {
     List<Task> findByProjectId(UUID projectId);
+    org.springframework.data.domain.Page<Task> findByProjectId(UUID projectId, org.springframework.data.domain.Pageable pageable);
     List<Task> findByProjectIdAndAssignedToId(UUID projectId, UUID profileId);
     List<Task> findByAssignedToIdAndStatus(UUID profileId, TaskStatus status);
 }

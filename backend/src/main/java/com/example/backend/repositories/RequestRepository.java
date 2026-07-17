@@ -4,6 +4,8 @@ import com.example.backend.enums.RequestStatus;
 import com.example.backend.models.CollaborationRequest;
 import com.example.backend.models.Profile;
 import com.example.backend.models.Project;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -38,6 +40,24 @@ public interface RequestRepository extends JpaRepository<CollaborationRequest, L
             "project", "project.createdBy", "project.createdBy.user" })
     List<CollaborationRequest> findByProjectOwnerAndStatus(@Param("owner") Profile owner, @Param("status") RequestStatus status);
     
+    // Paged variants for the list endpoints. The graph only follows to-one paths: fetching a collection (skills) in a
+    // paged query makes Hibernate page in memory. The skills are loaded in batches instead (@BatchSize on Profile.skills).
+    @EntityGraph(attributePaths = { "requester", "requester.user", "project", "project.createdBy", "project.createdBy.user" })
+    Page<CollaborationRequest> findByRequester(Profile requester, Pageable pageable);
+
+    @EntityGraph(attributePaths = { "requester", "requester.user", "project", "project.createdBy", "project.createdBy.user" })
+    Page<CollaborationRequest> findByRequesterAndStatus(Profile requester, RequestStatus status, Pageable pageable);
+
+    @Query(value = "SELECT r FROM CollaborationRequest r WHERE r.project.createdBy = :owner",
+            countQuery = "SELECT COUNT(r) FROM CollaborationRequest r WHERE r.project.createdBy = :owner")
+    @EntityGraph(attributePaths = { "requester", "requester.user", "project", "project.createdBy", "project.createdBy.user" })
+    Page<CollaborationRequest> findByProjectOwner(@Param("owner") Profile owner, Pageable pageable);
+
+    @Query(value = "SELECT r FROM CollaborationRequest r WHERE r.project.createdBy = :owner AND r.status = :status",
+            countQuery = "SELECT COUNT(r) FROM CollaborationRequest r WHERE r.project.createdBy = :owner AND r.status = :status")
+    @EntityGraph(attributePaths = { "requester", "requester.user", "project", "project.createdBy", "project.createdBy.user" })
+    Page<CollaborationRequest> findByProjectOwnerAndStatus(@Param("owner") Profile owner, @Param("status") RequestStatus status, Pageable pageable);
+
     // Count requests by status for a requester
     long countByRequesterAndStatus(Profile requester, RequestStatus status);
 
