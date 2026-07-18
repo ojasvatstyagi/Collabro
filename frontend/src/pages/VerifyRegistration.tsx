@@ -170,7 +170,7 @@ export default function VerifyRegistration() {
                                         : "Resend code"}
                             </button>
                             <p>
-                                No code? If you already have an account, try{" "}
+                                Registrations that are not verified within 7 days are removed. No code? If you already have an account, try{" "}
                                 <Link to="/login" className="text-brand-primary hover:underline">logging in</Link> or{" "}
                                 <Link to="/forgot-password" className="text-brand-primary hover:underline">resetting your password</Link>.
                             </p>

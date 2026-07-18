@@ -41,6 +41,7 @@ purpose, see section 4.
 | Avatars returned as internal paths (chat, files, tasks, requests) | **Fixed** | `ChatServiceTest`, e2e §5 |
 | No brute-force protection on login | **Fixed** (2026-11-23): sliding-window limits per username+address, per username and per address; `429` + `Retry-After`; the right password is refused while locked. In memory, see section 5 for the limits. | `LoginThrottleTest`, `AuthControllerTest`, e2e §11 |
 | User enumeration at registration (duplicate e-mail message), plus account pre-hijacking and no way to resend a code | **Fixed** (2026-11-23): a known address is answered like a new one; a pending registration's credentials are replaced by the latest registrant; `resend-registration-otp`; password always hashed and mail async so timing is level. Usernames stay visible on purpose (they are public). | `AuthControllerTest`, `PasswordServiceTest`, `EmailServiceTest`, `auth.test.ts`, e2e §12 |
+| Never-verified registrations were kept forever (each held its username and e-mail, so a script could squat names) | **Fixed** (2026-11-23): a scheduled job really deletes them after 7 days (configurable), plus long-expired one-time codes. New column `users.created_at` (Flyway V2, existing rows backfilled with the migration time). | `AccountCleanupIntegrationTest`, `AccountCleanupJobTest`, `AccountCleanupSchedulingTest`, e2e §14 |
 
 ### Medium and low
 
@@ -123,7 +124,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    ```
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
-3. **Unverified accounts are never cleaned up**: each holds its username (and e-mail) forever, so a script can squat names. A scheduled purge of accounts unverified after N days would fix it; and e-mail send failures are only in the log.
+3. **A user who deletes their own account cannot register the same username or e-mail again.** The deletion is a soft delete, the app then treats the name as free, but the unique column still holds it, so signing up fails with a `409` (checked with a throwaway test, 2026-11-23). Fix idea: on deletion rename the row (`deleted-<id>`, anonymised e-mail) so the original can be reused while projects and messages keep resolving.
 4. **History and Achievements read everything on every request**: they are computed from full scans of the user's projects, requests and tasks (`HistoryService`, `AchievementService`), and only the *output* of history is paged. Fine for normal accounts; the cost grows with the account's activity.  Also unpaged: `matching/similar` and `/complementary` (limited by their queries), the project team (bounded by team size) and a user's own skills/social links.
 5. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
    backend accepts the owner).
@@ -139,9 +140,9 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 334 tests
+cd backend  && mvn test                          # 347 tests
 cd frontend && npm test && npm run lint && npm run build
-cd e2e      && npm install && npm test           # ~190 checks, ~2 min, needs Chrome and free ports 8080/5173/2525
+cd e2e      && npm install && npm test           # ~200 checks, ~3.5 min, needs Chrome and free ports 8080/5173/2525
 ```
 
 When fixing a bug, add a test that fails on the old code (revert the fix, watch it fail, restore). Several of the

@@ -21,6 +21,11 @@ import java.util.UUID;
 public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpecificationExecutor<Profile> {
   Optional<Profile> findByUser(User user);
 
+  /** Real DELETE of a profile row, for accounts removed before they ever did anything (see AccountCleanupService). */
+  @org.springframework.data.jpa.repository.Modifying
+  @org.springframework.data.jpa.repository.Query(value = "DELETE FROM profiles WHERE user_id = :userId", nativeQuery = true)
+  int hardDeleteByUserId(@org.springframework.data.repository.query.Param("userId") java.util.UUID userId);
+
   // Find users with similar skills (minimum 3 matches)
   @Query("""
           SELECT p FROM Profile p

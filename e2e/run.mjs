@@ -91,6 +91,8 @@ async function main() {
       DB_USERNAME: process.env.E2E_DB_USERNAME || 'sa', DB_PASSWORD: process.env.E2E_DB_PASSWORD ?? '',
       MAIL_HOST: '127.0.0.1', MAIL_PORT: String(SMTP_PORT), MAIL_USERNAME: 'e2e', MAIL_PASSWORD: 'e2e',
       JWT_SECRET: 'e2e-only-secret-key-for-local-testing-0123456789abcdef', UPLOAD_DIR: uploadsDir,
+      // the cleanup of never-verified registrations: 30 s instead of 7 days, checked every 5 s (section 14)
+      APP_CLEANUP_UNVERIFIED_AFTER: '30s', APP_CLEANUP_CRON: '*/5 * * * * *',
     },
   });
 

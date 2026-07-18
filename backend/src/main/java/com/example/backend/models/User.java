@@ -49,4 +49,10 @@ public class User {
 
     @Column(name = "deleted_at")
     private java.time.LocalDateTime deletedAt;
+
+    // When the account was registered; what the cleanup of never-verified accounts measures their age from.
+    // Updatable on purpose: registering again over a pending registration starts its clock again.
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at")
+    private java.time.LocalDateTime createdAt;
 }

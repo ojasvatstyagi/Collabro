@@ -18,8 +18,10 @@ npm test           # starts everything, runs ~150 checks, stops everything. Exit
 - Ports **8080** (backend; the Vite dev server proxies `/api` there), **5173** (frontend) and **2525** (mail sink,
   override with `E2E_SMTP_PORT`) free. The runner refuses to start if one is taken.
 
-It takes about two minutes. One check waits 11.5 s on purpose: refresh-token replay is only rejected after the
-10-second grace window for concurrent tabs.
+It takes about three and a half minutes. Two steps wait on purpose: 11.5 s because refresh-token replay is only
+rejected after the 10-second grace window for concurrent tabs, and about 35 s in section 14 for the scheduled cleanup of
+never-verified registrations (the runner starts the backend with `APP_CLEANUP_UNVERIFIED_AFTER=30s` and a 5-second
+schedule; production defaults are 7 days and once a day).
 
 ## Running against MySQL instead of H2
 
@@ -53,6 +55,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 | 11 | Login throttling | 5 wrong passwords then 429 with Retry-After, the right password is refused too, the form says so, other accounts unaffected, unknown usernames throttled identically |
 | 12 | Registration enumeration | a registered address is answered like a new one (same body, no mail, no account), a pending registration cannot be parked by someone else, resend answers the same for every address, the verify page's resend button |
 | 13 | Paged lists | 105 projects: the 200-row ceiling, page/size clamping, newest first, no row twice, totals in headers (exposed through CORS), and the Projects page showing all of them by walking two pages |
+| 14 | Cleanup | with a 30 s limit and a 5 s schedule: a never-verified registration is deleted for real and its username freed, a verified account survives |
 
 ## Files
 

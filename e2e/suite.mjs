@@ -129,6 +129,7 @@ export async function runSuite(cfg) {
     hank: { username: 'hank_e2e', email: 'hank@e2e.test', password: 'Passw0rd!eight' },
     ivy: { username: 'ivy_e2e', email: 'ivy@e2e.test', password: 'Passw0rd!nine' },
     judy: { username: 'judy_e2e', email: 'judy@e2e.test', password: 'Passw0rd!ten' },
+    kim: { username: 'kim_e2e', email: 'kim@e2e.test', password: 'Passw0rd!eleven' },
   };
 
   const browser = await puppeteer.launch({ executablePath: cfg.chromePath, headless: 'new', args: ['--no-sandbox'] });
@@ -748,6 +749,26 @@ export async function runSuite(cfg) {
       check('and the oldest, which was on the second page', await waitText(p, 'Paging Project 000', 3000));
       check('the browser asked for pages 0 and 1 of 100', urls.some((u) => /page=0/.test(u) && /size=100/.test(u)) && urls.some((u) => /page=1/.test(u)), urls.join(' '));
       await c.close();
+    });
+
+    // ---------------------------------------------------------------- 14
+    section = '14 Unverified registrations are cleaned up';
+    await step('a registration nobody verifies is removed, its name freed; verified accounts stay', async () => {
+      // the backend runs with a 30 s limit and a 5 s schedule here (e2e/run.mjs); production defaults are 7 days, daily
+      const first = await registerReq(users.kim);
+      check('the registration is accepted', first.status === 201, String(first.status));
+      const squatted = await registerReq({ username: users.kim.username, email: 'someone-else@e2e.test', password: 'Passw0rd!x' });
+      check('while it is pending, its username is taken', squatted.status === 400, String(squatted.status));
+      const started = Date.now();
+      let freed = false;
+      while (Date.now() - started < 70000) {
+        await sleep(2500);
+        const again = await registerReq({ username: users.kim.username, email: 'someone-else@e2e.test', password: 'Passw0rd!x' });
+        if (again.status === 201) { freed = true; break; }
+      }
+      check('after the limit the username is free again (the pending account was really deleted)', freed, `${Math.round((Date.now() - started) / 1000)}s`);
+      check('...within the 30 s limit plus the 5 s schedule and a little slack', Date.now() - started < 50000, `${Math.round((Date.now() - started) / 1000)}s`);
+      check('an account that did verify, far older than the limit, still signs in', (await loginApi(users.alice)).status === 200);
     });
   } finally {
     await browser.close();

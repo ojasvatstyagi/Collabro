@@ -90,6 +90,7 @@ public class AuthController {
                 // address's owner either way.
                 existing.setUsername(registerRequest.getUsername());
                 existing.setPassword(encodedPassword);
+                existing.setCreatedAt(java.time.LocalDateTime.now()); // the pending registration starts again
                 userService.updateUser(existing);
                 passwordService.generateEmailVerificationOtp(Objects.requireNonNull(registerRequest.getEmail()));
             }

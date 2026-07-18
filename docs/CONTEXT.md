@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 334 tests, frontend 40 tests, e2e 192 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 347 tests, frontend 40 tests, e2e 197 checks, all passing).
 
 ## 1. What it is
 
@@ -100,6 +100,7 @@ Rules that matter:
 | `PasswordService` | One-time codes: 6 digits, 10 min life, 5 wrong guesses burn the code, 60 s resend cooldown (measured from the newest code **even if burned**), constant-time compare, purpose-bound, reset ends sessions. |
 | `LoginThrottle` | Failed-login limiter, in memory, sliding 15 min window: 5 per username+address, 20 per username, 30 per address. Checked **before** the password, so a locked client is refused even with the right one (no oracle); unknown usernames count the same; refused requests are not counted (no extending the lock); success clears only the username+address pair. Over the limit: `429` + `Retry-After` (`TooManyRequestsException`). |
 | `RefreshTokenService` | Single-use refresh tokens: stored as SHA-256, rotated on every use, replay of a rotated token ends the session; 10 s grace for concurrent tabs. |
+| `AccountCleanupJob` / `AccountCleanupService` | Scheduled (`@EnableScheduling` in `AppConfig`, daily 03:30). **Really deletes** (native SQL; `userRepository.delete` is only a soft delete because of `@SQLDelete`) accounts that never verified their e-mail within `app.cleanup.unverified-after` (default `7d`), with their empty profile and codes, which frees the username/e-mail; and one-time codes expired for more than `app.cleanup.codes-after` (`1d`). Verified accounts are never touched; the user row is deleted first and only `WHERE is_verified = false`, so someone who verifies a moment before the delete keeps everything. Age comes from `users.created_at` (migration V2; rows without one are left alone); registering again over a pending registration restarts the clock. Other knobs: `app.cleanup.cron`, `app.cleanup.enabled`. The e2e run uses `30s` and every 5 s. |
 | `AccountService` | Change password (400 on wrong password, not 401, see below), delete account (password re-check, soft delete). |
 | `EmailService` | HTML mail via `JavaMailSender`. The public senders are `@Async` (`@EnableAsync` in `AppConfig`), so SMTP latency never shows in a response time; failures are logged, never thrown. Tests that expect a mail must allow for it to arrive a moment later. |
 
@@ -220,7 +221,7 @@ Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `
 |---|---|---|
 | Backend | `cd backend && mvn test` (needs JDK 21) | unit tests with Mockito, `@DataJpaTest` against H2 (specifications, soft delete, query counts), `@SpringBootTest` security-rule tests |
 | Frontend | `cd frontend && npm test`, `npm run lint`, `npm run build` | Vitest: API client refresh logic, API modules, helpers |
-| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~190 checks, ~2 min |
+| End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~200 checks, ~3.5 min |
 
 Gotchas that cost time:
 

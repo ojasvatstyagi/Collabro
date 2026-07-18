@@ -173,10 +173,14 @@ class AuthControllerTest {
     @Test
     void register_WithAnAddressWhosePendingRegistrationIsUnverified_ReplacesTheCredentialsAndSendsANewCode() throws Exception {
         testUser.setVerified(false);
+        testUser.setCreatedAt(java.time.LocalDateTime.now().minusDays(6)); // about to be cleaned up
         when(userService.findUserByEmail("new@example.com")).thenReturn(Optional.of(testUser));
         when(passwordEncoder.encode("password")).thenReturn("newHash");
 
         String body = register();
+
+        assertTrue(testUser.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusMinutes(1)),
+                "registering again must restart the clock the cleanup measures");
 
         // Otherwise someone could park an address with their own password and have it activated by the real owner
         assertEquals("newuser", testUser.getUsername());
