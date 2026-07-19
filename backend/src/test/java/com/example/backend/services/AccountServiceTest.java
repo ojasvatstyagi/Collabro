@@ -32,6 +32,8 @@ class AccountServiceTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
     @Mock
+    private com.example.backend.repositories.PasswordTokenRepository passwordTokenRepository;
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
@@ -42,6 +44,8 @@ class AccountServiceTest {
     @BeforeEach
     void setUp() {
         user = new User();
+        user.setId(java.util.UUID.fromString("11111111-2222-3333-4444-555555555555"));
+        user.setEmail("alice@example.com");
         user.setUsername("alice");
         user.setPassword("stored-hash");
     }
@@ -108,5 +112,28 @@ class AccountServiceTest {
         assertNull(user.getDeletedAt());
         verify(refreshTokenRepository, never()).deleteByUser(any(User.class));
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void deleteAccount_ReleasesTheUsernameAndEmailByRenamingTheRowToValuesDerivedFromItsId() {
+        when(passwordEncoder.matches("pass", "stored-hash")).thenReturn(true);
+
+        accountService.deleteAccount(user, "pass");
+
+        assertEquals("deleted_11111111222233334444555555555555", user.getUsername());
+        assertEquals("deleted_11111111222233334444555555555555@deleted.invalid", user.getEmail());
+        verify(passwordTokenRepository).deleteAllForEmail("alice@example.com");
+    }
+
+    @Test
+    void deleteAccount_WithAWrongPassword_RenamesAndDeletesNothing() {
+        when(passwordEncoder.matches("guess", "stored-hash")).thenReturn(false);
+
+        assertThrows(BadRequestException.class, () -> accountService.deleteAccount(user, "guess"));
+
+        assertEquals("alice", user.getUsername());
+        assertEquals("alice@example.com", user.getEmail());
+        assertNull(user.getDeletedAt());
+        verify(passwordTokenRepository, never()).deleteAllForEmail(any());
     }
 }

@@ -41,6 +41,8 @@ class AccountDeletionIntegrationTest {
     private ProjectRepository projectRepository;
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+    @Autowired
+    private com.example.backend.repositories.PasswordTokenRepository passwordTokenRepository;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private AccountService accountService;
@@ -50,7 +52,7 @@ class AccountDeletionIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountService(userRepository, profileRepository, refreshTokenRepository, encoder);
+        accountService = new AccountService(userRepository, profileRepository, refreshTokenRepository, passwordTokenRepository, encoder);
 
         alice = persistUser("alice");
         aliceProfile = persistProfile(alice);
@@ -103,6 +105,54 @@ class AccountDeletionIntegrationTest {
         assertTrue(userRepository.findByUsername("alice").isEmpty());
         assertTrue(userRepository.findByEmail("alice@example.com").isEmpty());
         assertTrue(userRepository.findByUsername("bob").isPresent());
+    }
+
+    @Test
+    void aDeletedUsersUsernameAndEmail_CanBeRegisteredAgain() {
+        deleteAlice();
+
+        // Before the rename the unique columns still held both, and this insert failed with a constraint violation
+        User again = persistUser("alice");
+        em.flush();
+        em.clear();
+
+        assertEquals(again.getId(), userRepository.findByUsername("alice").orElseThrow().getId());
+        assertEquals(again.getId(), userRepository.findByEmail("alice@example.com").orElseThrow().getId());
+    }
+
+    @Test
+    void theSameNameCanBeUsedAndDeletedOverAndOver() {
+        deleteAlice();
+        User second = persistUser("alice");
+        em.flush();
+        em.clear();
+
+        accountService.deleteAccount(userRepository.findById(second.getId()).orElseThrow(), "secret-pass");
+        em.flush();
+        em.clear();
+
+        User third = persistUser("alice");
+        em.flush(); // two earlier lives of "alice" are in the table, each under a name of its own
+        em.clear();
+        assertEquals(third.getId(), userRepository.findByUsername("alice").orElseThrow().getId());
+    }
+
+    @Test
+    void deletingAnAccount_RemovesTheOneTimeCodesOfItsAddress() {
+        com.example.backend.models.PasswordToken code = new com.example.backend.models.PasswordToken();
+        code.setEmail("alice@example.com");
+        code.setOtp("123456");
+        code.setTokenType(com.example.backend.enums.TokenType.PASSWORD_RESET);
+        code.setCreatedAt(LocalDateTime.now());
+        code.setExpiryTime(LocalDateTime.now().plusMinutes(10));
+        passwordTokenRepository.save(code);
+        em.flush();
+        em.clear();
+
+        deleteAlice();
+
+        assertEquals(0, passwordTokenRepository.count(),
+                "a code left behind would make a fresh registration of this address wait out the resend cooldown");
     }
 
     @Test
