@@ -770,6 +770,32 @@ export async function runSuite(cfg) {
       check('...within the 30 s limit plus the 5 s schedule and a little slack', Date.now() - started < 50000, `${Math.round((Date.now() - started) / 1000)}s`);
       check('an account that did verify, far older than the limit, still signs in', (await loginApi(users.alice)).status === 200);
     });
+
+    // ---------------------------------------------------------------- 15
+    section = '15 A deleted account releases its username and address';
+    await step('the same username and e-mail can register again after the account was deleted (bob, section 7)', async () => {
+      const again = { ...users.bob, password: 'Passw0rd!again' };
+      // Before the fix this was a 409: the deleted row still held the unique username and address
+      await registerApi(again);
+      const login = await loginApi(again);
+      check('the new account verifies and signs in under the old name', login.status === 200 && login.user?.username === users.bob.username, String(login.status));
+      check('the deleted account is not resurrected: the old password does not work', (await loginApi(users.bob)).status === 401);
+      check('it is a fresh account with none of the old data (no teams, no requests)', (await Promise.all([
+        api('GET', '/teams/me', { token: login.token }),
+        api('GET', '/requests/sent', { token: login.token }),
+        api('GET', '/projects/me', { token: login.token }),
+      ])).every((r) => r.status === 200 && r.headers.get('x-total-count') === '0'));
+      const dup = await registerReq({ username: users.bob.username, email: 'unrelated@e2e.test', password: 'Passw0rd!x' });
+      check('and now the name is taken again by the new account', dup.status === 400, String(dup.status));
+    });
+    await step('it can be deleted and registered once more (the placeholder names never collide)', async () => {
+      const second = { ...users.bob, password: 'Passw0rd!again' };
+      const login = await loginApi(second);
+      const del = await api('DELETE', '/profile/me', { token: login.token, json: { password: second.password } });
+      check('the second account can be deleted', del.status === 200 || del.status === 204, String(del.status));
+      await registerApi({ ...users.bob, password: 'Passw0rd!third' });
+      check('a third registration of the same name works', (await loginApi({ ...users.bob, password: 'Passw0rd!third' })).status === 200);
+    });
   } finally {
     await browser.close();
   }

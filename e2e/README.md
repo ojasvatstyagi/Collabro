@@ -56,6 +56,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 | 12 | Registration enumeration | a registered address is answered like a new one (same body, no mail, no account), a pending registration cannot be parked by someone else, resend answers the same for every address, the verify page's resend button |
 | 13 | Paged lists | 105 projects: the 200-row ceiling, page/size clamping, newest first, no row twice, totals in headers (exposed through CORS), and the Projects page showing all of them by walking two pages |
 | 14 | Cleanup | with a 30 s limit and a 5 s schedule: a never-verified registration is deleted for real and its username freed, a verified account survives |
+| 15 | Deleted accounts | a deleted account's username and e-mail can register again (and again), as a fresh empty account |
 
 ## Files
 
