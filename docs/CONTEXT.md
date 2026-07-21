@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 347 tests, frontend 40 tests, e2e 197 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 352 tests, frontend 40 tests, e2e 203 checks, all passing).
 
 ## 1. What it is
 
@@ -101,7 +101,7 @@ Rules that matter:
 | `LoginThrottle` | Failed-login limiter, in memory, sliding 15 min window: 5 per username+address, 20 per username, 30 per address. Checked **before** the password, so a locked client is refused even with the right one (no oracle); unknown usernames count the same; refused requests are not counted (no extending the lock); success clears only the username+address pair. Over the limit: `429` + `Retry-After` (`TooManyRequestsException`). |
 | `RefreshTokenService` | Single-use refresh tokens: stored as SHA-256, rotated on every use, replay of a rotated token ends the session; 10 s grace for concurrent tabs. |
 | `AccountCleanupJob` / `AccountCleanupService` | Scheduled (`@EnableScheduling` in `AppConfig`, daily 03:30). **Really deletes** (native SQL; `userRepository.delete` is only a soft delete because of `@SQLDelete`) accounts that never verified their e-mail within `app.cleanup.unverified-after` (default `7d`), with their empty profile and codes, which frees the username/e-mail; and one-time codes expired for more than `app.cleanup.codes-after` (`1d`). Verified accounts are never touched; the user row is deleted first and only `WHERE is_verified = false`, so someone who verifies a moment before the delete keeps everything. Age comes from `users.created_at` (migration V2; rows without one are left alone); registering again over a pending registration restarts the clock. Other knobs: `app.cleanup.cron`, `app.cleanup.enabled`. The e2e run uses `30s` and every 5 s. |
-| `AccountService` | Change password (400 on wrong password, not 401, see below), delete account (password re-check, soft delete). |
+| `AccountService` | Change password (400 on wrong password, not 401, see below), delete account (password re-check, soft delete). Deleting also **renames** the soft-deleted row to `deleted_<id without dashes>` / `…@deleted.invalid` (and drops its one-time codes), because the unique username/e-mail columns would otherwise stay locked forever; V3 does the same for accounts deleted earlier. |
 | `EmailService` | HTML mail via `JavaMailSender`. The public senders are `@Async` (`@EnableAsync` in `AppConfig`), so SMTP latency never shows in a response time; failures are logged, never thrown. Tests that expect a mail must allow for it to arrive a moment later. |
 
 ## 5. API surface

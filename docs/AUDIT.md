@@ -42,6 +42,7 @@ purpose, see section 4.
 | No brute-force protection on login | **Fixed** (2026-11-23): sliding-window limits per username+address, per username and per address; `429` + `Retry-After`; the right password is refused while locked. In memory, see section 5 for the limits. | `LoginThrottleTest`, `AuthControllerTest`, e2e §11 |
 | User enumeration at registration (duplicate e-mail message), plus account pre-hijacking and no way to resend a code | **Fixed** (2026-11-23): a known address is answered like a new one; a pending registration's credentials are replaced by the latest registrant; `resend-registration-otp`; password always hashed and mail async so timing is level. Usernames stay visible on purpose (they are public). | `AuthControllerTest`, `PasswordServiceTest`, `EmailServiceTest`, `auth.test.ts`, e2e §12 |
 | Never-verified registrations were kept forever (each held its username and e-mail, so a script could squat names) | **Fixed** (2026-11-23): a scheduled job really deletes them after 7 days (configurable), plus long-expired one-time codes. New column `users.created_at` (Flyway V2, existing rows backfilled with the migration time). | `AccountCleanupIntegrationTest`, `AccountCleanupJobTest`, `AccountCleanupSchedulingTest`, e2e §14 |
+| A user who deleted their own account could never register the same username or e-mail again (409: the soft-deleted row kept the unique columns) | **Fixed** (2026-11-23): deletion renames the row to an id-derived placeholder and drops its codes; Flyway V3 does the same for accounts deleted earlier. Verified on MySQL against a database holding already-locked names. | `AccountServiceTest`, `AccountDeletionIntegrationTest`, e2e §15 |
 
 ### Medium and low
 
@@ -86,7 +87,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 - **Teams are derived, not an entity of their own**: a team is a project's member group. No invite codes or roles.
 - **History and Achievements are computed on read.** Nothing is stored, so they cannot disagree with the data, but
   there is also no "date earned" and no history of deleted things. A persisted log would only record from then on.
-- **Account deletion is a soft delete** (user and profile `deletedAt`), never `userRepository.delete`.
+- **Account deletion is a soft delete** (user and profile `deletedAt`), never `userRepository.delete`. The row is renamed to a placeholder derived from its id so the username and e-mail can be registered again (the columns are unique). Only never-verified accounts are really deleted (AccountCleanupService).
 - **`PUT /projects/{id}` is a full replace**, protected by validation (blank title and team size < 1 are rejected).
   Partial update was not added because `teamSize` and the flags are primitives.
 - **Wrong password on an authenticated endpoint is 400**, because the frontend signs the user out on 401.
@@ -124,7 +125,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    ```
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
-3. **A user who deletes their own account cannot register the same username or e-mail again.** The deletion is a soft delete, the app then treats the name as free, but the unique column still holds it, so signing up fails with a `409` (checked with a throwaway test, 2026-11-23). Fix idea: on deletion rename the row (`deleted-<id>`, anonymised e-mail) so the original can be reused while projects and messages keep resolving.
+3. **A deleted account's profile keeps its personal data** (name, phone, bio, education, location, picture): `deleteAccount` only sets `deletedAt` on the profile, and nothing erases the fields. Public views already hide deleted profiles, but if "delete my data" is a requirement the fields need blanking (the row must stay: projects, messages and tasks point at it).
 4. **History and Achievements read everything on every request**: they are computed from full scans of the user's projects, requests and tasks (`HistoryService`, `AchievementService`), and only the *output* of history is paged. Fine for normal accounts; the cost grows with the account's activity.  Also unpaged: `matching/similar` and `/complementary` (limited by their queries), the project team (bounded by team size) and a user's own skills/social links.
 5. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
    backend accepts the owner).
@@ -140,7 +141,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 347 tests
+cd backend  && mvn test                          # 352 tests
 cd frontend && npm test && npm run lint && npm run build
 cd e2e      && npm install && npm test           # ~200 checks, ~3.5 min, needs Chrome and free ports 8080/5173/2525
 ```
