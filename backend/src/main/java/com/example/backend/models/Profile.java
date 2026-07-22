@@ -130,6 +130,30 @@ public class Profile {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    public static final String DELETED_FIRSTNAME = "Deleted";
+    public static final String DELETED_LASTNAME = "User";
+
+    /**
+     * Blanks everything that describes the person. The row itself stays (projects, messages and tasks point at it), the
+     * names are NOT NULL columns so they get a placeholder, and the picture is left to the caller because it is a file
+     * on disk.
+     */
+    public void erasePersonalData() {
+        firstname = DELETED_FIRSTNAME;
+        lastname = DELETED_LASTNAME;
+        bio = null;
+        education = null;
+        location = null;
+        phone = null;
+        preferredTeamSize = null;
+        openForTeamInvites = false;
+        isProfileComplete = false;
+        completionPercentage = 0;
+        if (projectInterests != null) projectInterests.clear();
+        if (socialLinks != null) socialLinks.clear();
+        if (skills != null) skills.clear();
+    }
+
     /** The owner's username, or a placeholder once the account has been deleted (the user row is soft-deleted). */
     public String displayUsername() {
         return user != null ? user.getUsername() : "deleted user";

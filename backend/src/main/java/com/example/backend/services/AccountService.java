@@ -6,7 +6,9 @@ import com.example.backend.repositories.PasswordTokenRepository;
 import com.example.backend.repositories.ProfileRepository;
 import com.example.backend.repositories.RefreshTokenRepository;
 import com.example.backend.repositories.UserRepository;
+import com.example.backend.exceptions.StorageException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,12 +17,14 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AccountService {
 
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordTokenRepository passwordTokenRepository;
+    private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -47,6 +51,8 @@ public class AccountService {
      * The username and e-mail columns are unique and soft-deleted rows keep them, so the row is renamed to values
      * derived from its id: otherwise nobody (including the person who just left) could ever register that username or
      * address again, and the sign-up would fail with a 409. A deleted account is shown as "deleted user" anyway.
+     * The profile is stripped of everything personal (see {@link com.example.backend.models.Profile#erasePersonalData()}).
+     * What the person contributed to a project (messages, tasks, uploaded files) stays with the project.
      */
     @Transactional
     public void deleteAccount(User user, String password) {
@@ -59,6 +65,9 @@ public class AccountService {
         // Codes for the old address would otherwise make a new registration with it wait out the resend cooldown
         passwordTokenRepository.deleteAllForEmail(originalEmail);
         profileRepository.findByUser(user).ifPresent(profile -> {
+            // What the profile says about the person goes; the row stays because projects, messages and tasks point at it
+            profile.erasePersonalData();
+            removePicture(profile);
             profile.setDeletedAt(now);
             profileRepository.save(profile);
         });
@@ -66,6 +75,23 @@ public class AccountService {
         user.setUsername(deletedUsername(user));
         user.setEmail(deletedUsername(user) + "@" + DELETED_EMAIL_DOMAIN);
         userRepository.save(user);
+    }
+
+    /**
+     * Deletes the picture file. If that fails the path is kept on the profile so the daily cleanup
+     * (AccountCleanupService.purgeDeletedProfilePictures) retries it; the account is deleted either way.
+     */
+    private void removePicture(com.example.backend.models.Profile profile) {
+        String picture = profile.getProfilePictureUrl();
+        if (picture == null) {
+            return;
+        }
+        try {
+            fileStorageService.deleteFile(picture);
+            profile.setProfilePictureUrl(null);
+        } catch (StorageException e) {
+            log.atWarn().setCause(e).log("Could not delete the picture of a deleted account; the cleanup will retry");
+        }
     }
 
     /** What a deleted account is renamed to; the same value the V3 migration gives accounts deleted before it. */

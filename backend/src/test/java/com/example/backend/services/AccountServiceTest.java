@@ -34,6 +34,8 @@ class AccountServiceTest {
     @Mock
     private com.example.backend.repositories.PasswordTokenRepository passwordTokenRepository;
     @Mock
+    private com.example.backend.services.FileStorageService fileStorageService;
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
@@ -135,5 +137,78 @@ class AccountServiceTest {
         assertEquals("alice@example.com", user.getEmail());
         assertNull(user.getDeletedAt());
         verify(passwordTokenRepository, never()).deleteAllForEmail(any());
+    }
+
+    private Profile fullProfile() {
+        Profile profile = Profile.builder().user(user).firstname("Alice").lastname("Anderson").bio("I build things")
+                .education("MIT").location("Pune").phone("+91 99999 99999").preferredTeamSize("3-5")
+                .openForTeamInvites(true).profilePictureUrl("profile-pictures/alice.png").build();
+        profile.getProjectInterests().add("AI");
+        profile.getSocialLinks().add(new com.example.backend.models.SocialLink());
+        profile.getSkills().add(new com.example.backend.models.Skill());
+        return profile;
+    }
+
+    @Test
+    void deleteAccount_ErasesEverythingTheProfileSaysAboutThePerson_ButKeepsTheRow() {
+        Profile profile = fullProfile();
+        when(passwordEncoder.matches("pass", "stored-hash")).thenReturn(true);
+        when(profileRepository.findByUser(user)).thenReturn(Optional.of(profile));
+
+        accountService.deleteAccount(user, "pass");
+
+        assertEquals("Deleted", profile.getFirstname());
+        assertEquals("User", profile.getLastname());
+        assertNull(profile.getBio());
+        assertNull(profile.getEducation());
+        assertNull(profile.getLocation());
+        assertNull(profile.getPhone());
+        assertNull(profile.getPreferredTeamSize());
+        assertFalse(profile.isOpenForTeamInvites());
+        assertTrue(profile.getProjectInterests().isEmpty());
+        assertTrue(profile.getSocialLinks().isEmpty());
+        assertTrue(profile.getSkills().isEmpty());
+        assertNotNull(profile.getDeletedAt());
+        verify(profileRepository).save(profile);       // saved, not deleted: projects and messages point at it
+        verify(profileRepository, never()).delete(any(Profile.class));
+    }
+
+    @Test
+    void deleteAccount_DeletesThePictureFileAndForgetsItsPath() {
+        Profile profile = fullProfile();
+        when(passwordEncoder.matches("pass", "stored-hash")).thenReturn(true);
+        when(profileRepository.findByUser(user)).thenReturn(Optional.of(profile));
+
+        accountService.deleteAccount(user, "pass");
+
+        verify(fileStorageService).deleteFile("profile-pictures/alice.png");
+        assertNull(profile.getProfilePictureUrl());
+    }
+
+    @Test
+    void deleteAccount_StillDeletesWhenThePictureFileCannotBeRemoved_AndKeepsThePathForTheCleanupToRetry() {
+        Profile profile = fullProfile();
+        when(passwordEncoder.matches("pass", "stored-hash")).thenReturn(true);
+        when(profileRepository.findByUser(user)).thenReturn(Optional.of(profile));
+        org.mockito.Mockito.doThrow(new com.example.backend.exceptions.StorageException("disk", new RuntimeException()))
+                .when(fileStorageService).deleteFile("profile-pictures/alice.png");
+
+        accountService.deleteAccount(user, "pass");
+
+        assertNotNull(user.getDeletedAt());
+        assertNotNull(profile.getDeletedAt());
+        assertNull(profile.getBio());
+        assertEquals("profile-pictures/alice.png", profile.getProfilePictureUrl());
+    }
+
+    @Test
+    void deleteAccount_WithAWrongPassword_ErasesNothing() {
+        Profile profile = fullProfile();
+        when(passwordEncoder.matches("guess", "stored-hash")).thenReturn(false);
+
+        assertThrows(BadRequestException.class, () -> accountService.deleteAccount(user, "guess"));
+
+        assertEquals("I build things", profile.getBio());
+        verify(fileStorageService, never()).deleteFile(any());
     }
 }

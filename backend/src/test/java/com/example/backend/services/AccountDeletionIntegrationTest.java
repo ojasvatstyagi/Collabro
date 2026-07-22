@@ -45,6 +45,7 @@ class AccountDeletionIntegrationTest {
     private com.example.backend.repositories.PasswordTokenRepository passwordTokenRepository;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    private final FileStorageService fileStorageService = org.mockito.Mockito.mock(FileStorageService.class);
     private AccountService accountService;
     private User alice;
     private Profile aliceProfile;
@@ -52,7 +53,7 @@ class AccountDeletionIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountService(userRepository, profileRepository, refreshTokenRepository, passwordTokenRepository, encoder);
+        accountService = new AccountService(userRepository, profileRepository, refreshTokenRepository, passwordTokenRepository, fileStorageService, encoder);
 
         alice = persistUser("alice");
         aliceProfile = persistProfile(alice);
@@ -153,6 +154,69 @@ class AccountDeletionIntegrationTest {
 
         assertEquals(0, passwordTokenRepository.count(),
                 "a code left behind would make a fresh registration of this address wait out the resend cooldown");
+    }
+
+    private long count(String table) {
+        return ((Number) em.getEntityManager().createNativeQuery("select count(*) from " + table).getSingleResult()).longValue();
+    }
+
+    @Test
+    void deletingAnAccount_ErasesTheProfileDetailsAndTheRowsHangingOffIt_ButNotSomeoneElses() {
+        // alice and bob each have a skill, a social link, an interest and personal details
+        for (Profile profile : List.of(em.find(Profile.class, aliceProfile.getId()),
+                em.find(Profile.class, em.getEntityManager()
+                        .createQuery("select p.id from Profile p where p.firstname = 'bob'", java.util.UUID.class).getSingleResult()))) {
+            com.example.backend.models.SkillDefinition definition = em.persist(com.example.backend.models.SkillDefinition.builder()
+                    .name("skill-" + profile.getFirstname()).build());
+            em.persist(com.example.backend.models.Skill.builder().definition(definition)
+                    .proficiency(com.example.backend.enums.Proficiency.ADVANCED).profile(profile).build());
+            com.example.backend.models.SocialLink link = new com.example.backend.models.SocialLink();
+            link.setPlatform(com.example.backend.enums.SocialPlatform.values()[0]);
+            link.setUrl("https://example.com/" + profile.getFirstname());
+            link.setProfile(profile);
+            em.persist(link);
+            profile.setBio("bio of " + profile.getFirstname());
+            profile.setPhone("12345");
+            profile.setLocation("Somewhere");
+            profile.getProjectInterests().add("AI");
+        }
+        em.flush();
+        em.clear();
+        assertEquals(2, count("skills"));
+        assertEquals(2, count("social_links"));
+        assertEquals(2, count("profile_project_interests"));
+
+        deleteAlice();
+
+        Profile erased = profileRepository.findById(aliceProfile.getId()).orElseThrow();
+        assertEquals("Deleted", erased.getFirstname());
+        assertEquals("User", erased.getLastname());
+        assertNull(erased.getBio());
+        assertNull(erased.getPhone());
+        assertNull(erased.getLocation());
+        assertNotNull(erased.getDeletedAt());
+        assertEquals(1, count("skills"), "only alice's skill goes");
+        assertEquals(1, count("social_links"));
+        assertEquals(1, count("profile_project_interests"));
+        Profile bob = profileRepository.findAll().stream().filter(p -> "bob".equals(p.getFirstname())).findFirst().orElseThrow();
+        assertEquals("bio of bob", bob.getBio());
+        assertEquals("12345", bob.getPhone());
+        assertEquals(1, bob.getSkills().size());
+        // and what she contributed to the project is still there
+        assertEquals(1L, em.getEntityManager().createQuery("select count(m) from ChatMessage m", Long.class).getSingleResult());
+    }
+
+    @Test
+    void deletingAnAccount_DeletesItsPictureFile() {
+        Profile profile = em.find(Profile.class, aliceProfile.getId());
+        profile.setProfilePictureUrl("profile-pictures/alice.png");
+        em.flush();
+        em.clear();
+
+        deleteAlice();
+
+        org.mockito.Mockito.verify(fileStorageService).deleteFile("profile-pictures/alice.png");
+        assertNull(profileRepository.findById(aliceProfile.getId()).orElseThrow().getProfilePictureUrl());
     }
 
     @Test
