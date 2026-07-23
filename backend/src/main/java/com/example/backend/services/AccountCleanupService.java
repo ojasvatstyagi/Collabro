@@ -1,5 +1,7 @@
 package com.example.backend.services;
 
+import com.example.backend.exceptions.StorageException;
+import com.example.backend.models.Profile;
 import com.example.backend.models.User;
 import com.example.backend.repositories.PasswordTokenRepository;
 import com.example.backend.repositories.ProfileRepository;
@@ -31,6 +33,7 @@ public class AccountCleanupService {
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final PasswordTokenRepository passwordTokenRepository;
+    private final FileStorageService fileStorageService;
 
     /** The next batch of accounts that registered before {@code cutoff} and never verified. */
     @Transactional(readOnly = true)
@@ -52,6 +55,25 @@ public class AccountCleanupService {
         profileRepository.hardDeleteByUserId(user.getId());
         passwordTokenRepository.deleteAllForEmail(user.getEmail());
         return true;
+    }
+
+    /**
+     * Removes the picture files of deleted accounts: those deleted before pictures were removed on deletion, and any whose
+     * removal failed. A file that cannot be removed keeps its path on the profile and is tried again next time.
+     */
+    @Transactional
+    public int purgeDeletedProfilePictures() {
+        int removed = 0;
+        for (Profile profile : profileRepository.findDeletedWithPicture(PageRequest.of(0, BATCH))) {
+            try {
+                fileStorageService.deleteFile(profile.getProfilePictureUrl());
+                profile.setProfilePictureUrl(null);
+                removed++;
+            } catch (StorageException e) {
+                log.atWarn().setCause(e).log("Could not delete the picture of a deleted account");
+            }
+        }
+        return removed;
     }
 
     /** One-time codes that expired long ago. */

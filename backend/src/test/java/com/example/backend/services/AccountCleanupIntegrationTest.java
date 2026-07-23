@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
@@ -40,6 +41,8 @@ class AccountCleanupIntegrationTest {
     private AccountCleanupService service;
     @Autowired
     private AccountCleanupJob job;
+    @MockitoBean
+    private FileStorageService fileStorageService;
 
     @BeforeEach
     void setUp() {
@@ -177,5 +180,54 @@ class AccountCleanupIntegrationTest {
         job.run();
 
         assertEquals(1, count("users"));
+    }
+
+    private Profile profileWithPicture(String name, String picture, LocalDateTime deletedAt) {
+        Profile profile = Profile.builder().firstname(name).lastname("T").profilePictureUrl(picture).deletedAt(deletedAt).build();
+        em.persist(profile);
+        em.flush();
+        em.clear();
+        return profile;
+    }
+
+    @Test
+    void thePicturesOfDeletedAccountsAreRemovedFromDiskAndForgotten_OthersAreLeftAlone() {
+        Profile deleted = profileWithPicture("gone", "profile-pictures/gone.png", LocalDateTime.now().minusDays(40));
+        Profile live = profileWithPicture("live", "profile-pictures/live.png", null);
+
+        int removed = service.purgeDeletedProfilePictures();
+        em.flush();
+        em.clear();
+
+        assertEquals(1, removed);
+        org.mockito.Mockito.verify(fileStorageService).deleteFile("profile-pictures/gone.png");
+        org.mockito.Mockito.verify(fileStorageService, org.mockito.Mockito.never()).deleteFile("profile-pictures/live.png");
+        assertNull(profileRepository.findById(deleted.getId()).orElseThrow().getProfilePictureUrl());
+        assertEquals("profile-pictures/live.png", profileRepository.findById(live.getId()).orElseThrow().getProfilePictureUrl());
+    }
+
+    @Test
+    void aPictureThatCannotBeRemovedKeepsItsPathSoTheNextRunTriesAgain() {
+        Profile stuck = profileWithPicture("stuck", "profile-pictures/stuck.png", LocalDateTime.now().minusDays(2));
+        org.mockito.Mockito.doThrow(new com.example.backend.exceptions.StorageException("disk", new RuntimeException()))
+                .when(fileStorageService).deleteFile("profile-pictures/stuck.png");
+
+        assertEquals(0, service.purgeDeletedProfilePictures());
+        em.flush();
+        em.clear();
+
+        assertEquals("profile-pictures/stuck.png", profileRepository.findById(stuck.getId()).orElseThrow().getProfilePictureUrl());
+
+        org.mockito.Mockito.doNothing().when(fileStorageService).deleteFile("profile-pictures/stuck.png");
+        assertEquals(1, service.purgeDeletedProfilePictures());
+    }
+
+    @Test
+    void theScheduledRunAlsoClearsDeletedPictures() {
+        profileWithPicture("gone", "profile-pictures/gone.png", LocalDateTime.now().minusDays(40));
+
+        job.run();
+
+        org.mockito.Mockito.verify(fileStorageService).deleteFile("profile-pictures/gone.png");
     }
 }

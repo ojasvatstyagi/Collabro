@@ -21,6 +21,10 @@ import java.util.UUID;
 public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpecificationExecutor<Profile> {
   Optional<Profile> findByUser(User user);
 
+  /** Deleted profiles whose picture file is still on disk (an earlier deletion, or one whose file could not be removed). */
+  @Query("SELECT p FROM Profile p WHERE p.deletedAt IS NOT NULL AND p.profilePictureUrl IS NOT NULL")
+  List<Profile> findDeletedWithPicture(Pageable batch);
+
   /** Real DELETE of a profile row, for accounts removed before they ever did anything (see AccountCleanupService). */
   @org.springframework.data.jpa.repository.Modifying
   @org.springframework.data.jpa.repository.Query(value = "DELETE FROM profiles WHERE user_id = :userId", nativeQuery = true)
