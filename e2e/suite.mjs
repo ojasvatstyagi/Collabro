@@ -139,7 +139,7 @@ export async function runSuite(cfg) {
 
   const A = await newCtx(); watch(A.p, 'alice');
   const B = await newCtx(); watch(B.p, 'bob');
-  let aliceToken, bobToken, carolToken, project;
+  let aliceToken, bobToken, carolToken, project, bobPictureUrl, bobPictureFiles;
 
   try {
     // ---------------------------------------------------------------- 1
@@ -458,6 +458,19 @@ export async function runSuite(cfg) {
       const rec = await api('GET', '/requests/received?status=PENDING', { token: aliceToken });
       const approve = await api('POST', `/requests/${rec.body.data[0].id}/approve`, { token: aliceToken });
       check('alice approves again', approve.status === 200, String(approve.status));
+      // give bob real personal data, so what deleting the account must erase can be seen from alice's side
+      const walkPics = (d) => fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walkPics(d + '/' + e.name) : [d + '/' + e.name]) : [];
+      const picsBefore = new Set(walkPics(cfg.uploadsDir + '/profile-pictures'));
+      const setProfile = await api('PUT', '/profile/me', { token: bobToken, json: { firstname: 'Bobby', lastname: 'Builder', bio: 'I build bridges', education: 'MIT', location: 'Pune', phone: '+91 98765 43210' } });
+      check('bob fills in his profile', setProfile.status === 200, setProfile.status + ' ' + setProfile.text.slice(0, 120));
+      await api('POST', '/profile/skills', { token: bobToken, json: { name: 'Welding', proficiency: 'EXPERT' } });
+      const bobPng = new FormData(); bobPng.append('file', new Blob([Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0, 0, 0, 0])], { type: 'image/png' }), 'bob.png');
+      const bobPic = await api('POST', '/profile/picture', { token: bobToken, form: bobPng });
+      bobPictureUrl = bobPic.body?.profilePictureUrl;
+      bobPictureFiles = walkPics(cfg.uploadsDir + '/profile-pictures').filter((f) => !picsBefore.has(f));
+      check('bob uploads a picture (one new file on disk)', bobPic.status === 200 && bobPictureFiles.length === 1, bobPic.status + ' ' + bobPictureFiles.length);
+      const seenBefore = (await api('GET', `/projects/${project.id}/team`, { token: aliceToken })).text;
+      check("before deleting, his teammates can see bob's name, bio and skill", ['Bobby', 'Builder', 'I build bridges', 'Welding'].every((t) => seenBefore.includes(t)), seenBefore.slice(0, 200));
       await B.p.goto(BASE + '/settings', { waitUntil: 'networkidle0' });
       await clickExact(B.p, 'Delete');
       await B.p.waitForSelector('input[autocomplete="current-password"]', { timeout: 4000 }).catch(() => {});
@@ -473,6 +486,11 @@ export async function runSuite(cfg) {
       check('deleted account can no longer log in', gone2.status === 401, String(gone2.status));
       const t = await api('GET', `/projects/${project.id}/team`, { token: aliceToken });
       check('the project and its team still load for alice (no 500 from the deleted member)', t.status === 200, t.status + ' ' + t.text.slice(0, 100));
+      check("...but nothing personal of bob's is left in what the team sees (name, bio, education, location, phone, skill)",
+        ['Bobby', 'Builder', 'I build bridges', 'MIT', 'Pune', '98765', 'Welding'].every((x) => !t.text.includes(x)), t.text.slice(0, 300));
+      check('he is shown as a deleted user instead', t.text.includes('Deleted'), t.text.slice(0, 200));
+      check('his picture file was removed from disk', bobPictureFiles.length === 1 && !fs.existsSync(bobPictureFiles[0]), bobPictureFiles.join(','));
+      check('and its URL no longer serves anything', bobPictureUrl && (await fetch(BASE + bobPictureUrl)).status === 404, String(bobPictureUrl));
       const p = await api('GET', `/projects/${project.id}`, { token: aliceToken });
       check('project still readable', p.status === 200);
       const s = await api('GET', '/matching/search?size=50');

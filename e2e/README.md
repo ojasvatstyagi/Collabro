@@ -48,7 +48,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 | 4 | Join flow (UI) | Explore, details dialog, join, Requests page, "Add to team", Teams page, roles |
 | 5 | Authorization | a non-member is refused on tasks, chat and files; assignee rules; file download rules; hostile file names; picture upload rules; path traversal |
 | 6 | History and Achievements (UI) | timeline content, filters, stats, badge progress |
-| 7 | Settings (UI) | change password, sign out, leave project, re-apply, delete account (wrong password refused), deleted member does not break the project |
+| 7 | Settings (UI) | change password, sign out, leave project, re-apply, delete account (wrong password refused), deleted member does not break the project and teammates no longer see their name, bio, skills or picture |
 | 8 | Rejection and deletion (UI) | re-apply after rejection, owner-only delete, stored files removed from disk |
 | 9 | One-time codes | guess limit, burned codes, resend cooldown cannot be bypassed, no user enumeration, reset ends old sessions |
 | 10 | Tokens | refresh rotation, replay detection, refresh token is not a Bearer token, logout revokes, 415/405 instead of 500 |
