@@ -43,6 +43,7 @@ purpose, see section 4.
 | User enumeration at registration (duplicate e-mail message), plus account pre-hijacking and no way to resend a code | **Fixed** (2026-11-23): a known address is answered like a new one; a pending registration's credentials are replaced by the latest registrant; `resend-registration-otp`; password always hashed and mail async so timing is level. Usernames stay visible on purpose (they are public). | `AuthControllerTest`, `PasswordServiceTest`, `EmailServiceTest`, `auth.test.ts`, e2e §12 |
 | Never-verified registrations were kept forever (each held its username and e-mail, so a script could squat names) | **Fixed** (2026-11-23): a scheduled job really deletes them after 7 days (configurable), plus long-expired one-time codes. New column `users.created_at` (Flyway V2, existing rows backfilled with the migration time). | `AccountCleanupIntegrationTest`, `AccountCleanupJobTest`, `AccountCleanupSchedulingTest`, e2e §14 |
 | A user who deleted their own account could never register the same username or e-mail again (409: the soft-deleted row kept the unique columns) | **Fixed** (2026-11-23): deletion renames the row to an id-derived placeholder and drops its codes; Flyway V3 does the same for accounts deleted earlier. Verified on MySQL against a database holding already-locked names. | `AccountServiceTest`, `AccountDeletionIntegrationTest`, e2e §15 |
+| A deleted account's profile kept everything the person had entered (and teammates still saw the real name, bio and skills of a deleted member; the picture file stayed on disk and stayed served) | **Fixed** (2026-11-23): deletion blanks the profile (`Profile.erasePersonalData`), deletes the picture file and keeps the row for the project data that points at it. Flyway V4 does the same for profiles already deleted; their picture files are removed by the daily cleanup. Verified on MySQL against a database holding deleted profiles with data. What the person *contributed* to a project (messages, tasks, uploaded files, join-request texts) is kept on purpose. | `AccountServiceTest`, `AccountDeletionIntegrationTest`, `AccountCleanupIntegrationTest`, e2e §7 |
 
 ### Medium and low
 
@@ -125,23 +126,22 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    ```
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
-3. **A deleted account's profile keeps its personal data** (name, phone, bio, education, location, picture): `deleteAccount` only sets `deletedAt` on the profile, and nothing erases the fields. Public views already hide deleted profiles, but if "delete my data" is a requirement the fields need blanking (the row must stay: projects, messages and tasks point at it).
-4. **History and Achievements read everything on every request**: they are computed from full scans of the user's projects, requests and tasks (`HistoryService`, `AchievementService`), and only the *output* of history is paged. Fine for normal accounts; the cost grows with the account's activity.  Also unpaged: `matching/similar` and `/complementary` (limited by their queries), the project team (bounded by team size) and a user's own skills/social links.
-5. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
+3. **History and Achievements read everything on every request**: they are computed from full scans of the user's projects, requests and tasks (`HistoryService`, `AchievementService`), and only the *output* of history is paged. Fine for normal accounts; the cost grows with the account's activity.  Also unpaged: `matching/similar` and `/complementary` (limited by their queries), the project team (bounded by team size) and a user's own skills/social links.
+4. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
    backend accepts the owner).
-6. **New profiles are named "New User"** (a placeholder because the columns are `NOT NULL`), shown everywhere until
+5. **New profiles are named "New User"** (a placeholder because the columns are `NOT NULL`), shown everywhere until
    the user edits their profile. Showing the username instead would be better.
-7. **No public profile page** (the "View profile" link on requests was removed because the route never existed).
-8. 401/403 body escaping (section 1, last row).
-9. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
-10. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
-11. Swagger UI is public in the dev profile.
-12. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
+6. **No public profile page** (the "View profile" link on requests was removed because the route never existed).
+7. 401/403 body escaping (section 1, last row).
+8. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
+9. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
+10. Swagger UI is public in the dev profile.
+11. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
 
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 352 tests
+cd backend  && mvn test                          # 361 tests
 cd frontend && npm test && npm run lint && npm run build
 cd e2e      && npm install && npm test           # ~200 checks, ~3.5 min, needs Chrome and free ports 8080/5173/2525
 ```
