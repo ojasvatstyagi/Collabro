@@ -14,4 +14,5 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
     org.springframework.data.domain.Page<Task> findByProjectId(UUID projectId, org.springframework.data.domain.Pageable pageable);
     List<Task> findByProjectIdAndAssignedToId(UUID projectId, UUID profileId);
     List<Task> findByAssignedToIdAndStatus(UUID profileId, TaskStatus status);
+    long countByAssignedToIdAndStatus(UUID profileId, TaskStatus status);
 }

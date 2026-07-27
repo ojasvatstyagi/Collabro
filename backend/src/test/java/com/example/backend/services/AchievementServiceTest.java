@@ -47,6 +47,8 @@ class AchievementServiceTest {
     private ChatMessageRepository chatMessageRepository;
     @Mock
     private ProjectFileRepository projectFileRepository;
+    @Mock
+    private com.example.backend.repositories.SkillRepository skillRepository;
 
     @InjectMocks
     private AchievementService achievementService;
@@ -65,14 +67,11 @@ class AchievementServiceTest {
     }
 
     private void completedTasks(int count) {
-        when(taskRepository.findByAssignedToIdAndStatus(me.getId(), TaskStatus.COMPLETED))
-                .thenReturn(IntStream.range(0, count).mapToObj(i -> new Task()).toList());
+        when(taskRepository.countByAssignedToIdAndStatus(me.getId(), TaskStatus.COMPLETED)).thenReturn((long) count);
     }
 
     private void skills(int count) {
-        for (int i = 0; i < count; i++) {
-            me.getSkills().add(Skill.builder().definition(SkillDefinition.builder().name("s" + i).build()).build());
-        }
+        when(skillRepository.countByProfile_Id(me.getId())).thenReturn((long) count);
     }
 
     @Test
@@ -89,7 +88,7 @@ class AchievementServiceTest {
 
     @Test
     void badges_UnlockAtTheirThresholdAndShowProgressTowardsTheNext() {
-        when(projectRepository.findByCreatedBy_Id(me.getId())).thenReturn(List.of(project(me), project(me)));
+        when(projectRepository.countByCreatedBy_Id(me.getId())).thenReturn(2L);
         completedTasks(3);
 
         Map<String, AchievementDto> badges = badges();
@@ -131,8 +130,7 @@ class AchievementServiceTest {
 
     @Test
     void leadingATeam_CountsTheOwnerAsAMember() {
-        Project led = project(me, profile("a"), profile("b"));
-        when(projectRepository.findByCreatedBy_Id(me.getId())).thenReturn(List.of(led));
+        when(projectRepository.findLargestTeamMemberCount(me.getId())).thenReturn(2); // two members plus the owner
 
         Map<String, AchievementDto> badges = badges();
 
@@ -143,9 +141,8 @@ class AchievementServiceTest {
 
     @Test
     void completingAProject_UnlocksFinisher() {
-        Project done = project(me);
-        done.setStatus(ProjectStatus.COMPLETED);
-        when(projectRepository.findByCreatedBy_Id(me.getId())).thenReturn(List.of(done, project(me)));
+        when(projectRepository.countByCreatedBy_Id(me.getId())).thenReturn(2L);
+        when(projectRepository.countByCreatedBy_IdAndStatus(me.getId(), ProjectStatus.COMPLETED)).thenReturn(1L);
 
         assertTrue(badges().get("finisher").isUnlocked());
         assertEquals(1, achievementService.getMyAchievements().getStats().getProjectsCompleted());
@@ -153,8 +150,7 @@ class AchievementServiceTest {
 
     @Test
     void joiningTeamsMessagesFilesAndProfile_AreCounted() {
-        when(projectRepository.findByTeam_Members_Id(me.getId()))
-                .thenReturn(List.of(project(profile("x")), project(profile("y")), project(profile("z"))));
+        when(projectRepository.countByTeam_Members_Id(me.getId())).thenReturn(3L);
         when(chatMessageRepository.countBySenderId(me.getId())).thenReturn(50L);
         when(projectFileRepository.countByUploadedById(me.getId())).thenReturn(4L);
         me.setProfileComplete(true);

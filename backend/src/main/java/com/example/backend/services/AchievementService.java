@@ -5,10 +5,10 @@ import com.example.backend.dto.AchievementOverviewDto;
 import com.example.backend.enums.ProjectStatus;
 import com.example.backend.enums.TaskStatus;
 import com.example.backend.models.Profile;
-import com.example.backend.models.Project;
 import com.example.backend.repositories.ChatMessageRepository;
 import com.example.backend.repositories.ProjectFileRepository;
 import com.example.backend.repositories.ProjectRepository;
+import com.example.backend.repositories.SkillRepository;
 import com.example.backend.repositories.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -74,6 +74,7 @@ public class AchievementService {
     private final TaskRepository taskRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ProjectFileRepository projectFileRepository;
+    private final SkillRepository skillRepository;
 
     public AchievementOverviewDto getMyAchievements() {
         Map<Metric, Integer> metrics = measure(profileService.getCurrentUserProfile());
@@ -102,23 +103,22 @@ public class AchievementService {
                 .build();
     }
 
+    /** Counts only: no project, task or skill is loaded, so the cost does not grow with the account's activity. */
     private Map<Metric, Integer> measure(Profile me) {
-        List<Project> owned = projectRepository.findByCreatedBy_Id(me.getId());
-
+        java.util.UUID id = me.getId();
         Map<Metric, Integer> metrics = new EnumMap<>(Metric.class);
-        metrics.put(Metric.PROJECTS_CREATED, owned.size());
+        metrics.put(Metric.PROJECTS_CREATED, (int) projectRepository.countByCreatedBy_Id(id));
         metrics.put(Metric.PROJECTS_COMPLETED,
-                (int) owned.stream().filter(project -> project.getStatus() == ProjectStatus.COMPLETED).count());
-        metrics.put(Metric.TEAMS_JOINED, projectRepository.findByTeam_Members_Id(me.getId()).size());
+                (int) projectRepository.countByCreatedBy_IdAndStatus(id, ProjectStatus.COMPLETED));
+        metrics.put(Metric.TEAMS_JOINED, (int) projectRepository.countByTeam_Members_Id(id));
         // The owner counts toward the team they lead
-        metrics.put(Metric.LARGEST_TEAM, owned.stream().filter(project -> project.getTeam() != null)
-                .mapToInt(project -> project.getTeam().getMembers().size() + 1).max().orElse(0));
-        metrics.put(Metric.TASKS_COMPLETED,
-                taskRepository.findByAssignedToIdAndStatus(me.getId(), TaskStatus.COMPLETED).size());
-        metrics.put(Metric.SKILLS_ADDED, me.getSkills() == null ? 0 : me.getSkills().size());
+        Integer largestTeamMembers = projectRepository.findLargestTeamMemberCount(id);
+        metrics.put(Metric.LARGEST_TEAM, largestTeamMembers == null ? 0 : largestTeamMembers + 1);
+        metrics.put(Metric.TASKS_COMPLETED, (int) taskRepository.countByAssignedToIdAndStatus(id, TaskStatus.COMPLETED));
+        metrics.put(Metric.SKILLS_ADDED, (int) skillRepository.countByProfile_Id(id));
         metrics.put(Metric.PROFILE_COMPLETE, me.isProfileComplete() ? 1 : 0);
-        metrics.put(Metric.MESSAGES_SENT, (int) chatMessageRepository.countBySenderId(me.getId()));
-        metrics.put(Metric.FILES_SHARED, (int) projectFileRepository.countByUploadedById(me.getId()));
+        metrics.put(Metric.MESSAGES_SENT, (int) chatMessageRepository.countBySenderId(id));
+        metrics.put(Metric.FILES_SHARED, (int) projectFileRepository.countByUploadedById(id));
         return metrics;
     }
 
