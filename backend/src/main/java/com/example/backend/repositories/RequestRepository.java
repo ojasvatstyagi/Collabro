@@ -12,33 +12,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface RequestRepository extends JpaRepository<CollaborationRequest, Long> {
     Optional<CollaborationRequest> findByProjectAndRequester(Project project, Profile requester);
-    
-    @EntityGraph(attributePaths = { "requester", "requester.user", "requester.skills", "requester.skills.definition",
-            "project", "project.createdBy", "project.createdBy.user" })
-    List<CollaborationRequest> findByRequester(Profile requester);
-    
-    @EntityGraph(attributePaths = { "requester", "requester.user", "requester.skills", "requester.skills.definition",
-            "project", "project.createdBy", "project.createdBy.user" })
-    List<CollaborationRequest> findByRequesterAndStatus(Profile requester, RequestStatus status);
-
-    
-    // Get all requests for projects owned by a specific profile
-    @Query("SELECT r FROM CollaborationRequest r WHERE r.project.createdBy = :owner")
-    @EntityGraph(attributePaths = { "requester", "requester.user", "requester.skills", "requester.skills.definition",
-            "project", "project.createdBy", "project.createdBy.user" })
-    List<CollaborationRequest> findByProjectOwner(@Param("owner") Profile owner);
-    
-    // Get all requests for projects owned by a specific profile with status filter
-    @Query("SELECT r FROM CollaborationRequest r WHERE r.project.createdBy = :owner AND r.status = :status")
-    @EntityGraph(attributePaths = { "requester", "requester.user", "requester.skills", "requester.skills.definition",
-            "project", "project.createdBy", "project.createdBy.user" })
-    List<CollaborationRequest> findByProjectOwnerAndStatus(@Param("owner") Profile owner, @Param("status") RequestStatus status);
     
     // Paged variants for the list endpoints. The graph only follows to-one paths: fetching a collection (skills) in a
     // paged query makes Hibernate page in memory. The skills are loaded in batches instead (@BatchSize on Profile.skills).

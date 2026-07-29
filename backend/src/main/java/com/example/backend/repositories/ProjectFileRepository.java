@@ -11,6 +11,5 @@ import java.util.UUID;
 public interface ProjectFileRepository extends JpaRepository<ProjectFile, UUID> {
     List<ProjectFile> findByProjectIdOrderByCreatedAtDesc(UUID projectId);
     org.springframework.data.domain.Page<ProjectFile> findByProjectId(UUID projectId, org.springframework.data.domain.Pageable pageable);
-    List<ProjectFile> findByUploadedById(UUID profileId);
     long countByUploadedById(UUID profileId);
 }

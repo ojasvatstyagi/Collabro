@@ -15,15 +15,7 @@ import java.util.UUID;
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
 
-    /** Teams the profile owns or is a member of. */
-    @Query("""
-            SELECT DISTINCT t FROM Team t LEFT JOIN t.members m
-            WHERE t.deletedAt IS NULL AND t.status = :status
-              AND (t.owner.id = :profileId OR m.id = :profileId)
-            """)
-    List<Team> findActiveTeamsOf(@Param("profileId") UUID profileId, @Param("status") TeamStatus status);
-
-    /** Same teams, one page at a time; teams whose project is gone are left out by the inner join. */
+    /** Teams the profile owns or is a member of, one page at a time; teams whose project is gone are left out by the inner join. */
     @Query(value = """
             SELECT t FROM Team t JOIN t.project p
             WHERE t.deletedAt IS NULL AND t.status = :status
