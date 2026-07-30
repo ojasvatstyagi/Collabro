@@ -814,6 +814,38 @@ export async function runSuite(cfg) {
       await registerApi({ ...users.bob, password: 'Passw0rd!third' });
       check('a third registration of the same name works', (await loginApi({ ...users.bob, password: 'Passw0rd!third' })).status === 200);
     });
+
+    // ---------------------------------------------------------------- 16
+    section = '16 History and Achievements on a busy account';
+    await step('judy (105 projects, section 13): history is paged, filtered and counted by the database', async () => {
+      const first = await api('GET', '/history?size=50', { token: judy.token });
+      check('page 0 holds 50 of 105 events', first.status === 200 && first.body.content.length === 50 && first.body.totalElements === PROJECTS, `${first.status} ${first.body.content?.length}/${first.body.totalElements}`);
+      check('newest first: the last project created leads', first.body.content[0].title === 'Created "Paging Project 104"', first.body.content[0].title);
+      const third = await api('GET', '/history?page=2&size=50', { token: judy.token });
+      check('page 2 holds the remaining 5, the oldest last', third.body.content.length === 5 && third.body.content.at(-1).title === 'Created "Paging Project 000"', `${third.body.content.length} ${third.body.content.at(-1)?.title}`);
+      const ids = new Set();
+      for (let page = 0; page < 3; page++) (await api('GET', `/history?page=${page}&size=50`, { token: judy.token })).body.content.forEach((i) => ids.add(i.id));
+      check('every event appears exactly once across the pages', ids.size === PROJECTS, String(ids.size));
+      const one = await api('GET', '/history?search=paging%20project%20007', { token: judy.token });
+      check('a search narrows it to the one project', one.body.totalElements === 1 && one.body.content[0].title.includes('007'), String(one.body.totalElements));
+      const wild = await api('GET', '/history?search=%25', { token: judy.token });
+      check('a % in the search is a literal character, not a wildcard', wild.body.totalElements === 0, String(wild.body.totalElements));
+      check('type and timeframe filters', (await api('GET', '/history?type=request', { token: judy.token })).body.totalElements === 0
+        && (await api('GET', '/history?type=project&timeframe=week', { token: judy.token })).body.totalElements === PROJECTS);
+      const stats = await api('GET', '/history/stats', { token: judy.token });
+      check('stats are counted, not collected', stats.body.projectsCreated === PROJECTS && stats.body.totalActivities === PROJECTS && stats.body.thisWeek === PROJECTS && stats.body.tasksCompleted === 0, JSON.stringify(stats.body));
+    });
+    await step('the achievements of that account, and the History page in the browser', async () => {
+      const r = await api('GET', '/achievements/me', { token: judy.token });
+      const byId = Object.fromEntries(r.body.achievements.map((a) => [a.id, a]));
+      check('"Builder" (5 projects) is unlocked and its progress stops at the requirement', byId.builder.isUnlocked === true && byId.builder.progress.current === 5, JSON.stringify(byId.builder.progress));
+      check('the project count is exact', r.body.stats.projectsCreated === PROJECTS, String(r.body.stats.projectsCreated));
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.judy);
+      await p.goto(BASE + '/history', { waitUntil: 'networkidle0' });
+      check('the History page shows her newest project', await waitText(p, 'Created "Paging Project 104"', 8000));
+      await c.close();
+    });
   } finally {
     await browser.close();
   }

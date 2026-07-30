@@ -57,6 +57,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 | 13 | Paged lists | 105 projects: the 200-row ceiling, page/size clamping, newest first, no row twice, totals in headers (exposed through CORS), and the Projects page showing all of them by walking two pages |
 | 14 | Cleanup | with a 30 s limit and a 5 s schedule: a never-verified registration is deleted for real and its username freed, a verified account survives |
 | 15 | Deleted accounts | a deleted account's username and e-mail can register again (and again), as a fresh empty account |
+| 16 | History at scale | 105 events: pages, ordering, no event twice, literal search (`%`), filters, counted stats, exact badge counts, the page in the browser |
 
 ## Files
 
