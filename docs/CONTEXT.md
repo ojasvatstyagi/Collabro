@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 361 tests, frontend 40 tests, e2e 210 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 372 tests, frontend 40 tests, e2e 221 checks, all passing).
 
 ## 1. What it is
 
@@ -92,8 +92,8 @@ Rules that matter:
 | `ProjectService` | Project CRUD, `leaveProject`, `deleteProject` (removes chat, files on disk, requests, team), team listing. |
 | `TaskService`, `ChatService`, `ProjectFileService` | Membership-gated; assignee must be a member; files deletable by uploader or owner. |
 | `TeamService` | "My teams": teams the user owns or belongs to (derived, nothing stored). |
-| `HistoryService` | Activity timeline **computed on read** from projects, requests, tasks, files. No history table. |
-| `AchievementService` | 14 badges in `CATALOG`, **computed on read** from the same data. Adding a badge = adding a `Badge` + a metric. |
+| `HistoryService` / `HistoryQueries` | Activity timeline **computed on read** from projects, requests, tasks, files (no history table), but **by the database**: `HistoryQueries.Source` has one JPQL shape per kind of event (project, request sent/received, joined/accepted, task, file) that filters (timeframe, search), orders newest first, counts and limits in SQL and returns scalars, not entities. A page is the merge of the newest `offset+size` rows of each kind; stats are one aggregate query per kind. The order is total (timestamp, kind, id) so pages never repeat or skip events. **Search matches what people wrote** (names, descriptions/messages, project name, the other person's username), literally (`%`/`_` escaped), not the labels the timeline adds ("Created", "Uploaded"). Add a kind of event = add a `Source` and a case in `HistoryService.toItem`. |
+| `AchievementService` | 14 badges in `CATALOG`, **computed on read** from the same data, with **count queries only** (one per metric, `MAX(SIZE(team.members))` for the largest team): nothing is loaded, so a busy account costs as many queries as a new one. Adding a badge = adding a `Badge` + a metric (+ its count query). |
 | `MatchingService` | Public search (`ProfileSpecifications`), similar/complementary suggestions (capped at 50). |
 | `ProfileService` | Own profile, `toPublicDto` (what others may see), PDF export, `publicPictureUrl`. |
 | `FileStorageService` | All disk access. Every path is resolved inside the upload dir; names sanitised; pictures verified by magic bytes. |
