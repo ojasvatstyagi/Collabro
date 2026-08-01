@@ -35,7 +35,7 @@ class ProjectDtoJsonTest {
     void creator_HasNoEmail() throws Exception {
         String json = mapper.writeValueAsString(ProjectDto.ProjectCreatorDto.builder().username("alice").build());
 
-        assertEquals("{\"id\":null,\"username\":\"alice\",\"profilePictureUrl\":null}", json);
+        assertEquals("{\"id\":null,\"username\":\"alice\",\"displayName\":null,\"profilePictureUrl\":null}", json);
     }
 
     @Test

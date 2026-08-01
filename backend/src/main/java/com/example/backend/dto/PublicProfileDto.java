@@ -19,6 +19,8 @@ import java.util.UUID;
 public class PublicProfileDto {
     private UUID id;
     private String username;
+    /** The name to show: first and last name if set, otherwise the username. */
+    private String displayName;
     private String firstname;
     private String lastname;
     private String bio;

@@ -70,6 +70,7 @@ public class ProjectDto {
     public static class ProjectCreatorDto {
         private UUID id;
         private String username;
+        private String displayName;
         private String profilePictureUrl;
     }
 }

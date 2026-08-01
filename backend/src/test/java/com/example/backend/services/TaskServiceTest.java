@@ -77,6 +77,22 @@ class TaskServiceTest {
     }
 
     @Test
+    void createTask_CanBeAssignedToTheProjectOwner_AndTheAssigneeIsNamedByUsernameWhenUnnamed() {
+        owner.setFirstname("");
+        owner.setLastname("");
+        when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
+        when(profileService.getCurrentUserProfile()).thenReturn(owner);
+        when(profileService.getProfileById(owner.getId())).thenReturn(owner);
+        when(taskRepository.save(any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TaskDto result = taskService.createTask(project.getId(),
+                TaskDto.builder().title("Write docs").assigneeId(owner.getId()).build());
+
+        assertEquals(owner.getId(), result.getAssigneeId());
+        assertEquals("owner", result.getAssigneeName(), "an unnamed assignee is shown by username, not as a blank");
+    }
+
+    @Test
     void createTask_AsOutsider_ThrowsForbiddenAndSavesNothing() {
         when(projectRepository.findById(project.getId())).thenReturn(Optional.of(project));
         when(profileService.getCurrentUserProfile()).thenReturn(outsider);

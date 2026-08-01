@@ -88,9 +88,10 @@ class ProfileServiceTest {
         Profile result = profileService.createEmptyProfile(testUser);
         assertNotNull(result);
         assertEquals(testUser, result.getUser());
-        // placeholder names: the firstname/lastname columns are NOT NULL
-        assertEquals("New", result.getFirstname());
-        assertEquals("User", result.getLastname());
+        // no name yet: empty (the columns are NOT NULL), never a placeholder like "New User"; the username is shown
+        assertEquals("", result.getFirstname());
+        assertEquals("", result.getLastname());
+        assertEquals(testUser.getUsername(), result.displayName());
     }
 
     @Test
@@ -207,5 +208,17 @@ class ProfileServiceTest {
         assertEquals("https://example.com/me.png", ProfileService.publicPictureUrl("https://example.com/me.png"));
         assertNull(ProfileService.publicPictureUrl(null));
         assertNull(ProfileService.publicPictureUrl(""));
+    }
+
+    @Test
+    void toPublicDto_CarriesTheDisplayNameAndNothingPrivate() {
+        Profile named = Profile.builder().user(testUser).firstname("Alice").lastname("Anderson").phone("+49 555").build();
+        Profile unnamed = Profile.builder().user(testUser).firstname("").lastname("").build();
+
+        com.example.backend.dto.PublicProfileDto namedDto = profileService.toPublicDto(named);
+        com.example.backend.dto.PublicProfileDto unnamedDto = profileService.toPublicDto(unnamed);
+
+        assertEquals("Alice Anderson", namedDto.getDisplayName());
+        assertEquals(testUser.getUsername(), unnamedDto.getDisplayName());
     }
 }

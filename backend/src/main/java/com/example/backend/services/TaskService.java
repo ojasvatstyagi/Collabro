@@ -119,7 +119,7 @@ public class TaskService {
                 .dueDate(task.getDeadline())
                 .createdAt(task.getCreatedAt())
                 .assigneeId(task.getAssignedTo() != null ? task.getAssignedTo().getId() : null)
-                .assigneeName(task.getAssignedTo() != null ? task.getAssignedTo().getFirstname() + " " + task.getAssignedTo().getLastname() : null)
+                .assigneeName(task.getAssignedTo() != null ? task.getAssignedTo().displayName() : null)
                 .assigneeAvatar(task.getAssignedTo() != null ? ProfileService.publicPictureUrl(task.getAssignedTo().getProfilePictureUrl()) : null)
                 .projectId(task.getProject().getId())
                 .build();

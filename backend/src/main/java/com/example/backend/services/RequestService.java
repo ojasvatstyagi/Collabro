@@ -229,6 +229,7 @@ public class RequestService {
         CollaborationRequestDTO.RequesterDTO requesterDTO = CollaborationRequestDTO.RequesterDTO.builder()
                 .id(requester.getId())
                 .username(requester.displayUsername())
+                .displayName(requester.displayName())
                 .firstname(requester.getFirstname())
                 .lastname(requester.getLastname())
                 .profilePictureUrl(ProfileService.publicPictureUrl(requester.getProfilePictureUrl()))

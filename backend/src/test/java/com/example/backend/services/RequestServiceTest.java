@@ -234,6 +234,18 @@ class RequestServiceTest {
         assertEquals(7L, dto.getId());
         assertEquals(project.getId(), dto.getProjectId());
         assertEquals("alice", dto.getRequester().getUsername());
+        assertEquals("alice Test", dto.getRequester().getDisplayName());
+    }
+
+    @Test
+    void getRequestById_ARequesterWithoutANameIsShownByUsername() {
+        alice.setFirstname("");
+        alice.setLastname("");
+        CollaborationRequest request = pendingRequest(7L, alice);
+        when(requestRepository.findById(7L)).thenReturn(Optional.of(request));
+        when(profileService.getCurrentUserProfile()).thenReturn(owner);
+
+        assertEquals("alice", requestService.getRequestById(7L).getRequester().getDisplayName());
     }
 
     @Test

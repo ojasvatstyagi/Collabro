@@ -154,6 +154,15 @@ public class Profile {
         if (skills != null) skills.clear();
     }
 
+    /**
+     * What to call this person: their name once they have entered one, otherwise their username. New profiles have no
+     * name (empty, not a placeholder), so nothing like "New User" ever reaches a screen.
+     */
+    public String displayName() {
+        String full = ((firstname == null ? "" : firstname.trim()) + " " + (lastname == null ? "" : lastname.trim())).trim();
+        return full.isEmpty() ? displayUsername() : full;
+    }
+
     /** The owner's username, or a placeholder once the account has been deleted (the user row is soft-deleted). */
     public String displayUsername() {
         return user != null ? user.getUsername() : "deleted user";

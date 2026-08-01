@@ -32,6 +32,7 @@ public class CollaborationRequestDTO {
     public static class RequesterDTO {
         private UUID id;
         private String username;
+        private String displayName;
         private String firstname;
         private String lastname;
         private String profilePictureUrl;

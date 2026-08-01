@@ -40,8 +40,9 @@ public class ProfileService {
 
         return Profile.builder()
                 .user(user)
-                .firstname("New")
-                .lastname("User")
+                // No name yet: empty (the columns are NOT NULL), shown as the username until the user fills it in
+                .firstname("")
+                .lastname("")
                 .isProfileComplete(false)
                 .completionPercentage(0)
                 .build();
@@ -133,6 +134,7 @@ public class ProfileService {
         return PublicProfileDto.builder()
                 .id(profile.getId())
                 .username(profile.getUser() != null ? profile.getUser().getUsername() : null)
+                .displayName(profile.displayName())
                 .firstname(profile.getFirstname())
                 .lastname(profile.getLastname())
                 .bio(profile.getBio())
@@ -162,7 +164,7 @@ public class ProfileService {
             document.open();
 
             document.add(new Paragraph("User Profile"));
-            document.add(new Paragraph("Name: " + profile.getFirstname() + " " + profile.getLastname()));
+            document.add(new Paragraph("Name: " + profile.displayName()));
             document.add(new Paragraph("Bio: " + profile.getBio()));
             document.add(new Paragraph("Education: " + profile.getEducation()));
             String skillsString = profile.getSkills().stream()

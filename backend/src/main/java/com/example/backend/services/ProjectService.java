@@ -241,6 +241,7 @@ public class ProjectService {
                 .createdBy(ProjectDto.ProjectCreatorDto.builder()
                         .id(project.getCreatedBy().getId())
                         .username(project.getCreatedBy().displayUsername())
+                        .displayName(project.getCreatedBy().displayName())
                         .profilePictureUrl(ProfileService.publicPictureUrl(project.getCreatedBy().getProfilePictureUrl()))
                         .build())
                 .build();
