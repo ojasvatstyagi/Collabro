@@ -48,6 +48,14 @@ public class ProfileService {
                 .build();
     }
 
+    /** Another person's profile, as other users may see it. Unknown and deleted accounts are both "not found". */
+    @Transactional(readOnly = true)
+    public PublicProfileDto getPublicProfile(String username) {
+        return profileRepository.findByUser_UsernameAndDeletedAtIsNull(username)
+                .map(this::toPublicDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found"));
+    }
+
     public Profile saveProfile(Profile profile) {
         Objects.requireNonNull(profile, "Profile cannot be null");
         return profileRepository.save(profile);

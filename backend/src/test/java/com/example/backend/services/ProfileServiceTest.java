@@ -221,4 +221,19 @@ class ProfileServiceTest {
         assertEquals("Alice Anderson", namedDto.getDisplayName());
         assertEquals(testUser.getUsername(), unnamedDto.getDisplayName());
     }
+
+    @Test
+    void getPublicProfile_ReturnsALiveProfile() {
+        Profile profile = Profile.builder().user(testUser).firstname("Alice").lastname("Anderson").build();
+        when(profileRepository.findByUser_UsernameAndDeletedAtIsNull(testUser.getUsername())).thenReturn(Optional.of(profile));
+
+        assertEquals("Alice Anderson", profileService.getPublicProfile(testUser.getUsername()).getDisplayName());
+    }
+
+    @Test
+    void getPublicProfile_ForAnUnknownOrDeletedAccount_IsNotFound() {
+        when(profileRepository.findByUser_UsernameAndDeletedAtIsNull("ghost")).thenReturn(Optional.empty());
+
+        assertThrows(com.example.backend.exceptions.ResourceNotFoundException.class, () -> profileService.getPublicProfile("ghost"));
+    }
 }

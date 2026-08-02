@@ -39,6 +39,12 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.getCurrentUserProfileDto());
     }
 
+    @GetMapping("/users/{username}")
+    @Operation(summary = "View another user's profile", description = "The public part of a profile (no e-mail, phone or settings); 404 for unknown or deleted accounts")
+    public ResponseEntity<com.example.backend.dto.PublicProfileDto> getPublicProfile(@PathVariable String username) {
+        return ResponseEntity.ok(profileService.getPublicProfile(username));
+    }
+
     @PutMapping("/me")
     @Operation(summary = "Update current user profile", description = "Updates the current user's profile")
     public ResponseEntity<ProfileDto> updateProfile(@Valid @RequestBody ProfileUpdateDto updateDto) {

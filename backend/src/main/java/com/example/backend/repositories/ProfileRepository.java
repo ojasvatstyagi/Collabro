@@ -21,6 +21,9 @@ import java.util.UUID;
 public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpecificationExecutor<Profile> {
   Optional<Profile> findByUser(User user);
 
+  /** A live profile by its owner's username; accounts that were deleted (user and profile) are not found. */
+  Optional<Profile> findByUser_UsernameAndDeletedAtIsNull(String username);
+
   /** Deleted profiles whose picture file is still on disk (an earlier deletion, or one whose file could not be removed). */
   @Query("SELECT p FROM Profile p WHERE p.deletedAt IS NOT NULL AND p.profilePictureUrl IS NOT NULL")
   List<Profile> findDeletedWithPicture(Pageable batch);

@@ -233,4 +233,25 @@ class ProfileControllerTest {
 
                 org.mockito.Mockito.verify(profileService, org.mockito.Mockito.never()).exportToPdf(any());
         }
+
+        @Test
+        void viewingAnotherProfile_ReturnsThePublicPartOnly() throws Exception {
+                when(profileService.getPublicProfile("alice")).thenReturn(com.example.backend.dto.PublicProfileDto.builder()
+                                .id(UUID.randomUUID()).username("alice").displayName("Alice Anderson").bio("hi").build());
+
+                mockMvc.perform(get("/api/profile/users/alice"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.username").value("alice"))
+                                .andExpect(jsonPath("$.displayName").value("Alice Anderson"))
+                                .andExpect(jsonPath("$.email").doesNotExist())
+                                .andExpect(jsonPath("$.phone").doesNotExist());
+        }
+
+        @Test
+        void viewingAnUnknownProfile_Is404() throws Exception {
+                when(profileService.getPublicProfile("ghost"))
+                                .thenThrow(new com.example.backend.exceptions.ResourceNotFoundException("Profile not found"));
+
+                mockMvc.perform(get("/api/profile/users/ghost")).andExpect(status().isNotFound());
+        }
 }

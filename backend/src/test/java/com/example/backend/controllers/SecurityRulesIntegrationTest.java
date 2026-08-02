@@ -43,6 +43,8 @@ class SecurityRulesIntegrationTest {
     private ProfileRepository profileRepository;
     @Autowired
     private SkillDefinitionRepository skillDefinitionRepository;
+    @Autowired
+    private com.example.backend.repositories.RoleRepository roleRepository;
 
     private static final String BODY = "{\"currentPassword\":\"old-pass\",\"newPassword\":\"new-pass\"}";
 
@@ -69,7 +71,7 @@ class SecurityRulesIntegrationTest {
     @Test
     void theNewFeatureEndpoints_RequireALogin() throws Exception {
         for (String path : new String[] { "/api/teams/me", "/api/history", "/api/history/stats",
-                "/api/achievements/me", "/api/matching/similar" }) {
+                "/api/achievements/me", "/api/matching/similar", "/api/profile/users/anyone" }) {
             mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
         mockMvc.perform(post("/api/projects/" + java.util.UUID.randomUUID() + "/leave"))
@@ -113,5 +115,49 @@ class SecurityRulesIntegrationTest {
         mockMvc.perform(get("/api/matching/search").param("size", "100000"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(50));
+    }
+
+    private User register(String username, String email, String first, String last, String phone, java.time.LocalDateTime deleted) {
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword("x");
+        user.setVerified(true);
+        user.setRole(roleRepository.findByRoleName(com.example.backend.enums.RoleName.ROLE_USER).orElseThrow());
+        userRepository.save(user);
+        Profile profile = Profile.builder().user(user).firstname(first).lastname(last).phone(phone).bio("About " + username)
+                .deletedAt(deleted).build();
+        profileRepository.save(profile);
+        return user;
+    }
+
+    @Test
+    void viewingAProfile_WorksForALoggedInUser_AndShowsTheUsernameWhenThereIsNoName_AndLeaksNothingPrivate() throws Exception {
+        register("viewer", "viewer@example.com", "Vera", "Viewer", null, null);
+        register("alice", "alice-private@example.com", "Alice", "Anderson", "+49 555 0100", null);
+        register("unnamed", "unnamed-private@example.com", "", "", null, null);
+        String token = jwtTokenProvider.generateAccessToken("viewer");
+
+        mockMvc.perform(get("/api/profile/users/alice").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Alice Anderson"))
+                .andExpect(jsonPath("$.bio").value("About alice"))
+                .andExpect(content().string(not(containsString("alice-private@example.com"))))
+                .andExpect(content().string(not(containsString("+49 555 0100"))))
+                .andExpect(content().string(not(containsString("\"email\""))))
+                .andExpect(content().string(not(containsString("\"phone\""))));
+        mockMvc.perform(get("/api/profile/users/unnamed").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("unnamed"));
+    }
+
+    @Test
+    void viewingAProfile_OfAnUnknownOrDeletedAccount_IsNotFound() throws Exception {
+        register("viewer", "viewer@example.com", "Vera", "Viewer", null, null);
+        register("gone", "gone@example.com", "Deleted", "User", null, java.time.LocalDateTime.now());
+        String token = jwtTokenProvider.generateAccessToken("viewer");
+
+        mockMvc.perform(get("/api/profile/users/nobody").header("Authorization", "Bearer " + token)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/profile/users/gone").header("Authorization", "Bearer " + token)).andExpect(status().isNotFound());
     }
 }
