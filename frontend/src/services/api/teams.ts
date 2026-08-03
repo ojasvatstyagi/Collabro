@@ -17,6 +17,8 @@ export interface PublicSkill {
 export interface PublicProfile {
   id: string;
   username: string;
+  /** First and last name if set, otherwise the username. */
+  displayName?: string;
   firstname: string;
   lastname: string;
   bio: string | null;

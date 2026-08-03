@@ -8,6 +8,7 @@ export interface JoinRequest {
   requester: {
     id: string;
     username: string;
+    displayName?: string;
     firstname: string;
     lastname: string;
     profilePictureUrl: string;

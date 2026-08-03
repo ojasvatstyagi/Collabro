@@ -21,6 +21,7 @@ export interface Project {
   createdBy: {
     id: string;
     username: string;
+    displayName?: string;
     profilePictureUrl: string;
   };
 }
