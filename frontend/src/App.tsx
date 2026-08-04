@@ -7,6 +7,7 @@ import ResetPassword from './pages/ResetPassword';
 import Landing from './pages/Landing';
 import Explore from './pages/Explore';
 import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile';
 import Achievements from './pages/Achievements';
 import MyProjects from './pages/MyProjects';
 import Teams from './pages/Teams';
@@ -63,6 +64,7 @@ function AppContent() {
         <Route element={<ProtectedRoute />}>
           <Route path="/explore" element={<Explore />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/users/:username" element={<UserProfile />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/projects" element={<MyProjects />} />
           <Route path="/teams" element={<Teams />} />

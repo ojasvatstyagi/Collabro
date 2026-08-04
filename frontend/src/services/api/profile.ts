@@ -1,5 +1,6 @@
 import { BaseApi, ApiResponse } from './base';
 import { saveBlob } from '../../utils/download';
+import type { PublicProfile } from './teams';
 
 export interface Skill {
   id: string;
@@ -78,6 +79,11 @@ export interface AddSocialLinkRequest {
 class ProfileApi extends BaseApi {
   async getProfile(): Promise<ApiResponse<ProfileData>> {
     return this.get<ProfileData>('/profile/me');
+  }
+
+  // Another person's profile (no e-mail, phone or settings) -> GET /api/profile/users/{username}; 404 if unknown or deleted
+  async getPublicProfile(username: string): Promise<ApiResponse<PublicProfile>> {
+    return this.get<PublicProfile>(`/profile/users/${encodeURIComponent(username)}`);
   }
 
   async getProfileStatus(): Promise<ApiResponse<ProfileStatus>> {
