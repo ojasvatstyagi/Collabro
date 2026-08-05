@@ -7,11 +7,12 @@ import {
   Filter,
   Clock,
 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { errorMessage } from '../utils/errors';
+import { displayName, profilePath } from '../utils/people';
 import { cn } from '../utils/cn';
 import { getLevelColor, formatDate } from '../utils/helper';
 import { commonTechnologies, categories, levels } from '../utils/lists';
@@ -350,7 +351,17 @@ const Explore: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mb-2">
                             <span>
-                              by {project.createdBy?.username || 'Unknown'}
+                              by{' '}
+                              {profilePath(project.createdBy?.username) ? (
+                                <Link
+                                  to={profilePath(project.createdBy?.username) as string}
+                                  className="hover:underline"
+                                >
+                                  {displayName(project.createdBy)}
+                                </Link>
+                              ) : (
+                                displayName(project.createdBy ?? {})
+                              )}
                             </span>
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
@@ -459,7 +470,18 @@ const Explore: React.FC = () => {
             <p className="whitespace-pre-wrap">{detailsProject.description}</p>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
               <dt className="text-gray-500">Posted by</dt>
-              <dd>@{detailsProject.createdBy?.username ?? 'unknown'}</dd>
+              <dd>
+                {profilePath(detailsProject.createdBy?.username) ? (
+                  <Link
+                    to={profilePath(detailsProject.createdBy?.username) as string}
+                    className="text-brand-orange hover:underline"
+                  >
+                    {displayName(detailsProject.createdBy)}
+                  </Link>
+                ) : (
+                  displayName(detailsProject.createdBy ?? {})
+                )}
+              </dd>
               <dt className="text-gray-500">Level</dt>
               <dd>{detailsProject.level}</dd>
               <dt className="text-gray-500">Duration</dt>

@@ -17,6 +17,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { cn } from '../utils/cn';
+import { displayName, initials, profilePath } from '../utils/people';
 import { projectsApi } from '../services/api/projects';
 import {
   teamsApi,
@@ -40,10 +41,7 @@ const STATUS_STYLES: Record<TeamProjectStatus, string> = {
     'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700',
 };
 
-const fullName = (p: PublicProfile) => `${p.firstname} ${p.lastname}`.trim();
-
-const initials = (p: PublicProfile) =>
-  `${p.firstname.charAt(0)}${p.lastname.charAt(0)}`.toUpperCase() || '?';
+const fullName = displayName;
 
 const Avatar: React.FC<{ profile: PublicProfile; className?: string }> = ({
   profile,
@@ -103,15 +101,24 @@ const MemberRow: React.FC<MemberRowProps> = ({
     <div className="min-w-0 flex-1">
       <div className="flex items-center gap-2">
         <span className="truncate text-sm font-medium text-brand-dark dark:text-gray-100">
-          {fullName(profile)}
+          {profilePath(profile.username) ? (
+            <Link to={profilePath(profile.username) as string} className="hover:underline">
+              {fullName(profile)}
+            </Link>
+          ) : (
+            fullName(profile)
+          )}
         </span>
         {isOwner && (
           <Crown className="h-3.5 w-3.5 text-brand-orange" aria-label="Owner" />
         )}
       </div>
-      <p className="truncate text-xs text-brand-dark/50 dark:text-gray-400">
-        @{profile.username}
-      </p>
+      {/* Someone without a name is already shown by their username */}
+      {fullName(profile) !== profile.username && (
+        <p className="truncate text-xs text-brand-dark/50 dark:text-gray-400">
+          @{profile.username}
+        </p>
+      )}
       {profile.skills.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
           {profile.skills.slice(0, 3).map((s) => (

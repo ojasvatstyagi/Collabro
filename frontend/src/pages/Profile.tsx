@@ -27,6 +27,7 @@ import {
 } from '../services/api/profile';
 import { toast } from 'react-hot-toast';
 import { errorMessage, parseFieldErrors } from '../utils/errors';
+import { displayName } from '../utils/people';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -373,7 +374,7 @@ const Profile: React.FC = () => {
                     </button>
                   )}
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-4">
-                    {profile.firstname} {profile.lastname}
+                    {displayName(profile)}
                   </h2>
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">
                     @{profile.username}

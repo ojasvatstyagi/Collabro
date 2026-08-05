@@ -9,13 +9,14 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/ui/SideBar';
 import Button from '../components/ui/Button';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { requestsApi, JoinRequest } from '../services/api/requests';
 import { toast } from 'react-hot-toast';
 import { errorMessage } from '../utils/errors';
+import { displayName, initials, profilePath } from '../utils/people';
 
 const RequestCard: React.FC<{
   request: JoinRequest;
@@ -34,7 +35,7 @@ const RequestCard: React.FC<{
           />
         ) : (
           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-orange/10 text-lg font-bold text-brand-orange">
-            {request.requester.username.charAt(0).toUpperCase()}
+            {initials(request.requester)}
           </div>
         )}
 
@@ -42,11 +43,23 @@ const RequestCard: React.FC<{
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
             <div>
               <h3 className="font-medium text-brand-dark dark:text-gray-100">
-                {request.requester.firstname} {request.requester.lastname}
+                {profilePath(request.requester.username) ? (
+                  <Link
+                    to={profilePath(request.requester.username) as string}
+                    className="hover:underline"
+                  >
+                    {displayName(request.requester)}
+                  </Link>
+                ) : (
+                  displayName(request.requester)
+                )}
               </h3>
-              <p className="text-sm text-brand-dark/60 dark:text-gray-400">
-                @{request.requester.username}
-              </p>
+              {/* Someone without a name is already shown by their username */}
+              {displayName(request.requester) !== request.requester.username && (
+                <p className="text-sm text-brand-dark/60 dark:text-gray-400">
+                  @{request.requester.username}
+                </p>
+              )}
             </div>
           </div>
 
@@ -222,8 +235,7 @@ const Requests: React.FC = () => {
     const searchLower = searchQuery.toLowerCase();
     return (
       request.requester.username.toLowerCase().includes(searchLower) ||
-      request.requester.firstname.toLowerCase().includes(searchLower) ||
-      request.requester.lastname.toLowerCase().includes(searchLower) ||
+      displayName(request.requester).toLowerCase().includes(searchLower) ||
       request.projectTitle.toLowerCase().includes(searchLower)
     );
   });

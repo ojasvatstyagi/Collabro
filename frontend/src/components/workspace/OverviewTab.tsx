@@ -1,8 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Users, Edit, Trash2 } from 'lucide-react';
 import { Project } from '../../services/api/projects';
 import type { PublicProfile } from '../../services/api/teams';
 import Button from '../ui/Button';
+import { displayName, profilePath } from '../../utils/people';
 
 interface OverviewTabProps {
   project: Project;
@@ -108,11 +110,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     </div>
                     <div>
                       <p className="font-medium text-brand-dark dark:text-gray-100">
-                        {member.firstname} {member.lastname}
+                        {profilePath(member.username) ? (
+                          <Link to={profilePath(member.username) as string} className="hover:underline">
+                            {displayName(member)}
+                          </Link>
+                        ) : (
+                          displayName(member)
+                        )}
                       </p>
-                      <p className="text-xs text-gray-400">
-                        @{member.username}
-                      </p>
+                      {displayName(member) !== member.username && (
+                        <p className="text-xs text-gray-400">
+                          @{member.username}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {isOwner && (
@@ -148,7 +158,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               </div>
               <div>
                 <p className="font-medium text-brand-dark dark:text-gray-100">
-                  {project.createdBy.username}
+                  {profilePath(project.createdBy.username) ? (
+                    <Link to={profilePath(project.createdBy.username) as string} className="hover:underline">
+                      {displayName(project.createdBy)}
+                    </Link>
+                  ) : (
+                    displayName(project.createdBy)
+                  )}
                 </p>
                 <p className="text-xs text-gray-500">Owner</p>
               </div>
