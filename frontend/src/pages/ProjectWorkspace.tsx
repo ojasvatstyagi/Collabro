@@ -34,6 +34,7 @@ import EditTaskModal from '../components/workspace/EditTaskModal';
 import { useAuth } from '../context/AuthContext';
 import { errorMessage } from '../utils/errors';
 import type { PublicProfile } from '../services/api/teams';
+import { assigneeOptions } from '../utils/people';
 
 type WorkspaceTab = 'overview' | 'tasks' | 'files' | 'chat';
 
@@ -52,6 +53,8 @@ const ProjectWorkspace: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [team, setTeam] = useState<PublicProfile[]>([]);
+  // The server's team list leaves the owner out; they can be given tasks too
+  const assignees = assigneeOptions(project?.createdBy, team);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -428,9 +431,9 @@ const ProjectWorkspace: React.FC = () => {
                 }
               >
                 <option value="">Unassigned</option>
-                {team.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.firstname} {member.lastname} ({member.username})
+                {assignees.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -530,7 +533,7 @@ const ProjectWorkspace: React.FC = () => {
           isOpen={isEditTaskModalOpen}
           onClose={() => setIsEditTaskModalOpen(false)}
           task={editingTask}
-          team={team}
+          assignees={assignees}
           onUpdate={handleTaskUpdate}
         />
       )}

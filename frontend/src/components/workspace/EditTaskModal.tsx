@@ -7,14 +7,15 @@ import {
   UpdateTaskRequest,
   projectsApi,
 } from '../../services/api/projects';
-import type { PublicProfile } from '../../services/api/teams';
+import type { AssigneeOption } from '../../utils/people';
 
 interface EditTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   task: Task;
   onUpdate: (updatedTask: Task) => void;
-  team: PublicProfile[];
+  /** Everyone a task can be given to: the owner first, then the team. */
+  assignees: AssigneeOption[];
 }
 
 const EditTaskModal: React.FC<EditTaskModalProps> = ({
@@ -22,7 +23,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
   onClose,
   task,
   onUpdate,
-  team,
+  assignees,
 }) => {
   const [formData, setFormData] = useState<UpdateTaskRequest>({});
   const [tags, setTags] = useState<string>('');
@@ -135,9 +136,9 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
             }
           >
             <option value="">Unassigned</option>
-            {team.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.firstname} {member.lastname} ({member.username})
+            {assignees.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
               </option>
             ))}
           </select>
