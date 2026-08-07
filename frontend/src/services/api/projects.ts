@@ -7,7 +7,7 @@ export interface Project {
   title: string;
   description: string;
   technologies: string[];
-  level: 'BRAND_NEW' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  level: 'BRAND_NEW' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | null; // optional when created through the API
   duration: string;
   teamSize: number;
   category: string;
@@ -70,7 +70,7 @@ export interface JoinProjectRequest {
 export interface Task {
   id: string;
   title: string;
-  description: string;
+  description: string | null; // optional when a task is created through the API
   status: 'PENDING' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   tags: string[];

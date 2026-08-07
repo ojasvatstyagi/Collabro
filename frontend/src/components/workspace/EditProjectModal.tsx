@@ -32,7 +32,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
         description: project.description,
         category: project.category,
         technologies: project.technologies,
-        level: project.level,
+        level: project.level ?? undefined,
         duration: project.duration,
         teamSize: project.teamSize,
         budget: project.budget,

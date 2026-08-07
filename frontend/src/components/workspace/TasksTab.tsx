@@ -33,7 +33,7 @@ const TasksTab: React.FC<TasksTabProps> = ({
     const matchesSearch =
       searchQuery === '' ||
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (task.description ?? '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 

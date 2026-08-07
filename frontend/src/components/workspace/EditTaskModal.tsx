@@ -33,7 +33,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
     if (isOpen && task) {
       setFormData({
         title: task.title,
-        description: task.description,
+        description: task.description ?? '',
         priority: task.priority,
         dueDate: task.dueDate,
         assigneeId: task.assigneeId,

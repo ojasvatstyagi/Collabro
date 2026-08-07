@@ -50,7 +50,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 Level
               </label>
               <p className="font-medium text-brand-dark dark:text-gray-100 capitalize">
-                {project.level.toLowerCase()}
+                {/* a project created through the API may have no level */}
+                {project.level ? project.level.toLowerCase().replace(/_/g, ' ') : 'not specified'}
               </p>
             </div>
             <div>

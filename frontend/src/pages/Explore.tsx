@@ -373,10 +373,10 @@ const Explore: React.FC = () => {
                           <span
                             className={cn(
                               'rounded-full px-2 py-1 text-xs font-medium',
-                              getLevelColor(project.level)
+                              getLevelColor(project.level ?? '')
                             )}
                           >
-                            {project.level}
+                            {project.level ?? 'Any level'}
                           </span>
                         </div>
                       </div>
