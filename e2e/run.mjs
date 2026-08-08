@@ -15,7 +15,6 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startSmtpSink } from './smtp-sink.mjs';
-import { runSuite } from './suite.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -105,6 +104,8 @@ async function main() {
   await waitFor('frontend', `http://127.0.0.1:${FRONTEND_PORT}/`, (s) => s === 200, 60000);
   console.log('[e2e] stack is up, running the suite\n');
 
+  // E2E_SUITE=./some-script.mjs runs another script against the same stack (handy for debugging one flow)
+  const { runSuite } = await import(process.env.E2E_SUITE || './suite.mjs');
   const { results, failed } = await runSuite({
     base: `http://127.0.0.1:${FRONTEND_PORT}`,
     mails: () => sink.messages,
