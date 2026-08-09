@@ -58,6 +58,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 | 14 | Cleanup | with a 30 s limit and a 5 s schedule: a never-verified registration is deleted for real and its username freed, a verified account survives |
 | 15 | Deleted accounts | a deleted account's username and e-mail can register again (and again), as a fresh empty account |
 | 16 | History at scale | 105 events: pages, ordering, no event twice, literal search (`%`), filters, counted stats, exact badge counts, the page in the browser |
+| 17 | People | unnamed profiles shown by username (never "New User"), tasks assigned to the owner in the create and edit forms, the Requests page linking to a person's profile page, the public profile page and its endpoint |
 
 ## Files
 

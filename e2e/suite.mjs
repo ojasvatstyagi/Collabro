@@ -130,6 +130,9 @@ export async function runSuite(cfg) {
     ivy: { username: 'ivy_e2e', email: 'ivy@e2e.test', password: 'Passw0rd!nine' },
     judy: { username: 'judy_e2e', email: 'judy@e2e.test', password: 'Passw0rd!ten' },
     kim: { username: 'kim_e2e', email: 'kim@e2e.test', password: 'Passw0rd!eleven' },
+    owen: { username: 'owen_e2e', email: 'owen@e2e.test', password: 'Passw0rd!twelve' },
+    mia: { username: 'mia_e2e', email: 'mia@e2e.test', password: 'Passw0rd!thirteen' },
+    nia: { username: 'nia_e2e', email: 'nia@e2e.test', password: 'Passw0rd!fourteen' },
   };
 
   const browser = await puppeteer.launch({ executablePath: cfg.chromePath, headless: 'new', args: ['--no-sandbox'] });
@@ -845,6 +848,117 @@ export async function runSuite(cfg) {
       await p.goto(BASE + '/history', { waitUntil: 'networkidle0' });
       check('the History page shows her newest project', await waitText(p, 'Created "Paging Project 104"', 8000));
       await c.close();
+    });
+
+    // ---------------------------------------------------------------- 17
+    section = '17 People: names, tasks for the owner, profile pages';
+    let owen, mia, nia, owenProfile, peopleProject;
+    await step('setup: an unnamed owner, a named member and an unnamed person asking to join', async () => {
+      for (const u of [users.owen, users.mia, users.nia]) await registerApi(u);
+      owen = await loginApi(users.owen);
+      mia = await loginApi(users.mia);
+      nia = await loginApi(users.nia);
+      owenProfile = (await api('GET', '/profile/me', { token: owen.token })).body;
+      const proj = await api('POST', '/projects', { token: owen.token, json: { title: 'People Project', description: 'about people', technologies: ['Java'], teamSize: 4 } });
+      peopleProject = proj.body;
+      const named = await api('PUT', '/profile/me', { token: mia.token, json: { firstname: 'Mia', lastname: 'Moss', bio: 'I weld bridges', education: 'ETH', location: 'Zurich', phone: '+41 79 555 01 23' } });
+      await api('POST', '/profile/skills', { token: mia.token, json: { name: 'Welding', proficiency: 'EXPERT' } });
+      await api('POST', '/projects', { token: mia.token, json: { title: 'Mia Bridge', description: 'a bridge', technologies: ['Steel'], teamSize: 2 } });
+      check('mia fills in her profile', named.status === 200, named.status + ' ' + named.text.slice(0, 100));
+      await api('POST', `/requests/join/${peopleProject.id}`, { token: mia.token, json: { message: 'let me weld' } });
+      await api('POST', `/requests/join/${peopleProject.id}`, { token: nia.token, json: { message: 'me too' } });
+      const pending = await api('GET', '/requests/received?status=PENDING', { token: owen.token });
+      const miaRequest = pending.body.data.find((r) => r.requester.username === users.mia.username);
+      const approve = await api('POST', `/requests/${miaRequest.id}/approve`, { token: owen.token });
+      check('the owner approves mia (nia stays pending)', approve.status === 200, String(approve.status));
+    });
+    await step('a profile without a name is shown by its username everywhere, never as "New User"', async () => {
+      check('a brand-new profile has an empty name, not a placeholder', owenProfile.firstname === '' && owenProfile.lastname === '', JSON.stringify([owenProfile.firstname, owenProfile.lastname]));
+      const pending = await api('GET', '/requests/received?status=PENDING', { token: owen.token });
+      const niaRequest = pending.body.data.find((r) => r.requester.username === users.nia.username);
+      check('the request lists her display name as her username', niaRequest.requester.displayName === users.nia.username, JSON.stringify(niaRequest.requester));
+      const team = await api('GET', `/projects/${peopleProject.id}/team`, { token: owen.token });
+      check('a named member comes with her display name', team.body[0].displayName === 'Mia Moss', team.text.slice(0, 200));
+      const proj = await api('GET', `/projects/${peopleProject.id}`, { token: owen.token });
+      check("the project's creator is shown by username too", proj.body.createdBy.displayName === users.owen.username, JSON.stringify(proj.body.createdBy));
+      check('nothing in these responses says "New User"', ![niaRequest, team.body, proj.body].some((x) => JSON.stringify(x).includes('New User')));
+    });
+    await step('a task can be given to the owner, in the create form and the edit form', async () => {
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.owen);
+      // created through the API with no level and no description: the workspace used to crash on both
+      await api('POST', `/projects/${peopleProject.id}/tasks`, { token: owen.token, json: { title: 'A task without a description' } });
+      await p.goto(BASE + `/project/${peopleProject.id}`, { waitUntil: 'networkidle0' });
+      check('the workspace opens for a project that has no level', await waitText(p, 'People Project', 6000));
+      await clickExact(p, 'Tasks');
+      check('the Tasks tab lists a task that has no description', await waitText(p, 'A task without a description', 6000));
+      await clickExact(p, 'New Task');
+      await p.waitForSelector('input[placeholder="e.g. Implement Login Page"]', { timeout: 6000 });
+      await p.type('input[placeholder="e.g. Implement Login Page"]', 'Weld the first beam');
+      const options = await p.evaluate(() => { const s = [...document.querySelectorAll('select')].find((x) => [...x.options].some((o) => o.text === 'Unassigned')); return [...s.options].map((o) => o.text); });
+      check('the assignee list offers the owner first, then the team', options[0] === 'Unassigned' && options[1] === `${users.owen.username} (owner)` && options.includes(`Mia Moss (${users.mia.username})`), JSON.stringify(options));
+      await p.evaluate((id) => {
+        const s = [...document.querySelectorAll('select')].find((x) => [...x.options].some((o) => o.text === 'Unassigned'));
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, id);
+        s.dispatchEvent(new Event('change', { bubbles: true }));
+      }, owenProfile.id);
+      await clickExact(p, 'Create Task');
+      await sleep(1200);
+      const tasks = await api('GET', `/projects/${peopleProject.id}/tasks`, { token: owen.token });
+      const task = tasks.body.find((t) => t.title === 'Weld the first beam');
+      check('the task was created and assigned to the owner', task?.assigneeId === owenProfile.id, JSON.stringify(task));
+      check('the assignee is named by username, not blank or "New User"', task?.assigneeName === users.owen.username, String(task?.assigneeName));
+      check('the board shows the owner as the assignee', await waitText(p, users.owen.username, 4000));
+      // the edit form used to list only the team, so an owner-assigned task showed "Unassigned" and saving could clear it
+      await p.evaluate(() => {
+        // the Edit button of the card that holds the owner's task: climb while the ancestor still has only this one
+        // Edit button, and look for the title on the way
+        const button = [...document.querySelectorAll('button[title="Edit Task"]')].find((b) => {
+          for (let n = b.parentElement; n && n.querySelectorAll('button[title="Edit Task"]').length === 1; n = n.parentElement) {
+            if (n.innerText.includes('Weld the first beam')) return true;
+          }
+          return false;
+        });
+        button.click();
+      });
+      await sleep(600);
+      const edit = await p.evaluate(() => { const s = [...document.querySelectorAll('select')].find((x) => [...x.options].some((o) => o.text === 'Unassigned') && [...x.options].some((o) => o.text.includes('(owner)'))); return s ? { value: s.value, text: s.options[s.selectedIndex].text } : null; });
+      check('opening that task for editing shows the owner as the current assignee', edit && edit.value === owenProfile.id && edit.text.includes('(owner)'), JSON.stringify(edit));
+      await c.close();
+    });
+    await step('the Requests page names the person by username and links to their profile', async () => {
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.owen);
+      await p.goto(BASE + '/requests', { waitUntil: 'networkidle0' });
+      check('the unnamed requester appears under her username', await waitText(p, users.nia.username, 8000));
+      check('and not as "New User"', !(await text(p)).includes('New User'));
+      await p.evaluate((name) => { [...document.querySelectorAll('a')].find((a) => a.innerText.trim() === name).click(); }, users.nia.username);
+      await p.waitForFunction((u) => location.pathname === '/users/' + u, { timeout: 6000 }, users.nia.username).catch(() => {});
+      check('clicking the name opens her profile page', new URL(p.url()).pathname === '/users/' + users.nia.username, p.url());
+      check('which shows her by username', await waitText(p, '@' + users.nia.username, 6000));
+      await c.close();
+    });
+    await step('the profile page shows what is public, and nothing private', async () => {
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.owen);
+      await p.goto(BASE + '/users/' + users.mia.username, { waitUntil: 'networkidle0' });
+      check('the page loads her profile', await waitText(p, 'I weld bridges', 8000));
+      const body = await text(p);
+      check('her name and details are all there', ['Mia Moss', '@' + users.mia.username, 'I weld bridges', 'Zurich', 'ETH'].every((t) => body.includes(t)), body.slice(0, 300));
+      check('her skill and the project she started', body.includes('Welding') && body.includes('Mia Bridge'));
+      check('no e-mail address and no phone number', !body.includes(users.mia.email) && !body.includes('555 01 23'));
+      await shot(p, 'profile-page-mia');
+      await p.goto(BASE + '/users/' + users.owen.username, { waitUntil: 'networkidle0' });
+      check('looking at yourself offers to edit your profile', await waitText(p, 'Edit my profile', 6000));
+      await p.goto(BASE + '/users/nobody_at_all', { waitUntil: 'networkidle0' });
+      check('an unknown user gets a clear "no such user" page', await waitText(p, 'No such user', 6000));
+      await c.close();
+    });
+    await step('the profile endpoint needs a login, and unknown accounts are 404', async () => {
+      check('without a token -> 401', (await api('GET', `/profile/users/${users.mia.username}`)).status === 401);
+      const ok = await api('GET', `/profile/users/${users.mia.username}`, { token: owen.token });
+      check('with a token it returns the public part only', ok.status === 200 && ok.body.displayName === 'Mia Moss' && !('email' in ok.body) && !('phone' in ok.body), ok.text.slice(0, 200));
+      check('an unknown username -> 404', (await api('GET', '/profile/users/nobody_at_all', { token: owen.token })).status === 404);
     });
   } finally {
     await browser.close();
