@@ -45,6 +45,10 @@ purpose, see section 4.
 | A user who deleted their own account could never register the same username or e-mail again (409: the soft-deleted row kept the unique columns) | **Fixed** (2026-11-23): deletion renames the row to an id-derived placeholder and drops its codes; Flyway V3 does the same for accounts deleted earlier. Verified on MySQL against a database holding already-locked names. | `AccountServiceTest`, `AccountDeletionIntegrationTest`, e2e §15 |
 | A deleted account's profile kept everything the person had entered (and teammates still saw the real name, bio and skills of a deleted member; the picture file stayed on disk and stayed served) | **Fixed** (2026-11-23): deletion blanks the profile (`Profile.erasePersonalData`), deletes the picture file and keeps the row for the project data that points at it. Flyway V4 does the same for profiles already deleted; their picture files are removed by the daily cleanup. Verified on MySQL against a database holding deleted profiles with data. What the person *contributed* to a project (messages, tasks, uploaded files, join-request texts) is kept on purpose. | `AccountServiceTest`, `AccountDeletionIntegrationTest`, `AccountCleanupIntegrationTest`, e2e §7 |
 | History and Achievements loaded everything on every request (all projects, requests with their requesters' skills, tasks and files as entities, filtered, sorted and paged in Java, twice per History page view: list and stats; Achievements loaded every owned project, joined project, team and task just to count them) | **Fixed** (2026-11-23): Achievements use count queries only; History filters, orders, counts and limits in SQL per kind of event and merges only the rows a page needs. Measured on a busy account: 88 queries for the badges against 8 now; a page of history or the stats cost the same number of queries for a quiet and a busy account. Verified on MySQL. **Behaviour change:** History search matches what people wrote, no longer the labels the timeline adds (searching "created" or "uploaded" used to match every such event). | `HistoryServiceTest` (real database), `AchievementIntegrationTest`, e2e §16 |
+| A task could never be given to the project's owner (the assignee lists held only the team, who exclude the owner), and one that was assigned to them showed as "Unassigned" in the edit form, where saving could silently clear it | **Fixed** (2026-11-23): the owner is listed first (`assigneeOptions`) in the create and edit forms. | `people.test.ts`, e2e §17 |
+| New profiles were named "New User" (the columns are NOT NULL), shown everywhere and counted as filled in for the profile-completion score | **Fixed** (2026-11-23): new profiles have empty names and are shown by username (`Profile.displayName()` on the server, `utils/people.ts` in the UI); Flyway V5 clears the placeholder on existing profiles (a real "New Person" is untouched). | `ProfileDisplayNameTest`, `ProfileServiceTest`, `people.test.ts`, e2e §17 |
+| No way to look at another person's profile (the "View profile" link had been removed because its route never existed) | **Fixed** (2026-11-23): `GET /api/profile/users/{username}` and a `/users/:username` page, linked from the Requests page, team lists and project creators. Public fields only. | `SecurityRulesIntegrationTest`, `ProfileControllerTest`, `profile.test.ts`, e2e §17 |
+| The project workspace crashed (blank page) for a project with no level, and the Tasks tab for a task with no description: both are allowed by the API, the UI form just never sends them empty | **Fixed** (found by the e2e run, 2026-11-23): the types now say `null`, which also exposed three more places that assumed otherwise | e2e §17 |
 
 ### Medium and low
 
@@ -127,23 +131,18 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    ```
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
-3. **EditTaskModal cannot assign tasks to the project owner** (its list is the team members, who exclude the owner; the
-   backend accepts the owner).
-4. **New profiles are named "New User"** (a placeholder because the columns are `NOT NULL`), shown everywhere until
-   the user edits their profile. Showing the username instead would be better.
-5. **No public profile page** (the "View profile" link on requests was removed because the route never existed).
-6. 401/403 body escaping (section 1, last row).
-7. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
-8. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
-9. Swagger UI is public in the dev profile.
-10. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
+3. 401/403 body escaping (section 1, last row).
+4. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
+5. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
+6. Swagger UI is public in the dev profile.
+7. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
 
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 372 tests
+cd backend  && mvn test                          # 385 tests
 cd frontend && npm test && npm run lint && npm run build
-cd e2e      && npm install && npm test           # ~200 checks, ~3.5 min, needs Chrome and free ports 8080/5173/2525
+cd e2e      && npm install && npm test           # ~250 checks, ~4.5 min, needs Chrome and free ports 8080/5173/2525
 ```
 
 When fixing a bug, add a test that fails on the old code (revert the fix, watch it fail, restore). Several of the

@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 372 tests, frontend 40 tests, e2e 221 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 385 tests, frontend 55 tests, e2e 248 checks, all passing).
 
 ## 1. What it is
 
@@ -95,7 +95,7 @@ Rules that matter:
 | `HistoryService` / `HistoryQueries` | Activity timeline **computed on read** from projects, requests, tasks, files (no history table), but **by the database**: `HistoryQueries.Source` has one JPQL shape per kind of event (project, request sent/received, joined/accepted, task, file) that filters (timeframe, search), orders newest first, counts and limits in SQL and returns scalars, not entities. A page is the merge of the newest `offset+size` rows of each kind; stats are one aggregate query per kind. The order is total (timestamp, kind, id) so pages never repeat or skip events. **Search matches what people wrote** (names, descriptions/messages, project name, the other person's username), literally (`%`/`_` escaped), not the labels the timeline adds ("Created", "Uploaded"). Add a kind of event = add a `Source` and a case in `HistoryService.toItem`. |
 | `AchievementService` | 14 badges in `CATALOG`, **computed on read** from the same data, with **count queries only** (one per metric, `MAX(SIZE(team.members))` for the largest team): nothing is loaded, so a busy account costs as many queries as a new one. Adding a badge = adding a `Badge` + a metric (+ its count query). |
 | `MatchingService` | Public search (`ProfileSpecifications`), similar/complementary suggestions (capped at 50). |
-| `ProfileService` | Own profile, `toPublicDto` (what others may see), PDF export, `publicPictureUrl`. |
+| `ProfileService` | Own profile, `toPublicDto` (what others may see, incl. `displayName`), `getPublicProfile(username)`, PDF export, `publicPictureUrl`. |
 | `FileStorageService` | All disk access. Every path is resolved inside the upload dir; names sanitised; pictures verified by magic bytes. |
 | `PasswordService` | One-time codes: 6 digits, 10 min life, 5 wrong guesses burn the code, 60 s resend cooldown (measured from the newest code **even if burned**), constant-time compare, purpose-bound, reset ends sessions. |
 | `LoginThrottle` | Failed-login limiter, in memory, sliding 15 min window: 5 per username+address, 20 per username, 30 per address. Checked **before** the password, so a locked client is refused even with the right one (no oracle); unknown usernames count the same; refused requests are not counted (no extending the lock); success clears only the username+address pair. Over the limit: `429` + `Retry-After` (`TooManyRequestsException`). |
@@ -113,7 +113,7 @@ Base path `/api`. Everything requires a Bearer access token **except**: `/api/au
 | Area | Endpoints |
 |---|---|
 | Auth | `POST register, resend-registration-otp, login, refresh, logout, forgot-password, verify-otp, reset-password, verify-registration-otp`; `GET me`; `PUT change-password` |
-| Profile | `GET/PUT/DELETE /profile/me` (DELETE needs `{password}`), `GET /profile/status`, `GET /profile/export` (PDF), skills (`/profile/skills[/{id}]`, `/search`), social links (`/profile/social-links[/{id}]`), picture (`/profile/picture`) |
+| Profile | `GET/PUT/DELETE /profile/me` (DELETE needs `{password}`), `GET /profile/users/{username}` (another person's public profile, login required, 404 for unknown or deleted accounts), `GET /profile/status`, `GET /profile/export` (PDF), skills (`/profile/skills[/{id}]`, `/search`), social links (`/profile/social-links[/{id}]`), picture (`/profile/picture`) |
 | Projects | `GET/POST /projects`, `GET/PUT/DELETE /projects/{id}`, `GET /projects/me`, `/joined`, `/user/{profileId}`, `POST /{id}/join`, `POST /{id}/leave`, `GET /{id}/team`, `DELETE /{id}/team/{memberProfileId}` |
 | Tasks | `GET/POST /projects/{id}/tasks`, `PATCH/DELETE /tasks/{id}` |
 | Chat | `GET/POST /projects/{id}/messages` |
@@ -125,6 +125,14 @@ Base path `/api`. Everything requires a Bearer access token **except**: `/api/au
 Conventions:
 
 - **Never return `ProfileDto` (has e-mail, phone, settings) to anyone but its owner.** Others get `PublicProfileDto`.
+- **Names: a profile without a name has EMPTY `firstname`/`lastname` (never a placeholder such as "New User"), and it is
+  shown by its username.** `Profile.displayName()` does that on the server (`PublicProfileDto`, `ProjectCreatorDto`,
+  `RequesterDTO` carry a `displayName`; task `assigneeName` and the PDF use it), and the frontend does it in one place,
+  `utils/people.ts` (`displayName`, `initials`, `profilePath`, `assigneeOptions`). Never build a name as
+  `${firstname} ${lastname}` in a component: it renders blank or "null null". Deleted accounts are "Deleted User" and
+  have no profile page (`profilePath` returns null for them).
+- The public profile page (`/users/:username`) shows only what `PublicProfileDto` has (name, bio, education, location,
+  picture, skills) plus the projects the person started. Social links and contact details are deliberately not public.
   Project creators expose no e-mail.
 - Errors are plain-text bodies (`GlobalExceptionHandler`): validation `400` ("field: message, field2: message"),
   `403` forbidden, `404`, `409` conflict, `413` upload too large, `429` too many failed logins (with `Retry-After`), `500` generic. Malformed ids and unknown sort
@@ -176,7 +184,7 @@ refresh ─> new access + NEW refresh cookie (old one stays valid 10 s for concu
 
 Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `/forgot-password`,
 `/reset-password`; protected (`ProtectedRoute`) `/explore`, `/profile`, `/achievements`, `/projects`, `/teams`,
-`/project/:projectId` (workspace), `/post-idea`, `/requests`, `/history`, `/settings`.
+`/project/:projectId` (workspace), `/post-idea`, `/requests`, `/history`, `/settings`, `/users/:username` (another person's profile page, `UserProfile`).
 
 - **`BaseApi.handleResponse` already unwraps the server's `{ success, data, count }` envelope.** An API method must
   return `this.get<T>(...)` directly. Unwrapping `response.data.data` again makes every list empty (this broke the whole
