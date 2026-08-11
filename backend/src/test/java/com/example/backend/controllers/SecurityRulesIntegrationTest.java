@@ -160,4 +160,14 @@ class SecurityRulesIntegrationTest {
         mockMvc.perform(get("/api/profile/users/nobody").header("Authorization", "Bearer " + token)).andExpect(status().isNotFound());
         mockMvc.perform(get("/api/profile/users/gone").header("Authorization", "Bearer " + token)).andExpect(status().isNotFound());
     }
+
+    @Test
+    void anUnauthenticatedRequest_GetsAJsonBodyWithAFixedMessage() throws Exception {
+        // through the real filter chain, not just the handler
+        mockMvc.perform(get("/api/teams/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Authentication is required"))
+                .andExpect(content().string(not(containsString("Full authentication"))));
+    }
 }
