@@ -597,6 +597,8 @@ export async function runSuite(cfg) {
       check('the refresh token cannot be used as a Bearer token', asBearer.status === 401, String(asBearer.status));
       const cpw = await api('PUT', '/auth/change-password', { json: { currentPassword: 'a', newPassword: 'abcdef' } });
       check('change-password needs a login even though /api/auth/** is public', cpw.status === 401, String(cpw.status));
+      const noAuth = await api('GET', '/teams/me');
+      check('a request without a login gets a JSON 401 with a fixed message, not Spring internals', noAuth.status === 401 && noAuth.body?.message === 'Authentication is required' && /json/.test(noAuth.headers.get('content-type') || ''), noAuth.text);
     });
     await step('refresh tokens rotate; replay is detected; logout revokes', async () => {
       const l = await loginApi(users.carol);
