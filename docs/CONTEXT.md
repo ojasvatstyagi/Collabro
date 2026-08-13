@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 385 tests, frontend 55 tests, e2e 248 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 389 tests, frontend 55 tests, e2e 249 checks, all passing).
 
 ## 1. What it is
 
@@ -135,7 +135,7 @@ Conventions:
   picture, skills) plus the projects the person started. Social links and contact details are deliberately not public.
   Project creators expose no e-mail.
 - Errors are plain-text bodies (`GlobalExceptionHandler`): validation `400` ("field: message, field2: message"),
-  `403` forbidden, `404`, `409` conflict, `413` upload too large, `429` too many failed logins (with `Retry-After`), `500` generic. Malformed ids and unknown sort
+  `403` forbidden, `404`, `409` conflict, `413` upload too large, `429` too many failed logins (with `Retry-After`), `500` generic. The `401` (not logged in) and `403` (not allowed) that come from the security filter chain are JSON, `{"message": "Authentication is required"}` / `{"message": "You do not have permission to do that"}`, written by Jackson with fixed text (never paste an exception message into a JSON string). Malformed ids and unknown sort
   fields are `400`.
 - Wrong-password style failures on authenticated endpoints are **400, never 401**: the frontend treats 401 as "session
   expired" and signs the user out.
