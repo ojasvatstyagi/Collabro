@@ -28,16 +28,21 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final List<String> allowedOrigins;
+    private final boolean docsPublic;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
             CustomAuthenticationEntryPoint customEntryPoint,
             CustomAccessDeniedHandler customAccessDeniedHandler,
-            @Value("#{'${app.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
+            @Value("#{'${app.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins,
+            // The API description (Swagger UI, /v3/api-docs) is a map of every endpoint, so it is only open to anonymous
+            // visitors when this is switched on explicitly (the dev profile does). Anywhere else it needs a login.
+            @Value("${app.docs.public:false}") boolean docsPublic) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.customEntryPoint = customEntryPoint;
         this.customAccessDeniedHandler = customAccessDeniedHandler;
         this.allowedOrigins = allowedOrigins;
+        this.docsPublic = docsPublic;
     }
 
     @Bean
@@ -54,19 +59,19 @@ public class SecurityConfig {
                     return config;
                 }))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // Must come before the permitAll below: first matching rule wins
-                        .requestMatchers("/api/auth/change-password").authenticated()
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/matching/search/**",
-                                "/api/profile/skills/search",
-                                "/api/profile/picture/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html")
-                        .permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    // Must come before the permitAll below: first matching rule wins
+                    auth.requestMatchers("/api/auth/change-password").authenticated();
+                    auth.requestMatchers(
+                            "/api/auth/**",
+                            "/api/matching/search/**",
+                            "/api/profile/skills/search",
+                            "/api/profile/picture/**").permitAll();
+                    if (docsPublic) {
+                        auth.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
+                    }
+                    auth.anyRequest().authenticated();
+                })
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(customEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler))

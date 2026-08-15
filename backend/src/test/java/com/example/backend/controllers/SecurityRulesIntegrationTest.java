@@ -170,4 +170,17 @@ class SecurityRulesIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Authentication is required"))
                 .andExpect(content().string(not(containsString("Full authentication"))));
     }
+
+    @Test
+    void theApiDescription_IsNotPublicUnlessSwitchedOn_ButStaysAvailableWithALogin() throws Exception {
+        register("viewer", "viewer@example.com", "Vera", "Viewer", null, null);
+        String token = jwtTokenProvider.generateAccessToken("viewer");
+
+        mockMvc.perform(get("/v3/api-docs")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/swagger-ui.html")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/v3/api-docs").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openapi").exists());
+    }
 }

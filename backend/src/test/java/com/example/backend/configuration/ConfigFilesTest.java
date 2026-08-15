@@ -92,4 +92,12 @@ class ConfigFilesTest {
         assertEquals("optional:file:./.env[.properties]", load("application.properties").getProperty("spring.config.import"));
         assertFalse(Files.readString(Path.of("pom.xml")).contains("spring-dotenv"));
     }
+
+    @Test
+    void theApiDescriptionIsPublicOnlyWhereItIsSwitchedOnExplicitly_AndNeverInProduction() throws IOException {
+        assertEquals("true", load("application-dev.properties").getProperty("app.docs.public"));
+        // absent means false (SecurityConfig's default), so nothing but dev opens it to anonymous visitors
+        assertNull(load("application.properties").getProperty("app.docs.public"));
+        assertNotEquals("true", load("application-prod.properties").getProperty("app.docs.public"));
+    }
 }
