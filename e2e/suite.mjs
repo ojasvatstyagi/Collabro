@@ -5,7 +5,7 @@ import fs from 'node:fs';
  * The browser + API suite. It drives the real UI in Chrome where a user would, and uses the API (through the
  * same Vite proxy the browser uses) for setup and for the security checks that have no UI.
  *
- * @param {{ base: string, mails: () => Array<{t:number,to:string[],body:string}>, uploadsDir: string,
+ * @param {{ base: string, backend: string, mails: () => Array<{t:number,to:string[],body:string}>, uploadsDir: string,
  *           chromePath: string, shotsDir: string }} cfg
  */
 export async function runSuite(cfg) {
@@ -597,6 +597,11 @@ export async function runSuite(cfg) {
       check('the refresh token cannot be used as a Bearer token', asBearer.status === 401, String(asBearer.status));
       const cpw = await api('PUT', '/auth/change-password', { json: { currentPassword: 'a', newPassword: 'abcdef' } });
       check('change-password needs a login even though /api/auth/** is public', cpw.status === 401, String(cpw.status));
+      // the e2e stack runs the dev profile, which opens the API description to anonymous visitors (and it must work)
+      const docs = await fetch(cfg.backend + '/v3/api-docs');
+      const spec = await docs.json().catch(() => ({}));
+      check('the API description loads (dev profile): valid OpenAPI listing the login endpoint', docs.status === 200 && !!spec.openapi && !!spec.paths?.['/api/auth/login'], String(docs.status));
+      check('and so does the Swagger UI page', (await fetch(cfg.backend + '/swagger-ui/index.html')).status === 200);
       const noAuth = await api('GET', '/teams/me');
       check('a request without a login gets a JSON 401 with a fixed message, not Spring internals', noAuth.status === 401 && noAuth.body?.message === 'Authentication is required' && /json/.test(noAuth.headers.get('content-type') || ''), noAuth.text);
     });

@@ -108,6 +108,7 @@ async function main() {
   const { runSuite } = await import(process.env.E2E_SUITE || './suite.mjs');
   const { results, failed } = await runSuite({
     base: `http://127.0.0.1:${FRONTEND_PORT}`,
+    backend: `http://127.0.0.1:${BACKEND_PORT}`,
     mails: () => sink.messages,
     uploadsDir,
     chromePath: chrome,
