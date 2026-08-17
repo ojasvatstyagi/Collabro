@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 389 tests, frontend 55 tests, e2e 249 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 393 tests, frontend 55 tests, e2e 251 checks, all passing).
 
 ## 1. What it is
 
@@ -108,7 +108,7 @@ Rules that matter:
 
 Base path `/api`. Everything requires a Bearer access token **except**: `/api/auth/**` (with
 `PUT /api/auth/change-password` explicitly authenticated, rule ordered before the permitAll), `GET /api/matching/search`,
-`GET /api/profile/skills/search`, `GET /api/profile/picture/{file}`, and the swagger paths (disabled in prod).
+`GET /api/profile/skills/search`, `GET /api/profile/picture/{file}`, and the swagger paths **only when `app.docs.public=true`** (the dev profile sets it; absent means false, so anywhere else the API description needs a login; springdoc itself is also disabled in prod).
 
 | Area | Endpoints |
 |---|---|

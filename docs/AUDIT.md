@@ -67,6 +67,8 @@ purpose, see section 4.
 | Dead entities `Post`/`Review`/`Notification`, unused Mongo dependency, unused e-mails/DTOs | **Removed** |
 | E-mail send failures are only logged (registration "succeeds" with no code sent) | **Open**, and now also asynchronous. Mitigated by the Resend button; a failing SMTP server is only visible in the log. |
 | 401/403 JSON bodies were built by string concatenation (an exception message with a quote or backslash made invalid JSON) and echoed Spring's internal wording | **Fixed** (2026-11-23): both handlers serialize with Jackson and send fixed messages (`Authentication is required`, `You do not have permission to do that`). `SecurityErrorHandlersTest`, `SecurityRulesIntegrationTest`, e2e §10 |
+| The API description (Swagger UI, `/v3/api-docs`) was open to anonymous visitors in every profile (only prod switched springdoc off, and the default profile is dev) | **Fixed** (2026-11-23): it is public only when `app.docs.public=true` (dev sets it), otherwise it needs a login. | `SecurityRulesIntegrationTest`, `DocsPublicSecurityTest`, `ConfigFilesTest` |
+| **Swagger did not work at all**: springdoc 2.5.0 predates Spring Framework 6.2 (Spring Boot 3.4), so every API description request failed with `NoSuchMethodError: ControllerAdviceBean.<init>` (found while testing the access rule) | **Fixed** (2026-11-23): springdoc 2.8.4. The tests now assert the description is served (200 with an `openapi` field) and e2e §10 loads it from the real stack. | `DocsPublicSecurityTest`, e2e §10 |
 
 ## 2. Features that were mock-only and are now real
 
@@ -133,13 +135,12 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
 3. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
 4. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
-5. Swagger UI is public in the dev profile.
-6. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
+5. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
 
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 389 tests
+cd backend  && mvn test                          # 393 tests
 cd frontend && npm test && npm run lint && npm run build
 cd e2e      && npm install && npm test           # ~250 checks, ~4.5 min, needs Chrome and free ports 8080/5173/2525
 ```
