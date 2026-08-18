@@ -1,17 +1,19 @@
 package com.example.backend.services;
 
 import com.example.backend.exceptions.TooManyRequestsException;
+import com.example.backend.models.LoginFailure;
+import com.example.backend.repositories.LoginFailureRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Slows down password guessing on login. Failed attempts are counted in a sliding window against three keys, and a
@@ -24,10 +26,11 @@ import java.util.Map;
  *   <li>client address alone: stops one machine trying many usernames (password spraying).</li>
  * </ul>
  * Unknown usernames are counted exactly like known ones, so the response never reveals whether an account exists.
- * Refused requests are not counted, so hammering a locked account does not extend the lock.
+ * Refused requests are not counted, so hammering a locked account neither extends the lock nor grows the table.
  * <p>
- * The counters live in memory: they reset on restart and are per instance. That is a deliberate trade-off while there
- * is no schema migration tool (see docs/AUDIT.md); run one instance or move this behind a shared store before scaling out.
+ * The failures are rows in {@code login_failures}, so every instance of the application sees the same counts and a
+ * restart forgets nothing. (Two instances answering at the very same moment can each let one extra attempt through:
+ * the check and the insert are not one atomic step. The limits are small enough for that not to matter.)
  */
 @Component
 @Slf4j
@@ -37,30 +40,36 @@ public class LoginThrottle {
     static final int MAX_PER_USER_AND_IP = 5;
     static final int MAX_PER_USER = 20;
     static final int MAX_PER_IP = 30;
-    // Bounds memory when someone floods the endpoint with made-up usernames from many addresses
-    static final int MAX_TRACKED_KEYS = 50_000;
     private static final int MAX_USERNAME_LENGTH = 100;
 
+    private final LoginFailureRepository failures;
     private final Clock clock;
-    // Failure times per key, oldest first, never longer than that key's limit
-    private final Map<String, Deque<Instant>> failures = new HashMap<>();
 
-    public LoginThrottle() {
-        this(Clock.systemUTC());
+    @Autowired
+    public LoginThrottle(LoginFailureRepository failures) {
+        this(failures, Clock.systemUTC());
     }
 
-    LoginThrottle(Clock clock) {
+    LoginThrottle(LoginFailureRepository failures, Clock clock) {
+        this.failures = failures;
         this.clock = clock;
     }
 
     /** Throws {@link TooManyRequestsException} when this attempt must not even be checked against the password. */
-    public synchronized void checkAllowed(String username, String clientAddress) {
-        Instant now = clock.instant();
-        Instant unlockAt = null;
+    @Transactional(readOnly = true)
+    public void checkAllowed(String username, String clientAddress) {
+        LocalDateTime now = now();
+        LocalDateTime after = now.minus(WINDOW);
+        LocalDateTime unlockAt = null;
         for (Limit limit : limits(username, clientAddress)) {
-            Instant blockedUntil = blockedUntil(limit, now);
-            if (blockedUntil != null && (unlockAt == null || blockedUntil.isAfter(unlockAt))) {
-                unlockAt = blockedUntil;
+            // The newest `max` failures in the window: if that many exist, the lock lasts until the oldest of them
+            // leaves the window
+            List<LocalDateTime> newest = failures.newestSince(limit.key(), after, PageRequest.of(0, limit.max()));
+            if (newest.size() >= limit.max()) {
+                LocalDateTime blockedUntil = newest.get(newest.size() - 1).plus(WINDOW);
+                if (unlockAt == null || blockedUntil.isAfter(unlockAt)) {
+                    unlockAt = blockedUntil;
+                }
             }
         }
         if (unlockAt != null) {
@@ -70,49 +79,30 @@ public class LoginThrottle {
         }
     }
 
-    public synchronized void recordFailure(String username, String clientAddress) {
-        Instant now = clock.instant();
-        if (failures.size() >= MAX_TRACKED_KEYS) {
-            failures.values().removeIf(times -> times.isEmpty() || !times.peekLast().plus(WINDOW).isAfter(now));
-        }
-        for (Limit limit : limits(username, clientAddress)) {
-            Deque<Instant> times = failures.get(limit.key());
-            if (times == null) {
-                if (failures.size() >= MAX_TRACKED_KEYS) {
-                    continue;
-                }
-                times = new ArrayDeque<>();
-                failures.put(limit.key(), times);
-            }
-            times.addLast(now);
-            while (times.size() > limit.max()) {
-                times.pollFirst();
-            }
-        }
+    @Transactional
+    public void recordFailure(String username, String clientAddress) {
+        LocalDateTime now = now();
+        failures.saveAll(java.util.Arrays.stream(limits(username, clientAddress))
+                .map(limit -> new LoginFailure(limit.key(), now)).toList());
     }
 
     /**
      * Forgives the username + address pair that just proved itself. The address-wide and username-wide counters are
      * left to expire on their own: otherwise an attacker could reset them by logging into an account they own.
      */
-    public synchronized void recordSuccess(String username, String clientAddress) {
-        failures.remove(pairKey(username, clientAddress));
+    @Transactional
+    public void recordSuccess(String username, String clientAddress) {
+        failures.deleteAllForKey(pairKey(username, clientAddress));
     }
 
-    private Instant blockedUntil(Limit limit, Instant now) {
-        Deque<Instant> times = failures.get(limit.key());
-        if (times == null) {
-            return null;
-        }
-        while (!times.isEmpty() && !times.peekFirst().plus(WINDOW).isAfter(now)) {
-            times.pollFirst();
-        }
-        if (times.isEmpty()) {
-            failures.remove(limit.key());
-            return null;
-        }
-        // The deque holds at most `max` entries, so a full one is blocked until its oldest failure leaves the window
-        return times.size() >= limit.max() ? times.peekFirst().plus(WINDOW) : null;
+    /** Deletes failures that have left the window; they can no longer count for anything. */
+    @Transactional
+    public int purgeExpired() {
+        return failures.deleteOlderThan(now().minus(WINDOW));
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.now(clock);
     }
 
     private Limit[] limits(String username, String clientAddress) {
