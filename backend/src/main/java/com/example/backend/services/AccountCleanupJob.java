@@ -17,7 +17,8 @@ import java.util.List;
  * <ul>
  *   <li>{@code app.cleanup.unverified-after} (default 7d): how long a registration may wait for its e-mail code</li>
  *   <li>{@code app.cleanup.codes-after} (default 1d): how long after expiry a one-time code is kept</li>
- *   <li>and it removes the picture files of deleted accounts that are still on disk</li>
+ *   <li>and it removes the picture files of deleted accounts that are still on disk, and failed-login records
+ *       older than the throttle window</li>
  *   <li>{@code app.cleanup.cron} (default 03:30 every day)</li>
  *   <li>{@code app.cleanup.enabled} (default true)</li>
  * </ul>
@@ -46,9 +47,10 @@ public class AccountCleanupJob {
         int removed = removeUnverifiedAccounts();
         int codes = cleanupService.purgeOldCodes(codesAfter);
         int pictures = cleanupService.purgeDeletedProfilePictures();
-        if (removed > 0 || codes > 0 || pictures > 0) {
-            log.info("Cleanup removed {} unverified account(s), {} expired code(s) and {} picture(s) of deleted accounts",
-                    removed, codes, pictures);
+        int failures = cleanupService.purgeLoginFailures();
+        if (removed > 0 || codes > 0 || pictures > 0 || failures > 0) {
+            log.info("Cleanup removed {} unverified account(s), {} expired code(s), {} picture(s) of deleted accounts and {} old failed login(s)",
+                    removed, codes, pictures, failures);
         }
     }
 

@@ -34,6 +34,7 @@ public class AccountCleanupService {
     private final ProfileRepository profileRepository;
     private final PasswordTokenRepository passwordTokenRepository;
     private final FileStorageService fileStorageService;
+    private final LoginThrottle loginThrottle;
 
     /** The next batch of accounts that registered before {@code cutoff} and never verified. */
     @Transactional(readOnly = true)
@@ -74,6 +75,11 @@ public class AccountCleanupService {
             }
         }
         return removed;
+    }
+
+    /** Failed-login records that have left the throttle's window. */
+    public int purgeLoginFailures() {
+        return loginThrottle.purgeExpired();
     }
 
     /** One-time codes that expired long ago. */

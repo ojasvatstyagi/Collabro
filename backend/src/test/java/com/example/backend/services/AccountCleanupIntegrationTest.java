@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Against a real (H2) database: the rows really go, the names really become free, and nothing else is touched. */
 @DataJpaTest
-@Import({ AccountCleanupService.class, AccountCleanupJob.class })
+@Import({ AccountCleanupService.class, AccountCleanupJob.class, LoginThrottle.class })
 class AccountCleanupIntegrationTest {
 
     @Autowired
@@ -229,5 +229,17 @@ class AccountCleanupIntegrationTest {
         job.run();
 
         org.mockito.Mockito.verify(fileStorageService).deleteFile("profile-pictures/gone.png");
+    }
+
+    @Test
+    void theScheduledRunDeletesFailedLoginsThatLeftTheThrottleWindow_AndKeepsTheRecentOnes() {
+        em.persist(new com.example.backend.models.LoginFailure("pair:alice|1.1.1.1", LocalDateTime.now(java.time.ZoneOffset.UTC).minusHours(2)));
+        em.persist(new com.example.backend.models.LoginFailure("pair:alice|1.1.1.1", LocalDateTime.now(java.time.ZoneOffset.UTC).minusMinutes(1)));
+        em.flush();
+        em.clear();
+
+        job.run();
+
+        assertEquals(1, count("login_failures"));
     }
 }
