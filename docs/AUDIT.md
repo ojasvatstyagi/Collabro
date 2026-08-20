@@ -39,7 +39,8 @@ purpose, see section 4.
 | `isRemote` / `isOpenSource` were never saved (JSON names mismatch) | **Fixed** | `ProjectDtoJsonTest`, e2e §3 |
 | Account deletion cascaded into projects/messages; deleted users made their projects unloadable | **Fixed** (soft delete, `@NotFound(IGNORE)`) | `AccountDeletionIntegrationTest` |
 | Avatars returned as internal paths (chat, files, tasks, requests) | **Fixed** | `ChatServiceTest`, e2e §5 |
-| No brute-force protection on login | **Fixed** (2026-11-23): sliding-window limits per username+address, per username and per address; `429` + `Retry-After`; the right password is refused while locked. In memory, see section 5 for the limits. | `LoginThrottleTest`, `AuthControllerTest`, e2e §11 |
+| No brute-force protection on login | **Fixed** (2026-11-23): sliding-window limits per username+address, per username and per address; `429` + `Retry-After`; the right password is refused while locked. Counted in the database since 2026-11-23 (next row). | `LoginThrottleTest`, `AuthControllerTest`, e2e §11 |
+| The login throttle lived in the memory of one instance: each instance had its own counters (so N instances allowed N times the attempts) and a restart forgot them | **Fixed** (2026-11-23): the failures are rows in `login_failures` (Flyway V6), shared by every instance and surviving restarts; the daily cleanup deletes rows older than the window. Verified with two backends on one MySQL: 3 failures on one plus 2 on the other locked both, and the lock survived a restart. | `LoginThrottleTest` (real database, incl. two instances and an exact `Retry-After`), `AccountCleanupIntegrationTest`, e2e §11 |
 | User enumeration at registration (duplicate e-mail message), plus account pre-hijacking and no way to resend a code | **Fixed** (2026-11-23): a known address is answered like a new one; a pending registration's credentials are replaced by the latest registrant; `resend-registration-otp`; password always hashed and mail async so timing is level. Usernames stay visible on purpose (they are public). | `AuthControllerTest`, `PasswordServiceTest`, `EmailServiceTest`, `auth.test.ts`, e2e §12 |
 | Never-verified registrations were kept forever (each held its username and e-mail, so a script could squat names) | **Fixed** (2026-11-23): a scheduled job really deletes them after 7 days (configurable), plus long-expired one-time codes. New column `users.created_at` (Flyway V2, existing rows backfilled with the migration time). | `AccountCleanupIntegrationTest`, `AccountCleanupJobTest`, `AccountCleanupSchedulingTest`, e2e §14 |
 | A user who deleted their own account could never register the same username or e-mail again (409: the soft-deleted row kept the unique columns) | **Fixed** (2026-11-23): deletion renames the row to an id-derived placeholder and drops its codes; Flyway V3 does the same for accounts deleted earlier. Verified on MySQL against a database holding already-locked names. | `AccountServiceTest`, `AccountDeletionIntegrationTest`, e2e §15 |
@@ -135,12 +136,12 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
 3. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
 4. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
-5. **Login throttling is per instance and in memory** (resets on restart; behind a proxy it needs `server.forward-headers-strategy`, see CONTEXT.md section 6). Move it to a shared store before running more than one instance.
+5. **Login throttling counts per client address, and behind a reverse proxy every user shares the proxy's address**: set `server.forward-headers-strategy` in production (see CONTEXT.md section 6), and only when the proxy overwrites `X-Forwarded-For`. Two instances answering at the same instant can each let one extra attempt through (the check and the insert are not one atomic step); the limits are small enough for that not to matter.
 
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 393 tests
+cd backend  && mvn test                          # 402 tests
 cd frontend && npm test && npm run lint && npm run build
 cd e2e      && npm install && npm test           # ~250 checks, ~4.5 min, needs Chrome and free ports 8080/5173/2525
 ```
