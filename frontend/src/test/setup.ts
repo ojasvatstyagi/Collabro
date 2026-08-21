@@ -1,4 +1,6 @@
-import { beforeEach, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 // Recent Node versions ship their own experimental `localStorage` global, which shadows jsdom's and is
 // unusable here (undefined without --localstorage-file). Tests get a plain in-memory Storage instead.
@@ -22,6 +24,11 @@ const createMemoryStorage = (): Storage => {
 
 beforeEach(() => {
   vi.stubGlobal('localStorage', createMemoryStorage());
+});
+
+// Vitest runs without globals, so Testing Library cannot register its own cleanup
+afterEach(() => {
+  cleanup();
 });
 
 // jsdom's Blob has no text() (every real browser does); the download error handling relies on it
