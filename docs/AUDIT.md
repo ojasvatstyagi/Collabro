@@ -68,6 +68,7 @@ purpose, see section 4.
 | Dead entities `Post`/`Review`/`Notification`, unused Mongo dependency, unused e-mails/DTOs | **Removed** |
 | E-mail send failures are only logged (registration "succeeds" with no code sent) | **Open**, and now also asynchronous. Mitigated by the Resend button; a failing SMTP server is only visible in the log. |
 | 401/403 JSON bodies were built by string concatenation (an exception message with a quote or backslash made invalid JSON) and echoed Spring's internal wording | **Fixed** (2026-11-23): both handlers serialize with Jackson and send fixed messages (`Authentication is required`, `You do not have permission to do that`). `SecurityErrorHandlersTest`, `SecurityRulesIntegrationTest`, e2e §10 |
+| No frontend component tests (only the API client and helpers were unit tested; the UI was covered by e2e alone) | **Fixed** (2026-11-23): React Testing Library with jest-dom; 68 component tests for ProtectedRoute, AuthProvider (session expiry), Login (validation, trimming, the 429 lock-out message), VerifyRegistration (resend cooldown), UserProfile, Requests, Teams, ProjectWorkspace and EditTaskModal (owner assignee). Each was mutation-checked by re-introducing the bug it guards. | `*.test.tsx` |
 | The API description (Swagger UI, `/v3/api-docs`) was open to anonymous visitors in every profile (only prod switched springdoc off, and the default profile is dev) | **Fixed** (2026-11-23): it is public only when `app.docs.public=true` (dev sets it), otherwise it needs a login. | `SecurityRulesIntegrationTest`, `DocsPublicSecurityTest`, `ConfigFilesTest` |
 | **Swagger did not work at all**: springdoc 2.5.0 predates Spring Framework 6.2 (Spring Boot 3.4), so every API description request failed with `NoSuchMethodError: ControllerAdviceBean.<init>` (found while testing the access rule) | **Fixed** (2026-11-23): springdoc 2.8.4. The tests now assert the description is served (200 with an `openapi` field) and e2e §10 loads it from the real stack. | `DocsPublicSecurityTest`, e2e §10 |
 
@@ -135,8 +136,7 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
 3. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
-4. Frontend component tests (React Testing Library) do not exist; the e2e suite covers the UI end to end.
-5. **Login throttling counts per client address, and behind a reverse proxy every user shares the proxy's address**: set `server.forward-headers-strategy` in production (see CONTEXT.md section 6), and only when the proxy overwrites `X-Forwarded-For`. Two instances answering at the same instant can each let one extra attempt through (the check and the insert are not one atomic step); the limits are small enough for that not to matter.
+4. **Login throttling counts per client address, and behind a reverse proxy every user shares the proxy's address**: set `server.forward-headers-strategy` in production (see CONTEXT.md section 6), and only when the proxy overwrites `X-Forwarded-For`. Two instances answering at the same instant can each let one extra attempt through (the check and the insert are not one atomic step); the limits are small enough for that not to matter.
 
 ## 6. How to verify a change
 

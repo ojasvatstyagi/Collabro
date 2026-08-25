@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 402 tests, frontend 55 tests, e2e 251 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 402 tests, frontend 123 tests, e2e 251 checks, all passing).
 
 ## 1. What it is
 
@@ -22,7 +22,7 @@ Browser ── React SPA (Vite dev server :5173) ──/api proxy──> Spring 
 |---|---|
 | Backend | Java **21**, Spring Boot 3.4.3, Spring Security (stateless JWT), Spring Data JPA/Hibernate, MySQL, jjwt 0.12.5, springdoc, ModelMapper, Lombok, iText 5 (PDF export), Maven |
 | Frontend | React 18, TypeScript (strict), Vite 5, Tailwind 3, react-router 6, axios, react-hot-toast, lucide-react |
-| Tests | JUnit 5 + Mockito + `@DataJpaTest`/`@SpringBootTest` on **H2** (backend); Vitest + jsdom (frontend); Puppeteer + real Chrome (`e2e/`) |
+| Tests | JUnit 5 + Mockito + `@DataJpaTest`/`@SpringBootTest` on **H2** (backend); Vitest + jsdom + React Testing Library (frontend); Puppeteer + real Chrome (`e2e/`) |
 
 ## 2. Repository map
 
@@ -228,7 +228,7 @@ Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `
 | Suite | Run | What |
 |---|---|---|
 | Backend | `cd backend && mvn test` (needs JDK 21) | unit tests with Mockito, `@DataJpaTest` against H2 (specifications, soft delete, query counts), `@SpringBootTest` security-rule tests |
-| Frontend | `cd frontend && npm test`, `npm run lint`, `npm run build` | Vitest: API client refresh logic, API modules, helpers |
+| Frontend | `cd frontend && npm test`, `npm run lint`, `npm run build` | Vitest: API client refresh logic, API modules, helpers, **and component tests** (`*.test.tsx` next to the component: ProtectedRoute, AuthProvider, Login, VerifyRegistration, UserProfile, Requests, Teams, ProjectWorkspace, EditTaskModal) |
 | End to end | `cd e2e && npm install && npm test` | real Chrome + real backend (H2) + real frontend + in-process mail sink; ~200 checks, ~3.5 min |
 
 Gotchas that cost time:
@@ -238,6 +238,17 @@ Gotchas that cost time:
 - `Page.empty()` has an unpaged pageable and cannot be serialised by Jackson; return `new PageImpl<>(list, PageRequest.of(0, n), total)` from mocks.
 - Mockito strict stubs: stubs that a test does not use fail it; use `lenient()` in shared `@BeforeEach` setup.
 - jsdom's `Blob` has no `text()` and recent Node's own `localStorage` shadows jsdom's; both are handled in `test/setup.ts`.
+- **Component tests** (React Testing Library + `@testing-library/jest-dom/vitest`, set up in `test/setup.ts`): mock the
+  API module (`vi.mock('../services/api/x', () => ({ xApi }))` with the mock object from `vi.hoisted`), `useAuth`, and
+  the layout/chrome (`DashboardLayout`, `SideBar`, `AuthLayout` bring in particles and themes); render inside a
+  `MemoryRouter` with the real `Routes` so links and redirects work. Query the way a person would (roles, text), not by class.
+  Pitfalls that cost time: (1) with fake timers, `findBy`/`waitFor` hang unless you use
+  `vi.useFakeTimers({ shouldAdvanceTime: true })` and `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`; a
+  chain of one-second timers (the resend countdown) has to be stepped one second at a time; (2) **never write
+  `beforeEach(() => mock.mockReset())`**: Vitest treats a returned function as a cleanup hook and calls the mock after the
+  test, which surfaces as a baffling "Unknown Error"; use braces; (3) the build type-checks test files too, so fixtures
+  need the real types; (4) `@testing-library/jest-dom` must stay on the 6.x line while the project is on Vitest 2 (v8
+  needs Vitest 5).
 - `@DataJpaTest` fixtures need every non-null column (e.g. `Project.status`).
 - Tests that assert a bug is fixed were each verified to *fail* on the old code (mutation checks). Keep that habit.
 
