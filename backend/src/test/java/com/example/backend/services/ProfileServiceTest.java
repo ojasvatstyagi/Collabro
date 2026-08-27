@@ -170,6 +170,24 @@ class ProfileServiceTest {
     }
 
     @Test
+    void exportToPdf_ProducesARealPdfThatCarriesTheProfile() throws Exception {
+        testProfile.setBio("I weld bridges");
+
+        byte[] pdf = profileService.exportToPdf(testProfile);
+
+        // a valid PDF (header and trailer), and parsing it back gives the text that went in
+        String raw = new String(pdf, java.nio.charset.StandardCharsets.ISO_8859_1);
+        assertTrue(raw.startsWith("%PDF-"), "not a PDF");
+        assertTrue(raw.trim().endsWith("%%EOF"), "truncated PDF");
+        org.openpdf.text.pdf.PdfReader reader = new org.openpdf.text.pdf.PdfReader(pdf);
+        String text = new org.openpdf.text.pdf.parser.PdfTextExtractor(reader).getTextFromPage(1);
+        assertEquals(1, reader.getNumberOfPages());
+        assertTrue(text.contains("User Profile"), text);
+        assertTrue(text.contains("Name: " + testProfile.displayName()), text);
+        assertTrue(text.contains("Bio: I weld bridges"), text);
+    }
+
+    @Test
     void toPublicDto_ExposesNoContactDetailsOrSettings() throws Exception {
         testUser.setEmail("alice@example.com");
         testProfile.setPhone("+49123456789");

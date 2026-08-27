@@ -118,9 +118,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.itextpdf</groupId>
-			<artifactId>itextpdf</artifactId>
-			<version>5.5.13.3</version>
+			<!-- OpenPDF (LGPL/MPL) replaces iText 5 (AGPL): same job, a licence we can ship under -->
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>3.0.6</version>
 		</dependency>
 
 		<dependency>
