@@ -6,7 +6,7 @@ import {
   Target,
   Globe2,
   ArrowRight,
-  Github,
+  GitBranch,
   Code2,
   Palette,
 } from 'lucide-react';
@@ -191,9 +191,10 @@ const Landing: React.FC = () => {
                 href="https://github.com/ojasvatstyagi"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="GitHub"
                 className="text-gray-600 hover:text-brand-orange dark:text-gray-400 dark:hover:text-brand-orange"
               >
-                <Github className="h-6 w-6" />
+                <GitBranch className="h-6 w-6" />
               </a>
             </div>
           </div>

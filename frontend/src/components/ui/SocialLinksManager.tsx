@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Plus, X, Github, Linkedin, Twitter, Globe, Link } from "lucide-react";
+// lucide-react 1.x no longer ships brand logos: the platform is named next to the icon, so a neutral icon will do
+import { Plus, X, GitBranch, Briefcase, AtSign, Globe, Link } from "lucide-react";
 import Button from "./Button";
 import Input from "./Input";
 import { cn } from "../../utils/cn";
@@ -44,9 +45,9 @@ const SocialLinksManager: React.FC<SocialLinksManagerProps> = ({
 
     const getIcon = (platform: string) => {
         switch (platform) {
-            case 'GITHUB': return <Github className="w-4 h-4" />;
-            case 'LINKEDIN': return <Linkedin className="w-4 h-4" />;
-            case 'TWITTER': return <Twitter className="w-4 h-4" />;
+            case 'GITHUB': return <GitBranch className="w-4 h-4" />;
+            case 'LINKEDIN': return <Briefcase className="w-4 h-4" />;
+            case 'TWITTER': return <AtSign className="w-4 h-4" />;
             default: return <Globe className="w-4 h-4" />;
         }
     };
