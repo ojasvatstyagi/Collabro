@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { tokenService } from '../tokenService';
 import { authApi } from './auth';
 import { projectsApi } from './projects';
@@ -41,11 +41,11 @@ const onlyWith = (token: string, ok: object): Handler => (config) =>
     : { status: 401 };
 
 describe('API client token refresh', () => {
-  let sessionExpired: ReturnType<typeof vi.fn>;
+  let sessionExpired: Mock<(event: Event) => void>;
 
   beforeEach(() => {
     tokenService.setAccessToken('expired');
-    sessionExpired = vi.fn();
+    sessionExpired = vi.fn<(event: Event) => void>();
     window.addEventListener(SESSION_EXPIRED_EVENT, sessionExpired);
   });
 
