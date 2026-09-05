@@ -147,6 +147,16 @@ export async function runSuite(cfg) {
   try {
     // ---------------------------------------------------------------- 1
     section = '1 Registration, verification, login (UI)';
+    await step('the login page draws its particle background: a real canvas, behind the form', async () => {
+      const { c, p } = await newCtx();
+      await p.goto(BASE + '/login', { waitUntil: 'networkidle0' });
+      const drawn = await p.waitForSelector('#tsparticles canvas', { timeout: 10000 }).then(() => true).catch(() => false);
+      check('a canvas is created inside #tsparticles (jsdom cannot show this)', drawn);
+      const z = await p.evaluate(() => getComputedStyle(document.getElementById('tsparticles') || document.body).zIndex);
+      check('it sits behind the page content', Number(z) < 0, String(z));
+      check('and the form on top of it is still usable', (await p.$('#username')) !== null && (await p.$('#password')) !== null);
+      await c.close();
+    });
     await step('alice registers through the form and gets a verification e-mail', async () => {
       const t0 = Date.now();
       await A.p.goto(BASE + '/register', { waitUntil: 'networkidle0' });

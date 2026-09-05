@@ -42,7 +42,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 
 | # | Area | What is checked |
 |---|------|-----------------|
-| 1 | Registration and login (UI) | form, e-mailed code, verify page, login, redirect for signed-in users |
+| 1 | Registration and login (UI) | the particle background really draws a canvas, form, e-mailed code, verify page, login, redirect for signed-in users |
 | 2 | Sessions | reload with an **expired access token** stays signed in; no redirect loop for visitors |
 | 3 | Projects and public data | Remote/Open source flags round-trip, validation, page-size cap, sort whitelist, search without contact details |
 | 4 | Join flow (UI) | Explore, details dialog, join, Requests page, "Add to team", Teams page, roles |
