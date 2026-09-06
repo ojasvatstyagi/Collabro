@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 402 tests, frontend 123 tests, e2e 251 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 403 tests, frontend 131 tests, e2e 254 checks, all passing).
 
 ## 1. What it is
 
@@ -20,8 +20,8 @@ Browser ── React SPA (Vite dev server :5173) ──/api proxy──> Spring 
 
 | Layer | Stack |
 |---|---|
-| Backend | Java **21**, Spring Boot 3.4.3, Spring Security (stateless JWT), Spring Data JPA/Hibernate, MySQL, jjwt 0.12.5, springdoc, ModelMapper, Lombok, iText 5 (PDF export), Maven |
-| Frontend | React 18, TypeScript (strict), Vite 5, Tailwind 3, react-router 6, axios, react-hot-toast, lucide-react |
+| Backend | Java **21**, Spring Boot 3.5.16, Spring Security (stateless JWT), Spring Data JPA/Hibernate, MySQL, Flyway, jjwt 0.13, springdoc 2.8, ModelMapper 3.2, Lombok, OpenPDF (PDF export), Maven |
+| Frontend | React 18, TypeScript (strict), Vite 8, Vitest 5, Tailwind 3, react-router 7, axios, react-hot-toast, lucide-react 1.x, tsparticles 4 |
 | Tests | JUnit 5 + Mockito + `@DataJpaTest`/`@SpringBootTest` on **H2** (backend); Vitest + jsdom + React Testing Library (frontend); Puppeteer + real Chrome (`e2e/`) |
 
 ## 2. Repository map
@@ -249,6 +249,13 @@ Gotchas that cost time:
   test, which surfaces as a baffling "Unknown Error"; use braces; (3) the build type-checks test files too, so fixtures
   need the real types; (4) `@testing-library/jest-dom` must stay on the 6.x line while the project is on Vitest 2 (v8
   needs Vitest 5).
+- **Dependency notes.** (1) `lucide-react` 1.x has **no brand icons** (GitHub, LinkedIn, Twitter): the app uses neutral ones
+  (`GitBranch`, `Briefcase`, `AtSign`); do not look for them. (2) tsparticles 4 has no `initParticlesEngine`: the engine is
+  registered through `<ParticlesProvider init=...>` (`ParticleBackground.tsx`). (3) `eslint-plugin-react-hooks` 7 ships
+  React Compiler rules that flag 20 places in working code; `eslint.config.js` enables only `rules-of-hooks` and
+  `exhaustive-deps`. (4) Installing npm packages here needs credentials for the internal mirror: use a temporary
+  `--userconfig` file built from `ARTIFACTORY_USER`/`ARTIFACTORY_TOKEN`, never write them into the repo (there is no
+  committed lockfile). (5) Maven's offline mode (`-o`) fails for a plugin version it has not seen: run once online.
 - `@DataJpaTest` fixtures need every non-null column (e.g. `Project.status`).
 - Tests that assert a bug is fixed were each verified to *fail* on the old code (mutation checks). Keep that habit.
 

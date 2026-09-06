@@ -69,6 +69,7 @@ purpose, see section 4.
 | E-mail send failures are only logged (registration "succeeds" with no code sent) | **Open**, and now also asynchronous. Mitigated by the Resend button; a failing SMTP server is only visible in the log. |
 | 401/403 JSON bodies were built by string concatenation (an exception message with a quote or backslash made invalid JSON) and echoed Spring's internal wording | **Fixed** (2026-11-23): both handlers serialize with Jackson and send fixed messages (`Authentication is required`, `You do not have permission to do that`). `SecurityErrorHandlersTest`, `SecurityRulesIntegrationTest`, e2e §10 |
 | No frontend component tests (only the API client and helpers were unit tested; the UI was covered by e2e alone) | **Fixed** (2026-11-23): React Testing Library with jest-dom; 68 component tests for ProtectedRoute, AuthProvider (session expiry), Login (validation, trimming, the 429 lock-out message), VerifyRegistration (resend cooldown), UserProfile, Requests, Teams, ProjectWorkspace and EditTaskModal (owner assignee). Each was mutation-checked by re-introducing the bug it guards. | `*.test.tsx` |
+| Outdated dependencies: iText 5 (AGPL, unmaintained), three mixed-major tsparticles packages, old lucide-react; and `npm audit` reported 8 vulnerabilities (2 critical, 1 high) | **Fixed** (2026-11-23): iText -> OpenPDF 3.0.6 (LGPL/MPL; the PDF test now parses the output); Spring Boot 3.4.3 -> 3.5.16, jjwt 0.13.0, ModelMapper 3.2.8, springdoc 2.8.17, Lombok and the compiler plugin follow Boot's managed versions; tsparticles -> one consistent v4 (and the unused `tsparticles` package removed); lucide-react 0.344 -> 1.79; react-router-dom 6 -> 7 (an open-redirect advisory in `<Link>`/`useNavigate`, the only one in shipped code); Vite 8, Vitest 5, jsdom, jest-dom and the ESLint family. `npm audit`: **0 vulnerabilities**. e2e 254/254 on H2 and on a Flyway-built MySQL. | `ProfileServiceTest` (PDF), `ParticleBackground.test.tsx`, e2e §1 (a canvas is drawn) |
 | The API description (Swagger UI, `/v3/api-docs`) was open to anonymous visitors in every profile (only prod switched springdoc off, and the default profile is dev) | **Fixed** (2026-11-23): it is public only when `app.docs.public=true` (dev sets it), otherwise it needs a login. | `SecurityRulesIntegrationTest`, `DocsPublicSecurityTest`, `ConfigFilesTest` |
 | **Swagger did not work at all**: springdoc 2.5.0 predates Spring Framework 6.2 (Spring Boot 3.4), so every API description request failed with `NoSuchMethodError: ControllerAdviceBean.<init>` (found while testing the access rule) | **Fixed** (2026-11-23): springdoc 2.8.4. The tests now assert the description is served (200 with an `openapi` field) and e2e §10 loads it from the real stack. | `DocsPublicSecurityTest`, e2e §10 |
 
@@ -135,13 +136,13 @@ Unit tests were all green when these were found, which is why the e2e suite exis
    ```
    Take a backup first. Verified on MySQL: an empty database gets V1 applied, a Hibernate-built one is baselined,
    both pass `validate`, and the e2e suite (159/159) passes on a Flyway-built schema.
-3. Dependencies: iText 5 (AGPL, old), three mixed-major tsparticles packages, old lucide-react.
+3. **Major upgrades deliberately not taken** (each is a migration, not a version bump; nothing is vulnerable): Spring Boot 4 (Spring Framework 7), React 19, Tailwind 4 (config and class changes; also unlocks tailwind-merge 3), TypeScript 7, and the React Compiler lint rules (20 findings, see CONTEXT.md section 9) if the Compiler is ever adopted.
 4. **Login throttling counts per client address, and behind a reverse proxy every user shares the proxy's address**: set `server.forward-headers-strategy` in production (see CONTEXT.md section 6), and only when the proxy overwrites `X-Forwarded-For`. Two instances answering at the same instant can each let one extra attempt through (the check and the insert are not one atomic step); the limits are small enough for that not to matter.
 
 ## 6. How to verify a change
 
 ```bash
-cd backend  && mvn test                          # 402 tests
+cd backend  && mvn test                          # 403 tests
 cd frontend && npm test && npm run lint && npm run build
 cd e2e      && npm install && npm test           # ~250 checks, ~4.5 min, needs Chrome and free ports 8080/5173/2525
 ```
