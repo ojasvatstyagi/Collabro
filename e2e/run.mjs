@@ -6,6 +6,9 @@
  *   npm install        (once, in this folder)
  *   npm test
  *
+ * `npm run serve` (E2E_SERVE=1) starts the same stack and leaves it running for you to use by hand: open
+ * http://localhost:5173, and the one-time codes the app e-mails are printed here. Ctrl+C stops everything.
+ *
  * Environment: MVN (default "mvn"), MVN_ARGS (e.g. "-o" for offline), CHROME_PATH, E2E_SMTP_PORT,
  * E2E_DB_URL / E2E_DB_USERNAME / E2E_DB_PASSWORD (run against a THROWAWAY MySQL instead of H2).
  */
@@ -21,6 +24,7 @@ const root = path.resolve(here, '..');
 const BACKEND_PORT = 8080; // the frontend dev server proxies /api here, so it cannot be changed from the outside
 const FRONTEND_PORT = 5173;
 const SMTP_PORT = Number(process.env.E2E_SMTP_PORT || 2525);
+const SERVE = process.env.E2E_SERVE === '1'; // keep the stack running for manual use instead of running the suite
 const uploadsDir = path.join(root, 'backend', 'target', 'e2e-uploads');
 const logDir = path.join(here, 'logs');
 fs.mkdirSync(logDir, { recursive: true });
@@ -73,7 +77,7 @@ async function main() {
   for (const [name, port] of [['backend', BACKEND_PORT], ['frontend', FRONTEND_PORT], ['mail sink', SMTP_PORT]]) {
     if (!(await portFree(port))) throw new Error(`Port ${port} (${name}) is already in use. Stop whatever is using it and retry.`);
   }
-  const chrome = chromePath();
+  const chrome = SERVE ? null : chromePath(); // Chrome is only needed to drive the suite
   fs.rmSync(uploadsDir, { recursive: true, force: true });
 
   const sink = await startSmtpSink(SMTP_PORT);
@@ -90,8 +94,9 @@ async function main() {
       DB_USERNAME: process.env.E2E_DB_USERNAME || 'sa', DB_PASSWORD: process.env.E2E_DB_PASSWORD ?? '',
       MAIL_HOST: '127.0.0.1', MAIL_PORT: String(SMTP_PORT), MAIL_USERNAME: 'e2e', MAIL_PASSWORD: 'e2e',
       JWT_SECRET: 'e2e-only-secret-key-for-local-testing-0123456789abcdef', UPLOAD_DIR: uploadsDir,
-      // the cleanup of never-verified registrations: 30 s instead of 7 days, checked every 5 s (section 14)
-      APP_CLEANUP_UNVERIFIED_AFTER: '30s', APP_CLEANUP_CRON: '*/5 * * * * *',
+      // the cleanup of never-verified registrations: 30 s instead of 7 days, checked every 5 s (section 14);
+      // not when you are using the app by hand, where it would delete an account you have not verified yet
+      ...(SERVE ? {} : { APP_CLEANUP_UNVERIFIED_AFTER: '30s', APP_CLEANUP_CRON: '*/5 * * * * *' }),
     },
   });
 
@@ -102,6 +107,25 @@ async function main() {
 
   await waitFor('backend', `http://127.0.0.1:${BACKEND_PORT}/api/matching/search`, (s) => s === 200, 180000);
   await waitFor('frontend', `http://127.0.0.1:${FRONTEND_PORT}/`, (s) => s === 200, 60000);
+  if (SERVE) {
+    console.log(`
+[serve] The app is running:
+          open        http://localhost:${FRONTEND_PORT}
+          API         http://localhost:${BACKEND_PORT}/api   (Swagger UI: http://localhost:${BACKEND_PORT}/swagger-ui/index.html)
+          database    in memory: everything you create is gone when you stop this
+          e-mail      nothing is sent anywhere; the codes the app "e-mails" are printed below
+[serve] Press Ctrl+C to stop.
+`);
+    let shown = 0;
+    for (;;) {
+      for (const m of sink.messages.slice(shown)) {
+        const code = />(\d{6})</.exec(m.body)?.[1];
+        console.log(`[mail] to ${m.to.join(', ')}  "${m.subject}"${code ? `  CODE: ${code}` : ''}`);
+      }
+      shown = sink.messages.length;
+      await sleep(500);
+    }
+  }
   console.log('[e2e] stack is up, running the suite\n');
 
   // E2E_SUITE=./some-script.mjs runs another script against the same stack (handy for debugging one flow)

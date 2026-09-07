@@ -4,7 +4,8 @@
   "type": "module",
   "description": "End-to-end suite: real backend (in-memory database), real frontend, real Chrome",
   "scripts": {
-    "test": "node run.mjs"
+    "test": "node run.mjs",
+    "serve": "E2E_SERVE=1 node run.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^25.18.1"
