@@ -16,6 +16,7 @@ end-to-end suite in `e2e/`.
 cd backend  && mvn test                      # JDK 21 required (Lombok breaks on newer JDKs); ~290 tests, H2, no credentials
 cd frontend && npm test && npm run lint && npm run build     # build type-checks first
 cd e2e      && npm install && npm test       # real Chrome + real backend (H2) + frontend; ~2 min; needs ports 8080/5173/2525
+cd e2e      && npm run serve                 # the same stack left running for use by hand: http://localhost:5173, e-mailed codes printed in the terminal
 ```
 
 Run the e2e suite when a change touches request handling, authentication, API response shapes or UI wiring: several
@@ -26,7 +27,7 @@ real bugs were invisible to green unit tests and only showed up there.
 - **Do not add co-author or tool-attribution lines to commits.** Use the repository's configured git identity.
 - Prefer small themed commits that each leave the build green. Never commit `.env` or any secret.
 - Add a test with every fix, and check it fails on the old code before keeping it.
-- Do not start the app against the developer's real MySQL to try something; use the e2e stack or a throwaway database.
+- Do not start the app against the developer's real MySQL to try something; use the e2e stack (`npm run serve`) or a throwaway database.
 - Never return `ProfileDto` (e-mail, phone, settings) to another user: use `PublicProfileDto`.
 - Membership checks go through `ProjectAccessService`; users are soft-deleted, never `userRepository.delete`.
 - Frontend: API methods return `this.get<T>()` directly (the client already unwraps `{data}`); show errors with

@@ -10,6 +10,19 @@ npm install        # once: installs puppeteer-core (it uses your installed Chrom
 npm test           # starts everything, runs ~150 checks, stops everything. Exit code 0 = all passed
 ```
 
+## Using the app by hand
+
+```bash
+cd e2e && npm install      # once
+npm run serve              # starts everything and leaves it running; Ctrl+C stops it
+```
+
+Then open **http://localhost:5173**. Register an account: the verification code the app "e-mails" is printed in the
+terminal (`[mail] to you@x.test ... CODE: 123456`), nothing is sent anywhere. The database is in memory, so everything is
+gone when you stop it. The API is on http://localhost:8080/api and Swagger UI on
+http://localhost:8080/swagger-ui/index.html (use "Authorize" with the `accessToken` from a login response).
+Needs Java 21, Maven and Node, ports 8080, 5173 and 2525 free; no Chrome and no real MySQL.
+
 ## Requirements
 
 - Java 21 and Maven on the `PATH` (`MVN=./path/to/mvn` if yours is elsewhere; `MVN_ARGS=-o` runs Maven offline)
