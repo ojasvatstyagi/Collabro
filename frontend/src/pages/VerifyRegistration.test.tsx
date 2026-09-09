@@ -8,6 +8,16 @@ const api = vi.hoisted(() => ({ verifyRegistrationOtp: vi.fn(), resendRegistrati
 vi.mock('../services/api/auth', () => ({ authApi: api }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: toast }));
+// The real layout brings in the particle animation and the theme context, which have no place in a form test
+vi.mock('../components/ui/AuthLayout', () => ({
+  default: ({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) => (
+    <main>
+      <h1>{title}</h1>
+      <p>{subtitle}</p>
+      {children}
+    </main>
+  ),
+}));
 
 type Entry = string | { pathname: string; state?: unknown };
 const renderPage = (entry: Entry) =>
