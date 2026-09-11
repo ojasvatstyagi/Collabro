@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 403 tests, frontend 131 tests, e2e 254 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 403 tests, frontend 134 tests, e2e 254 checks, all passing).
 
 ## 1. What it is
 
@@ -249,6 +249,12 @@ Gotchas that cost time:
   test, which surfaces as a baffling "Unknown Error"; use braces; (3) the build type-checks test files too, so fixtures
   need the real types; (4) `@testing-library/jest-dom` must stay on the 6.x line while the project is on Vitest 2 (v8
   needs Vitest 5).
+- **Only use colour classes this project defines.** Tailwind silently drops a class it does not know (no CSS, so the text
+  falls back to black and a gradient with unknown colour stops is invisible). shadcn/ui-style names
+  (`text-muted-foreground`, `bg-background`, `bg-card`, `text-destructive`...) and `brand-primary`/`brand-secondary` do
+  **not exist** here; the palette is `brand-orange|yellow|red|blue|lightBlue|dark|dark-light|dark-lighter|light|light-dark|light-darker`
+  plus Tailwind's defaults. `src/test/themeTokens.test.ts` fails the build on any such class. New sign-in style pages
+  should use `AuthLayout` (it supplies the page, card, heading and both themes) and `dark:` variants for their own text.
 - **Dependency notes.** (1) `lucide-react` 1.x has **no brand icons** (GitHub, LinkedIn, Twitter): the app uses neutral ones
   (`GitBranch`, `Briefcase`, `AtSign`); do not look for them. (2) tsparticles 4 has no `initParticlesEngine`: the engine is
   registered through `<ParticlesProvider init=...>` (`ParticleBackground.tsx`). (3) `eslint-plugin-react-hooks` 7 ships
