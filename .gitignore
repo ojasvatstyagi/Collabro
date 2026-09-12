@@ -1,0 +1,3 @@
+# IDE project files (IntelliJ keeps them at the repository root; backend/ and frontend/ ignore their own)
+.idea/
+*.iml
