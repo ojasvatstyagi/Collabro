@@ -240,6 +240,8 @@ public class RequestService {
                 .id(request.getId())
                 .projectId(request.getProject().getId())
                 .projectTitle(request.getProject().getTitle())
+                .ownerUsername(request.getProject().getCreatedBy().displayUsername())
+                .ownerDisplayName(request.getProject().getCreatedBy().displayName())
                 .requester(requesterDTO)
                 .message(request.getMessage())
                 .status(request.getStatus())

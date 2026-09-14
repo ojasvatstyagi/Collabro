@@ -18,6 +18,9 @@ public class CollaborationRequestDTO {
     private Long id;
     private UUID projectId;
     private String projectTitle;
+    /** Who owns the project (the person who decides on the request); "deleted user" if that account is gone. */
+    private String ownerUsername;
+    private String ownerDisplayName;
     private RequesterDTO requester;
     private String message;
     private RequestStatus status;

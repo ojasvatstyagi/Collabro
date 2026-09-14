@@ -295,4 +295,27 @@ class RequestServiceTest {
         verify(requestRepository).delete(stale);
         assertEquals(RequestStatus.PENDING, result.getStatus());
     }
+
+    @Test
+    void getRequestById_NamesTheProjectOwnerSoTheRequesterCanSeeWhoDecides() {
+        CollaborationRequest request = pendingRequest(7L, alice);
+        when(requestRepository.findById(7L)).thenReturn(Optional.of(request));
+        when(profileService.getCurrentUserProfile()).thenReturn(alice);
+
+        CollaborationRequestDTO dto = requestService.getRequestById(7L);
+
+        assertEquals("owner", dto.getOwnerUsername());
+        assertEquals("owner Test", dto.getOwnerDisplayName());
+    }
+
+    @Test
+    void getRequestById_AnOwnerWithoutANameIsShownByUsername() {
+        owner.setFirstname("");
+        owner.setLastname("");
+        CollaborationRequest request = pendingRequest(7L, alice);
+        when(requestRepository.findById(7L)).thenReturn(Optional.of(request));
+        when(profileService.getCurrentUserProfile()).thenReturn(alice);
+
+        assertEquals("owner", requestService.getRequestById(7L).getOwnerDisplayName());
+    }
 }
