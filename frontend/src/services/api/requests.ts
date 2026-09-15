@@ -1,10 +1,17 @@
 import { BaseApi, ApiResponse } from './base';
 
+// Fired after anything that changes the number of pending requests (approve, decline, withdraw), so the sidebar
+// badge can refresh without waiting for its timer
+export const REQUESTS_CHANGED_EVENT = 'requests:changed';
+
 // Request-related interfaces matching backend DTOs
 export interface JoinRequest {
   id: number;
   projectId: string;
   projectTitle: string;
+  /** Who owns the project, i.e. who decides on the request. */
+  ownerUsername?: string;
+  ownerDisplayName?: string;
   requester: {
     id: string;
     username: string;

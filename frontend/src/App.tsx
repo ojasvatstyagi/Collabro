@@ -12,6 +12,7 @@ import Achievements from './pages/Achievements';
 import MyProjects from './pages/MyProjects';
 import Teams from './pages/Teams';
 import Requests from './pages/Requests';
+import MyRequests from './pages/MyRequests';
 import History from './pages/History';
 import SettingsPage from './pages/SettingsPage';
 import ProjectWorkspace from './pages/ProjectWorkspace';
@@ -71,6 +72,7 @@ function AppContent() {
           <Route path="/project/:projectId" element={<ProjectWorkspace />} />
           <Route path="/post-idea" element={<PostIdea />} />
           <Route path="/requests" element={<Requests />} />
+          <Route path="/my-requests" element={<MyRequests />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
