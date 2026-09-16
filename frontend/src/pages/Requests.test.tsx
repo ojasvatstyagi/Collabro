@@ -3,14 +3,18 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Requests from './Requests';
-import type { JoinRequest } from '../services/api/requests';
+import { REQUESTS_CHANGED_EVENT, type JoinRequest } from '../services/api/requests';
 
 const api = vi.hoisted(() => ({
   getReceivedRequests: vi.fn(),
   approveRequest: vi.fn(),
   rejectRequest: vi.fn(),
 }));
-vi.mock('../services/api/requests', () => ({ requestsApi: api }));
+// keep the module's real exports (the change-event name) and replace only the API object
+vi.mock('../services/api/requests', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/api/requests')>()),
+  requestsApi: api,
+}));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ toast, default: toast }));
 // Navigation chrome that has nothing to do with what the page lists
@@ -121,6 +125,22 @@ describe('Requests page', () => {
     expect(within(card('Mia Moss')).queryByRole('button', { name: /add to team/i })).not.toBeInTheDocument();
     // the other request is untouched
     expect(within(card('nia_e2e')).getByRole('button', { name: /add to team/i })).toBeInTheDocument();
+  });
+
+  it('tells the rest of the app (the sidebar badge) when a request has been answered', async () => {
+    api.approveRequest.mockResolvedValue({ success: true });
+    api.rejectRequest.mockResolvedValue({ success: true });
+    const heard = vi.fn();
+    window.addEventListener(REQUESTS_CHANGED_EVENT, heard);
+    renderPage([request(), unnamed]);
+    await screen.findByText('Mia Moss');
+
+    await userEvent.click(within(card('Mia Moss')).getByRole('button', { name: /add to team/i }));
+    await waitFor(() => expect(heard).toHaveBeenCalledTimes(1));
+    await userEvent.click(within(card('nia_e2e')).getByRole('button', { name: /decline/i }));
+    await waitFor(() => expect(heard).toHaveBeenCalledTimes(2));
+
+    window.removeEventListener(REQUESTS_CHANGED_EVENT, heard);
   });
 
   it('says so and leaves the request pending when approving fails', async () => {

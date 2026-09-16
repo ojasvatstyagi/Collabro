@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Compass,
-  MessageSquare,
+  Inbox,
+  Send,
   FolderKanban,
   History,
   Award,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { useAuth } from "../../context/AuthContext";
+import { REQUESTS_CHANGED_EVENT, requestsApi } from "../../services/api/requests";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -25,21 +27,46 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const { user, logout } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   const [imageError, setImageError] = useState(false);
+  // Join requests waiting for this user's decision, shown as a badge on "Received Requests"
+  const [pendingReceived, setPendingReceived] = useState(0);
 
   // Reset error when user changes (e.g. login/logout or profile update)
   useEffect(() => {
     setImageError(false);
   }, [user?.profilePictureUrl]);
 
-  const navigation = [
+  const navigation: Array<{ name: string; icon: React.ElementType; href: string; badge?: number }> = [
     { name: "Explore", icon: Compass, href: "/explore" },
     { name: "Teams", icon: UserCheck, href: "/teams" },
-    { name: "Requests", icon: MessageSquare, href: "/requests" },
+    { name: "Received Requests", icon: Inbox, href: "/requests", badge: pendingReceived },
+    { name: "Sent Requests", icon: Send, href: "/my-requests" },
     { name: "My Projects", icon: FolderKanban, href: "/projects" },
     { name: "History", icon: History, href: "/history" },
     { name: "Achievements", icon: Award, href: "/achievements" },
     { name: "Settings", icon: Settings, href: "/settings" },
   ];
+
+  // Keep the badge current: on every page change, right after a request is answered or withdrawn, and once a minute
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const response = await requestsApi.getRequestStats();
+        if (!cancelled) setPendingReceived(response.data?.pendingReceived ?? 0);
+      } catch {
+        // a badge is not worth an error: it simply keeps its last value
+      }
+    };
+    void refresh();
+    window.addEventListener(REQUESTS_CHANGED_EVENT, refresh);
+    const timer = setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(REQUESTS_CHANGED_EVENT, refresh);
+      clearInterval(timer);
+    };
+  }, [user, location.pathname]);
 
   // Check if mobile screen
   useEffect(() => {
@@ -169,7 +196,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                   to={item.href}
                   onClick={handleNavClick}
                   className={cn(
-                    "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
                       ? "bg-brand-orange/10 text-brand-orange"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100",
@@ -179,6 +206,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
                   {!isCollapsed && <span>{item.name}</span>}
+                  {(item.badge ?? 0) > 0 && (
+                    <span
+                      aria-label={`${item.badge ?? 0} waiting for your decision`}
+                      className={cn(
+                        "rounded-full bg-brand-orange text-xs font-semibold text-white",
+                        isCollapsed ? "absolute right-1 top-1 px-1.5 py-0 text-[10px]" : "ml-auto px-2 py-0.5"
+                      )}
+                    >
+                      {(item.badge ?? 0) > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

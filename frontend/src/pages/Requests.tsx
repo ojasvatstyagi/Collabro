@@ -13,7 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/ui/SideBar';
 import Button from '../components/ui/Button';
 import ThemeToggle from '../components/ui/ThemeToggle';
-import { requestsApi, JoinRequest } from '../services/api/requests';
+import { requestsApi, JoinRequest, REQUESTS_CHANGED_EVENT } from '../services/api/requests';
 import { toast } from 'react-hot-toast';
 import { errorMessage } from '../utils/errors';
 import { displayName, initials, profilePath } from '../utils/people';
@@ -187,6 +187,7 @@ const Requests: React.FC = () => {
       setProcessingId(requestId);
 
       const response = await requestsApi.approveRequest(requestId);
+      window.dispatchEvent(new Event(REQUESTS_CHANGED_EVENT));
 
       if (response.success) {
         toast.success(
@@ -212,6 +213,7 @@ const Requests: React.FC = () => {
       setProcessingId(requestId);
 
       const response = await requestsApi.rejectRequest(requestId);
+      window.dispatchEvent(new Event(REQUESTS_CHANGED_EVENT));
 
       if (response.success) {
         toast.success(response.message || 'Request rejected');
