@@ -72,6 +72,7 @@ E2E_DB_URL=jdbc:mysql://127.0.0.1:3307/collabro_throwaway E2E_DB_USERNAME=collab
 | 15 | Deleted accounts | a deleted account's username and e-mail can register again (and again), as a fresh empty account |
 | 16 | History at scale | 105 events: pages, ordering, no event twice, literal search (`%`), filters, counted stats, exact badge counts, the page in the browser |
 | 17 | People | unnamed profiles shown by username (never "New User"), tasks assigned to the owner in the create and edit forms, the Requests page linking to a person's profile page, the public profile page and its endpoint |
+| 18 | Sent requests | the page lists what I asked to join and where each stands (waiting, approved with a link to the workspace, declined with the reason), the owner's badge, filters, and withdrawing after confirming |
 
 ## Files
 

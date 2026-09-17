@@ -133,6 +133,8 @@ export async function runSuite(cfg) {
     owen: { username: 'owen_e2e', email: 'owen@e2e.test', password: 'Passw0rd!twelve' },
     mia: { username: 'mia_e2e', email: 'mia@e2e.test', password: 'Passw0rd!thirteen' },
     nia: { username: 'nia_e2e', email: 'nia@e2e.test', password: 'Passw0rd!fourteen' },
+    pam: { username: 'pam_e2e', email: 'pam@e2e.test', password: 'Passw0rd!fifteen' },
+    quin: { username: 'quin_e2e', email: 'quin@e2e.test', password: 'Passw0rd!sixteen' },
   };
 
   const browser = await puppeteer.launch({ executablePath: cfg.chromePath, headless: 'new', args: ['--no-sandbox'] });
@@ -976,6 +978,103 @@ export async function runSuite(cfg) {
       const ok = await api('GET', `/profile/users/${users.mia.username}`, { token: owen.token });
       check('with a token it returns the public part only', ok.status === 200 && ok.body.displayName === 'Mia Moss' && !('email' in ok.body) && !('phone' in ok.body), ok.text.slice(0, 200));
       check('an unknown username -> 404', (await api('GET', '/profile/users/nobody_at_all', { token: owen.token })).status === 404);
+    });
+
+    // ---------------------------------------------------------------- 18
+    section = '18 Sent requests: where my join requests stand';
+    let pam, quin, projA, projB, projC;
+    const newProject = (token, title) => api('POST', '/projects', { token, json: { title, description: 'd', technologies: ['Java'], teamSize: 4 } }).then((r) => r.body);
+    await step('setup: an owner with three projects, and a person who has not asked to join anything yet', async () => {
+      await registerApi(users.pam); await registerApi(users.quin);
+      pam = await loginApi(users.pam); quin = await loginApi(users.quin);
+      projA = await newProject(pam.token, 'Alpha Project');
+      projB = await newProject(pam.token, 'Beta Project');
+      projC = await newProject(pam.token, 'Gamma Project');
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.quin);
+      await p.goto(BASE + '/my-requests', { waitUntil: 'networkidle0' });
+      check('with nothing sent, the page invites the person to find a project', await waitText(p, 'You have not asked to join any project yet', 6000));
+      await c.close();
+    });
+    await step('a request just sent shows as waiting, and tells the owner there is something to decide', async () => {
+      const r = await api('POST', `/requests/join/${projA.id}`, { token: quin.token, json: { message: 'count me in' } });
+      check('quin asks to join Alpha', r.status === 201, String(r.status));
+      const sentApi = await api('GET', '/requests/sent', { token: quin.token });
+      check('the API names who owns the project', sentApi.body.data[0].ownerUsername === users.pam.username && sentApi.body.data[0].ownerDisplayName === users.pam.username, JSON.stringify(sentApi.body.data[0]).slice(0, 200));
+
+      const q = await newCtx();
+      await uiLogin(q.p, users.quin);
+      await q.p.goto(BASE + '/my-requests', { waitUntil: 'networkidle0' });
+      check('quin sees the request on the Sent Requests page', await waitText(q.p, 'Alpha Project', 6000));
+      const body = await text(q.p);
+      check('as waiting for a reply, sent to the owner, with the message', body.includes('Waiting for a reply') && body.includes(`Sent to ${users.pam.username}`) && body.includes('count me in'), body.slice(0, 300));
+      check('with a Withdraw button', body.includes('Withdraw request'));
+      check('and the sidebar offers both pages', body.includes('Received Requests') && body.includes('Sent Requests'));
+      await q.c.close();
+
+      const o = await newCtx();
+      await uiLogin(o.p, users.pam);
+      await o.p.goto(BASE + '/explore', { waitUntil: 'networkidle0' });
+      check('pam sees a badge of 1 on Received Requests, on a page that has nothing to do with requests', await o.p.waitForSelector('[aria-label="1 waiting for your decision"]', { timeout: 6000 }).then(() => true).catch(() => false));
+      await o.c.close();
+    });
+    await step('approved: quin sees it, can open the workspace, and the badge goes away', async () => {
+      const pending = await api('GET', '/requests/received?status=PENDING', { token: pam.token });
+      const ok = await api('POST', `/requests/${pending.body.data[0].id}/approve`, { token: pam.token });
+      check('pam approves', ok.status === 200, String(ok.status));
+
+      const q = await newCtx();
+      await uiLogin(q.p, users.quin);
+      await q.p.goto(BASE + '/my-requests', { waitUntil: 'networkidle0' });
+      check('quin now sees it as approved', await waitText(q.p, 'You are on the team', 6000));
+      check('and no Withdraw button', !(await text(q.p)).includes('Withdraw request'));
+      await q.p.evaluate(() => [...document.querySelectorAll('a')].find((a) => /open workspace/i.test(a.innerText)).click());
+      await q.p.waitForFunction((id) => location.pathname === '/project/' + id, { timeout: 6000 }, projA.id).catch(() => {});
+      check('"Open workspace" goes to the project workspace', new URL(q.p.url()).pathname === '/project/' + projA.id, q.p.url());
+      check('where quin is now a member', await waitText(q.p, 'Alpha Project', 6000));
+      await q.c.close();
+
+      const o = await newCtx();
+      await uiLogin(o.p, users.pam);
+      await o.p.goto(BASE + '/explore', { waitUntil: 'networkidle0' });
+      await sleep(1000);
+      check('pam has nothing waiting any more, so no badge', (await o.p.$('[aria-label*="waiting for your decision"]')) === null);
+      await o.c.close();
+    });
+    await step('declined: quin sees the owner\'s reason', async () => {
+      const r = await api('POST', `/requests/join/${projB.id}`, { token: quin.token, json: { message: 'please?' } });
+      const pending = await api('GET', '/requests/received?status=PENDING', { token: pam.token });
+      const mine = pending.body.data.find((x) => x.projectId === projB.id);
+      const no = await api('POST', `/requests/${mine.id}/reject`, { token: pam.token, json: { reason: 'The team is full' } });
+      check('pam declines with a reason', r.status === 201 && no.status === 200, `${r.status}/${no.status}`);
+
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.quin);
+      await p.goto(BASE + '/my-requests', { waitUntil: 'networkidle0' });
+      check('quin sees Beta as declined', await waitText(p, 'The owner declined this request', 6000));
+      check('with the reason', (await text(p)).includes('Reason: The team is full'));
+      await p.evaluate(() => [...document.querySelectorAll('button')].find((b) => /^Declined \(/.test(b.innerText.trim())).click());
+      await sleep(300);
+      const filtered = await text(p);
+      check('the Declined filter shows only that one', filtered.includes('Beta Project') && !filtered.includes('Alpha Project'), filtered.slice(0, 200));
+      await c.close();
+    });
+    await step('withdrawing: quin takes a pending request back, after confirming', async () => {
+      await api('POST', `/requests/join/${projC.id}`, { token: quin.token, json: { message: 'on second thought' } });
+      const { c, p } = await newCtx();
+      await uiLogin(p, users.quin);
+      await p.goto(BASE + '/my-requests', { waitUntil: 'networkidle0' });
+      check('Gamma is waiting', await waitText(p, 'Gamma Project', 6000));
+      await clickExact(p, 'Withdraw request');
+      check('quin is asked to confirm, and told what happens', await waitText(p, 'Your request to join Gamma Project will be removed', 4000));
+      await clickExact(p, 'Withdraw');
+      await p.waitForFunction(() => !document.body.innerText.includes('Gamma Project'), { timeout: 6000 }).catch(() => {});
+      check('Gamma is gone from the page', !(await text(p)).includes('Gamma Project'));
+      const sentNow = await api('GET', '/requests/sent', { token: quin.token });
+      check('and from the server: the other two remain', sentNow.body.data.length === 2 && !sentNow.body.data.some((x) => x.projectId === projC.id), String(sentNow.body.data.length));
+      const stats = await api('GET', '/requests/stats', { token: pam.token });
+      check('the owner has nothing waiting', stats.body.data.pendingReceived === 0, JSON.stringify(stats.body.data));
+      await c.close();
     });
   } finally {
     await browser.close();
