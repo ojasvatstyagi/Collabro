@@ -1,0 +1,99 @@
+# Runs the three test suites on every push to main and on every pull request.
+#
+#   backend   JUnit tests on H2 (no database or credentials needed)
+#   frontend  lint, Vitest component and unit tests, and the type-checking production build
+#   e2e       the browser suite: real Chrome against the real backend (H2) and frontend, ~5 minutes;
+#             it only runs once the two fast jobs have passed
+#
+# Nothing here needs a secret: the application gets throwaway values from e2e/run.mjs. The repository has no
+# committed lockfiles (they would record an internal registry), so npm resolves versions from package.json each run.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21' # Lombok does not work on newer JDKs yet
+          cache: maven
+      - name: mvn test
+        run: mvn -B -ntp test
+
+  frontend:
+    name: Frontend lint, tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build (type-checks first)
+        run: npm run build
+
+  e2e:
+    name: End-to-end (Chrome)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies (the suite starts the dev server)
+        run: npm install --no-audit --no-fund
+        working-directory: frontend
+      - name: "Install the e2e runner (puppeteer-core uses the Chrome already on the runner)"
+        run: npm install --no-audit --no-fund
+        working-directory: e2e
+      - name: Run the browser suite
+        run: npm test
+        working-directory: e2e
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+      - name: Keep the logs and screenshots when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-diagnostics
+          path: |
+            e2e/logs
+            e2e/shots
+            e2e/results.json
+          if-no-files-found: ignore
+          retention-days: 7

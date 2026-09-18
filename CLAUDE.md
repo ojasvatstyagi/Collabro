@@ -19,6 +19,9 @@ cd e2e      && npm install && npm test       # real Chrome + real backend (H2) +
 cd e2e      && npm run serve                 # the same stack left running for use by hand: http://localhost:5173, e-mailed codes printed in the terminal
 ```
 
+CI (`.github/workflows/ci.yml`) runs the three suites on every push to `main` and every pull request: backend, frontend
+(lint, tests, build), then e2e. Keep them green; a failed e2e run uploads its logs and screenshots as an artifact.
+
 Run the e2e suite when a change touches request handling, authentication, API response shapes or UI wiring: several
 real bugs were invisible to green unit tests and only showed up there.
 

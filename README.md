@@ -7,6 +7,7 @@
 > **Connect. Collaborate. Create.**  
 > A comprehensive platform designed to bridge the gap between developers, designers, and creators, enabling seamless team formation and project collaboration.
 
+[![CI](https://github.com/ojasvatstyagi/Collabro/actions/workflows/ci.yml/badge.svg)](https://github.com/ojasvatstyagi/Collabro/actions/workflows/ci.yml)
 ![Status](https://img.shields.io/badge/Status-Active-success)
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
