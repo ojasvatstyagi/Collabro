@@ -4,7 +4,7 @@ A reference for anyone (human or AI session) changing this repository. It descri
 where things live, and the non-obvious rules that are easy to break. For what was found and fixed, and what is still
 open, see [AUDIT.md](AUDIT.md). For setup and running, see the root [README](../README.md).
 
-Last verified against the code: 2026-11-23 (backend 403 tests, frontend 134 tests, e2e 254 checks, all passing).
+Last verified against the code: 2026-11-23 (backend 405 tests, frontend 154 tests, e2e 277 checks, all passing).
 
 ## 1. What it is
 
@@ -175,6 +175,12 @@ refresh ─> new access + NEW refresh cookie (old one stays valid 10 s for concu
   by the new request and gets a code (otherwise someone could park a victim's address with their own password and have
   it activated when the owner verifies). The password is hashed in every branch and mail is async, so timing is level
   too. `resend-registration-otp` answers the same for every address. Do not add "address already used" responses.
+- **Join requests, both sides.** The owner decides on `/requests` ("Received Requests"); the requester follows `/my-requests`
+  ("Sent Requests": waiting / approved with a link to the workspace / declined with the owner's reason, and a Withdraw
+  button for pending ones, which deletes the request). `CollaborationRequestDTO` carries `ownerUsername` and
+  `ownerDisplayName` for that page. The sidebar shows a badge of `pendingReceived` (from `GET /requests/stats`) on
+  "Received Requests", refreshed on every page change, once a minute, and when a page fires `REQUESTS_CHANGED_EVENT`
+  (approve, decline, withdraw). There is no push notification: the requester sees the answer when they open the page.
 - Login throttling keys on `request.getRemoteAddr()`. **Behind a reverse proxy every user shares the proxy's address**, so
   the 30-per-address limit would lock everyone out together: set `server.forward-headers-strategy=native` (or
   `framework`) in production, and only when the proxy overwrites `X-Forwarded-For` (otherwise clients can spoof it and
@@ -184,7 +190,7 @@ refresh ─> new access + NEW refresh cookie (old one stays valid 10 s for concu
 
 Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `/forgot-password`,
 `/reset-password`; protected (`ProtectedRoute`) `/explore`, `/profile`, `/achievements`, `/projects`, `/teams`,
-`/project/:projectId` (workspace), `/post-idea`, `/requests`, `/history`, `/settings`, `/users/:username` (another person's profile page, `UserProfile`).
+`/project/:projectId` (workspace), `/post-idea`, `/requests` (requests I **received**, to decide), `/my-requests` (requests I **sent**, with their status), `/history`, `/settings`, `/users/:username` (another person's profile page, `UserProfile`).
 
 - **`BaseApi.handleResponse` already unwraps the server's `{ success, data, count }` envelope.** An API method must
   return `this.get<T>(...)` directly. Unwrapping `response.data.data` again makes every list empty (this broke the whole
@@ -224,6 +230,15 @@ Routes (`App.tsx`): public `/`, `/login`, `/register`, `/verify-registration`, `
   (that is why the page-size cap is in `PagingConfig`).
 
 ## 9. Testing
+
+**CI** (`.github/workflows/ci.yml`): on every push to `main` and every pull request, three jobs on GitHub's Ubuntu runners:
+`backend` (`mvn -B -ntp test`, JDK 21), `frontend` (`npm install`, lint, tests, build, Node 22) and `e2e` (the browser
+suite, which only starts when the other two passed; it uses the Chrome on the runner, and uploads `e2e/logs`, `shots` and
+`results.json` as an artifact when it fails). No secrets are needed. There are no committed lockfiles (they would record
+the internal npm registry), so each run resolves npm versions fresh from `package.json`: a failure that appears with no
+code change is most likely a new dependency release. The workflow was validated by running every step in a clean copy of
+the repository (no `node_modules`, `target` or `backend/.env`) and by parsing the YAML, but it has not been observed on
+GitHub itself: look at the first run.
 
 | Suite | Run | What |
 |---|---|---|
