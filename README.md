@@ -291,6 +291,7 @@ erDiagram
 - **Registration and login** with short-lived JWT access tokens and rotating refresh tokens.
 - **Email verification** and **password reset** using one-time codes.
 - **Change password** and **delete account** (both re-check the current password).
+- **Login throttling**: failed attempts are counted per account and address (HTTP 429 with `Retry-After`).
 - **Role-based access**: `ROLE_USER` and a reserved `ROLE_ADMIN` (no admin features yet).
 
 ### 👤 Profile Management
@@ -303,7 +304,7 @@ erDiagram
 ### 🚀 Projects, Teams & Collaboration
 
 - **Projects**: detailed specs, edit, delete (owner), filter/sort/search when browsing.
-- **Join requests**: apply with a message; the owner approves or rejects; you can re-apply after a rejection or after leaving.
+- **Join requests**: apply with a message; the owner approves or rejects; you can re-apply after a rejection or after leaving. **Received Requests** and **Sent Requests** pages, with a badge for what is waiting.
 - **Teams**: created on the first approval. **My Teams** lists teams you own or belong to; members can leave, owners can remove members.
 - **Tasks, chat and files**: visible and editable only by the owner and team members; files are served as downloads.
 
@@ -315,6 +316,7 @@ erDiagram
 ### 🤝 Networking
 
 - **Profile search** (public, contact details never included) by skill, minimum proficiency, location and education.
+- **Public profile pages** (`/users/:username`) show skills and links, never e-mail or phone.
 - **Suggestions**: people with similar skills, and people with skills you lack.
 
 ---
@@ -326,22 +328,22 @@ erDiagram
 | Tech             | Description                                    |
 | :--------------- | :--------------------------------------------- |
 | **React 18**     | UI Library for building interactive interfaces |
-| **Vite**         | Next Generation Frontend Tooling               |
+| **Vite 8**       | Next Generation Frontend Tooling               |
 | **TypeScript**   | Static typing for better developer experience  |
 | **TailwindCSS**  | Utility-first CSS framework for styling        |
 | **Lucide React** | Beautiful & consistent icon set                |
 | **Axios**        | Promise based HTTP client                      |
-| **React Router** | Declarative routing                            |
+| **React Router 7** | Declarative routing                          |
 
 ### Backend (Server)
 
 | Tech                | Description                                  |
 | :------------------ | :------------------------------------------- |
 | **Java 21**         | Core programming language                    |
-| **Spring Boot 3.4** | Framework for building production-ready apps |
+| **Spring Boot 3.5** | Framework for building production-ready apps |
 | **Spring Security** | Authentication and Access Control            |
 | **Spring Data JPA** | Abstraction over JDBC/Hibernate              |
-| **MySQL**           | Main relational database                     |
+| **MySQL**           | Main relational database (Flyway migrations in production; H2 for dev tests) |
 | **Lombok**          | Boilerplate code reduction                   |
 | **JJWT**            | JWT creation and verification                |
 
@@ -353,10 +355,10 @@ Follow these instructions to set up the project locally.
 
 ### Prerequisites
 
-- **Node.js** (v18+)
+- **Node.js** (v22 recommended; Vite 8 needs 20.19+)
 - **Java JDK** (21)
-- **MySQL** (Running locally or via Docker)
-- **Maven** (Included via wrapper)
+- **MySQL** (running locally or via Docker), only for the backend setup below; to try the app without it, see "Try it without MySQL"
+- **Maven** (a local `mvn`; the wrapper `mvnw` is not executable and downloads its own Maven)
 
 ### 1. Clone the Repository
 
@@ -377,7 +379,7 @@ cp .env.example .env     # then fill it in (it is gitignored)
 **Run the application** (development profile: `ddl-auto=update`, SQL logging on):
 
 ```bash
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 The server starts on `http://localhost:8080` (API docs at `/swagger-ui.html` in development).
@@ -385,10 +387,21 @@ The server starts on `http://localhost:8080` (API docs at `/swagger-ui.html` in 
 **Run the tests** (they use an in-memory H2 database and need no credentials):
 
 ```bash
-./mvnw test
+mvn test
 ```
 
 **Production**: set `SPRING_PROFILES_ACTIVE=prod` and provide every variable in `application-prod.properties` (database, mail, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `UPLOAD_DIR`). That profile validates the schema instead of changing it, hides SQL and the API docs, and sets the refresh cookie `Secure`. The schema must already exist; there is no migration tool yet.
+
+### Try it without MySQL
+
+The browser-suite stack runs the real backend on an in-memory H2 database, the frontend, and a local mail sink that
+prints the e-mailed codes in the terminal:
+
+```bash
+cd e2e && npm install && npm run serve
+```
+
+Open `http://localhost:5173`, register, and copy the verification code from the terminal. Needs ports 8080, 5173 and 2525.
 
 ### 3. Frontend Setup
 
@@ -427,7 +440,7 @@ The application will be available at `http://localhost:5173` (it proxies `/api` 
 
 - [ ] **Real-time Chat**: WebSocket implementation for team communication.
 - [ ] **AI Recommendation Engine**: Analyzing user skills to suggest the perfect team.
-- [ ] **CI/CD Integration**: Automated testing and deployment pipelines.
+- [x] **CI**: GitHub Actions runs the backend, frontend and browser suites on every push and pull request (deployment is not automated yet).
 - [ ] **Mobile App**: Native mobile experience using React Native.
 
 ---

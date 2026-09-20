@@ -1,6 +1,6 @@
 # Working in Collabro
 
-Spring Boot 3.4 (Java 21) backend in `backend/`, React 18 + TypeScript + Vite frontend in `frontend/`, browser
+Spring Boot 3.5 (Java 21) backend in `backend/`, React 18 + TypeScript + Vite frontend in `frontend/`, browser
 end-to-end suite in `e2e/`.
 
 **Read these first, they save a lot of time:**
@@ -13,9 +13,9 @@ end-to-end suite in `e2e/`.
 ## Commands
 
 ```bash
-cd backend  && mvn test                      # JDK 21 required (Lombok breaks on newer JDKs); ~290 tests, H2, no credentials
+cd backend  && mvn test                      # JDK 21 required (Lombok breaks on newer JDKs); ~405 tests, H2, no credentials
 cd frontend && npm test && npm run lint && npm run build     # build type-checks first
-cd e2e      && npm install && npm test       # real Chrome + real backend (H2) + frontend; ~2 min; needs ports 8080/5173/2525
+cd e2e      && npm install && npm test       # real Chrome + real backend (H2) + frontend; ~277 checks, ~5 min; needs ports 8080/5173/2525
 cd e2e      && npm run serve                 # the same stack left running for use by hand: http://localhost:5173, e-mailed codes printed in the terminal
 ```
 
