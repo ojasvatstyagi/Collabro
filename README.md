@@ -306,7 +306,7 @@ erDiagram
 - **Projects**: detailed specs, edit, delete (owner), filter/sort/search when browsing.
 - **Join requests**: apply with a message; the owner approves or rejects; you can re-apply after a rejection or after leaving. **Received Requests** and **Sent Requests** pages, with a badge for what is waiting.
 - **Teams**: created on the first approval. **My Teams** lists teams you own or belong to; members can leave, owners can remove members.
-- **Tasks, chat and files**: visible and editable only by the owner and team members; files are served as downloads.
+- **Tasks, chat and files** (chat refreshes by polling every 5 s): visible and editable only by the owner and team members; files are served as downloads.
 
 ### 📈 Activity & Achievements
 
@@ -438,7 +438,7 @@ The application will be available at `http://localhost:5173` (it proxies `/api` 
 
 ## 🌟 Future Roadmap
 
-- [ ] **Real-time Chat**: WebSocket implementation for team communication.
+- [ ] **Real-time Chat**: WebSocket push for team communication (chat works today by polling every 5 seconds, so messages can take a few seconds to appear).
 - [ ] **AI Recommendation Engine**: Analyzing user skills to suggest the perfect team.
 - [x] **CI**: GitHub Actions runs the backend, frontend and browser suites on every push and pull request (deployment is not automated yet).
 - [ ] **Mobile App**: Native mobile experience using React Native.
